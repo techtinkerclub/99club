@@ -148,6 +148,12 @@ async function run(){
   const floatingSettings=document.getElementById('gd-board-floating-controls');
   assert(money.classList.contains('has-settings'),'Context Settings marks the manipulative as having active settings');
   assert(visible(floatingSettings)&&/UK money settings/i.test(floatingSettings.textContent),'Context Settings opens a whiteboard-level floating palette outside the widget');
+  const assertInspectorLayout=(panel,label)=>{
+    const bounds=board.getBoundingClientRect(),r=panel.getBoundingClientRect(),head=panel.querySelector('[data-board-controls-drag]'),close=panel.querySelector('[data-board-controls-close]'),body=panel.querySelector('.gd-board-floating-controls-body'),c=close.getBoundingClientRect();
+    assert(visible(panel)&&r.left>=bounds.left-2&&r.top>=bounds.top-2&&r.right<=bounds.right+2&&r.bottom<=bounds.bottom+2,'Inspector stays in available board: '+label);
+    assert(visible(close)&&c.left>=r.left-1&&c.right<=r.right+1&&c.top>=r.top-1&&c.bottom<=r.bottom+1,'Close control remains reachable: '+label);
+    assert(head.querySelector('.gd-board-controls-grip')&&getComputedStyle(body).overflowY==='auto','Consistent drag header and scrolling body: '+label);
+  };
   const floatingRect=floatingSettings.getBoundingClientRect();
   assert(floatingRect.width<=300&&floatingRect.height<=innerHeight*.7,'Floating settings palette stays compact enough to sit beside the maths');
   const boardBounds=document.getElementById('gd-mixed-board').getBoundingClientRect();assert(floatingRect.left>=boardBounds.left-1&&floatingRect.top>=boardBounds.top-1&&floatingRect.right<=boardBounds.right+1&&floatingRect.bottom<=boardBounds.bottom+1,'Settings inspector remains within the board');assert(floatingSettings.querySelector('.gd-board-controls-grip'),'Shared inspector has visible drag grip');assert(getComputedStyle(floatingSettings.querySelector('.gd-board-floating-controls-body')).overflowY==='auto','Inspector scrolls its body independently');
@@ -160,6 +166,10 @@ async function run(){
   pointer(document,'pointerup',floatingBefore.left+120,floatingBefore.top+85,39);
   const floatingAfter=floatingSettings.getBoundingClientRect();
   assert(Math.abs(floatingAfter.left-floatingBefore.left)>40||Math.abs(floatingAfter.top-floatingBefore.top)>30,'Floating settings palette can be dragged away from the manipulative');
+  const panelTestHeight=board.style.height;board.style.height='320px';window.dispatchEvent(new Event('resize'));await tick(70);
+  assertInspectorLayout(floatingSettings,'Money settings, short board');
+  board.style.height=panelTestHeight;window.dispatchEvent(new Event('resize'));await tick(70);
+  assertInspectorLayout(floatingSettings,'Money settings, restored board');
   floatingSettings.querySelector('[data-board-controls-close]').click();await tick();
   assert(!visible(floatingSettings)&&!money.classList.contains('has-settings'),'Floating settings palette closes independently without removing the widget');
   const helpFixture={title:'UK money',intro:'Count the coins.',steps:['Choose a coin','Add it to the board'],example:'Two 10p coins make 20p.',history:'UK currency uses pounds and pence.'};
@@ -2600,17 +2610,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
   for(const id of ['place-value','abacus','maths-canvas','sequences','column-addition','column-subtraction','written-multiplication','written-division','statistics-table','function-machine','angles']){
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
     fixture.frame.querySelector('[data-board-settings]').click();await tick();
-    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);
+    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);await tick(40);assertInspectorLayout(panel,id+' teaching settings');
     panel.querySelector('[data-board-controls-close]').click();await tick();
     const challengeButton=fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]');assert(challengeButton,'Frame Challenge action exists for '+id);challengeButton.click();await tick();
-    assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);
+    assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);await tick(40);assertInspectorLayout(panel,id+' quick challenge');
     if(id==='angles'){
       const groups=JSON.parse(fixture.doc.querySelector('[data-gd-native-prefix="ag"]').dataset.gdNativeGroups),group=groups.find(g=>g.id==='properties'),chip=[...panel.querySelectorAll('[data-board-launcher-category]')].find(n=>n.dataset.boardLauncherCategory===group.id);assert(chip,'Quick geometry category uses stable identity');chip.click();await tick();
       assert(panel.querySelector('[data-board-launcher-category="properties"]').getAttribute('aria-pressed')==='true'&&panel.querySelector('.gd-launch-category-random').textContent==='Random · '+group.label,'Selected category has explicit matching random action');
       assert([...panel.querySelectorAll('[data-ag-challenge-mode]')].every(n=>group.ids.includes(n.dataset.agChallengeMode)),'Specific questions belong to selected category');
     }
     panel.querySelector('[data-board-launcher-settings]').click();await tick();
-    assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);
+    assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);await tick(40);assertInspectorLayout(panel,id+' challenge settings');
     if(id==='angles'){
       const catalogue=panel.querySelector('.gd-ag-challenge-catalogue'),settings=panel.querySelector('details[data-ag-section="settings"]');
       assert(catalogue&&catalogue.querySelectorAll('details[data-ag-section]').length===8&&!catalogue.querySelector('details[open]'),'Geometry full challenge panel starts with eight compact primary categories');
@@ -2694,12 +2704,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
   for(const [id,prefix] of [['fraction-wall','fw'],['bar-model','bm'],['hundred-square','hs'],['multiplication-grid','mg'],['array-builder','ab'],['clock','cl'],['money','mo'],['coordinates','co'],['measurement','me'],['times-table','tv'],['factors','fe'],['fdp','fd']]){
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
     fixture.frame.querySelector('[data-board-settings]').click();await tick();
-    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Normal settings open for '+id);
+    assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Normal settings open for '+id);await tick(40);assertInspectorLayout(panel,id+' teaching settings');
     panel.querySelector('[data-board-controls-close]').click();await tick();
     fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick();
-    assert(panel.dataset.panelMode==='challenge'&&panel.querySelector('[data-gd-random-scope="all"]'),'Quick challenge available for '+id);
+    assert(panel.dataset.panelMode==='challenge'&&panel.querySelector('[data-gd-random-scope="all"]'),'Quick challenge available for '+id);await tick(40);assertInspectorLayout(panel,id+' quick challenge');
     panel.querySelector('[data-board-launcher-settings]').click();await tick();
-    assert(panel.dataset.panelMode==='challenge-settings'&&panel.querySelector('.gd-panel-challenge-picker'),'Shared full challenge settings for '+id);
+    assert(panel.dataset.panelMode==='challenge-settings'&&panel.querySelector('.gd-panel-challenge-picker'),'Shared full challenge settings for '+id);await tick(40);assertInspectorLayout(panel,id+' challenge settings');
     panel.querySelector('[data-gd-random-scope="all"]').click();await tick(70);
     const model=fixture.doc.defaultView.TT99Goodies.lessonState.capture(id).model;
     assert(model.challenge||model.state?.challenge||fixture.doc.querySelector('#gd-stage .gd-challenge-banner'),'Full settings Random actually generates for '+id);
