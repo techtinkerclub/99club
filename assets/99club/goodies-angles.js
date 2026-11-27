@@ -1159,14 +1159,14 @@ function generate(s={},rng=Math.random){
  function shapeSymmetry(pts){
    const n=pts.length,centre=[0,1].map(k=>pts.reduce((s,p)=>s+p[k],0)/n),v=pts.map(p=>labSub(p,centre)),scale=Math.max(...v.map(p=>Math.hypot(...p))),eps=scale*1e-8;
    const i=v.findIndex(p=>Math.hypot(...p)>eps);if(i<0)return {reflection:0,rotation:0};
-   const len=Math.hypot(...v[i]),close=(a,b)=>labDist(a,b)<=eps;let reflection=0,rotation=0;
+   const len=Math.hypot(...v[i]),close=(a,b)=>labDist(a,b)<=eps;let reflection=0,rotation=0;const axes=[];
    for(let j=0;j<n;j++){
      if(Math.abs(Math.hypot(...v[j])-len)>eps)continue;
      const alpha=Math.atan2(v[i][1],v[i][0]),beta=Math.atan2(v[j][1],v[j][0]),q=beta-alpha,axis=(alpha+beta)/2,co=Math.cos(q),si=Math.sin(q),u=[Math.cos(axis),Math.sin(axis)];
      if(v.every((p,k)=>close([co*p[0]-si*p[1],si*p[0]+co*p[1]],v[(j+k-i+n)%n])))rotation++;
-     if(v.every((p,k)=>close([2*labDot(p,u)*u[0]-p[0],2*labDot(p,u)*u[1]-p[1]],v[(j+i-k+2*n)%n])))reflection++;
+     if(v.every((p,k)=>close([2*labDot(p,u)*u[0]-p[0],2*labDot(p,u)*u[1]-p[1]],v[(j+i-k+2*n)%n]))){reflection++;axes.push(u)}
    }
-   return {reflection,rotation};
+   return {reflection,rotation,axes,centre};
  }
  function shapeTeachingReference(d={}){
    if(d.mode!=='polygon'||['triangle-comparison','triangle-criterion','triangle-inequality'].includes(d.shapeView))return null;
@@ -1204,7 +1204,7 @@ function generate(s={},rng=Math.random){
      const apothem=base/(2*Math.tan(Math.PI/n));formulas.push(['Regular polygon','P = ns; A = ½P × apothem'],['Apothem',fmt(apothem)+' cm']);
    }else formulas.push(['Irregular polygon','Split into non-overlapping triangles; add their areas.']);
    formulas.push(['Lengths','Model centimetres; display may be rescaled.']);
-   return {valid:true,kind,points:pts,n,area,perimeter,symmetry:sym,groups:[{title:'Properties & angles',rows:properties},{title:'Diagonals & triangulation',rows:diagonals},{title:'Formulae & example values',rows:formulas}]};
+   return {valid:true,kind,points:pts,n,area,perimeter,symmetry:sym,polygon:p,quad,groups:[{title:'Properties & angles',rows:properties},{title:'Diagonals & triangulation',rows:diagonals},{title:'Formulae & example values',rows:formulas}]};
  }
  function shapeGeometry(d){
    const shape=d.shapeView,w=300,h=shape==='square'?300:Math.max(90,Math.min(280,d.shapeHeight||180)),theta=shape==='rectangle'||shape==='square'?90:Math.max(25,Math.min(85,d.shapeAngle||65)),base=shape==='scalene'?Math.max(20,Math.min(48,d.shapeBaseAngle||40)):Math.max(20,Math.min(75,d.shapeBaseAngle||50));
@@ -1975,14 +1975,66 @@ function methodPublication(data,teacher=false){
  }
  para(m.conditions,15);svg.setAttribute('viewBox','0 0 '+W+' '+Math.ceil(y+12));return svg
 }
+// Small purpose-specific diagrams keep the main explorer uncluttered.
+function shapeReferenceGraphic(m,kind){
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=320,H=200,pts=m.points,n=pts.length,p=m.polygon;
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const line=(u,v,attrs={})=>add('line',{x1:u[0],y1:u[1],x2:v[0],y2:v[1],stroke:'#277b70','stroke-width':2,...attrs});
+ const label=(q,value,attrs={})=>add('text',{x:q[0],y:q[1],fill:'#263e43','font-family':'Arial,sans-serif','font-size':14,'text-anchor':'middle','paint-order':'stroke',stroke:'#fff','stroke-width':3,...attrs},value);
+ const poly=(q,attrs={})=>add('polygon',{points:q.map(v=>v.join(',')).join(' '),fill:'#eef6f2',stroke:'#35565a','stroke-width':1.8,...attrs});
+ const base=labSub(pts[1],pts[0]),len=Math.hypot(...base),foot=q=>labAt(pts[0],base,labDot(labSub(q,pts[0]),base)/(len*len));
+ let altitude=null,parallelSide=null;
+ if(kind==='area'&&(n===3||m.quad?.parallelPairs.length)){
+   let i=0;if(n===4&&!m.quad.parallelPairs.includes(0))i=1;
+   const start=pts[i],v=labSub(pts[(i+1)%n],start),q=pts[(i+2)%n],f=labAt(start,v,labDot(labSub(q,start),v)/labDot(v,v));
+   altitude={a:start,b:pts[(i+1)%n],q,f};if(n===4)parallelSide=[pts[(i+2)%n],pts[(i+3)%n]];
+ }
+ const ext=altitude?[...pts,altitude.f]:pts,xs=ext.map(q=>q[0]),ys=ext.map(q=>q[1]),cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2,s=Math.min(205/Math.max(1,Math.max(...xs)-Math.min(...xs)),122/Math.max(1,Math.max(...ys)-Math.min(...ys))),map=q=>[160+(q[0]-cx)*s,88+(q[1]-cy)*s],v=pts.map(map);
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',kind==='symmetry'?'Reflection axes of the current shape':kind==='diagonals'?'Diagonals and triangulation of the current shape':'Area measurements of the current shape');svg.dataset.agReferenceGraphic=kind;
+ add('rect',{width:W,height:H,fill:'#fff'});poly(v);
+ const mid=(a,b)=>labAt(a,labSub(b,a),.5),fmt=x=>Number(x.toFixed(2)).toString();
+ if(kind==='symmetry'){
+   const centre=map(m.symmetry.centre);
+   for(const axis of m.symmetry.axes){const limits=v.map(q=>labDot(labSub(q,centre),axis)),lo=Math.min(...limits)-13,hi=Math.max(...limits)+13;line(labAt(centre,axis,lo),labAt(centre,axis,hi),{stroke:'#b56d2c','stroke-dasharray':'5 4','data-ag-reflection-axis':'1'})}
+   add('circle',{cx:centre[0],cy:centre[1],r:3,fill:'#277b70','data-ag-rotation-centre':'1'});
+   label([160,174],m.symmetry.reflection+' reflection '+(m.symmetry.reflection===1?'axis':'axes'));
+   label([160,192],m.symmetry.rotation>1?'Smallest rotation: '+fmt(360/m.symmetry.rotation)+'°':'Only a full 360° rotation matches');
+ }else if(kind==='diagonals'){
+   if(n===4){line(v[0],v[2],{'data-ag-reference-diagonal':'AC','stroke-dasharray':'5 3'});line(v[1],v[3],{stroke:'#b56d2c','data-ag-reference-diagonal':'BD','stroke-dasharray':'5 3'});if(m.quad?.intersection){const q=map(m.quad.intersection);add('circle',{cx:q[0],cy:q[1],r:3,fill:'#263e43'})}}
+   else if(n>3){for(const [j,tri] of p.triangles.entries())poly(tri.map(i=>v[i]),{fill:REGION_COLOURS[j%REGION_COLOURS.length],'fill-opacity':.22,stroke:'none','data-ag-reference-triangle':j});for(const [i,j] of p.diagonals)line(v[i],v[j],{'stroke-dasharray':'5 3','data-ag-reference-diagonal':i+':'+j});poly(v,{fill:'none'})}
+   v.forEach((q,i)=>{const offset=labSub(q,[160,88]),k=Math.max(1,Math.hypot(...offset));label(labAt(q,offset,13/k),pointName(i),{'dominant-baseline':'central','font-size':12})});
+   label([160,174],p.diagonalCount+' possible diagonal'+(p.diagonalCount===1?'':'s'));
+   label([160,192],n===4?'Both vertex-to-vertex diagonals shown':(n-2)+' triangle'+(n===3?'':'s')+' in a triangulation');
+ }else{
+   if(altitude){
+     const {a,b,q,f}=altitude,A=map(a),B=map(b),Q=map(q),F=map(f),u=labSub(B,A),h=labSub(Q,F),ul=Math.hypot(...u),hl=Math.hypot(...h),u1=u.map(x=>x/ul),h1=h.map(x=>x/hl);
+     line(A,B,{stroke:'#277b70','stroke-width':4,'data-ag-reference-base':'1'});
+     if(labDot(labSub(F,A),u)<0)line(F,A,{'stroke-dasharray':'3 4'});else if(labDot(labSub(F,B),u)>0)line(B,F,{'stroke-dasharray':'3 4'});
+     line(Q,F,{stroke:'#b56d2c','stroke-dasharray':'5 3','data-ag-reference-height':'1'});
+     const corner=[labAt(F,u1,8),labAt(labAt(F,u1,8),h1,8),labAt(F,h1,8)];
+     add('polyline',{points:corner.map(v=>v.join(',')).join(' '),fill:'none',stroke:'#b56d2c','stroke-width':1.5,'data-ag-reference-right-angle':'1'});
+     if(parallelSide)line(...parallelSide.map(map),{stroke:'#277b70','stroke-width':3,'data-ag-reference-parallel-base':'1'});
+     label([160,174],'Base = '+fmt(labDist(a,b)/LAB_UNIT)+' cm; height = '+fmt(labDist(q,f)/LAB_UNIT)+' cm');
+   }else if(m.quad?.kind==='Kite'){
+     line(v[0],v[2],{'data-ag-reference-area-diagonal':'AC'});line(v[1],v[3],{stroke:'#b56d2c','data-ag-reference-area-diagonal':'BD'});
+     label([160,174],'A = ½ × diagonal × diagonal');
+   }else{
+     for(const [j,tri] of p.triangles.entries())poly(tri.map(i=>v[i]),{fill:REGION_COLOURS[j%REGION_COLOURS.length],'fill-opacity':.28,stroke:'#fff','stroke-width':1,'data-ag-reference-area-triangle':j});
+     poly(v,{fill:'none'});label([160,174],'Area = sum of the triangle areas');
+   }
+   label([160,192],'Area = '+fmt(m.area)+' cm²');
+ }
+ return svg;
+}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
  const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').split(/\\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
  const bg=add('rect',{x,y:y+h,width:w,height:1,fill:'#fff','data-ag-shape-reference':'1'});
  const size=Math.max(15,Math.min(21,w/34)),margin=20;
- for(const group of m.groups){
+ for(const [i,group] of m.groups.entries()){
    add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55','data-ag-shape-reference-group':group.title},group.title);at+=size+12;
+   const graphic=shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),gw=Math.min(w-40,390),gh=gw*200/320;graphic.setAttribute('x',x+(w-gw)/2);graphic.setAttribute('y',at);graphic.setAttribute('width',gw);graphic.setAttribute('height',gh);svg.append(graphic);at+=gh+8;
    for(const [label,value] of group.rows){
      const lines=G.exportTools.wrapPaperText(label+': '+value,w-2*margin,size,400);
      for(const line of lines){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}
@@ -2928,6 +2980,7 @@ G.anglesTool=function(){
     if(!reference)return;const m=shapeTeachingReference(d),body=q('[data-ag-shape-reference-body]',reference);
     if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';return}
     body.innerHTML=m.groups.map(g=>'<section><h4>'+esc(g.title)+'</h4><dl>'+g.rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('')+'</dl></section>').join('');
+    [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
   // snapped degree, but pointer capture and the coordinate transform survive.

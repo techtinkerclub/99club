@@ -3232,6 +3232,14 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section').length===3&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
       const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);
       assert(printed.querySelectorAll('[data-ag-shape-reference-group]').length===3&&printed.textContent.includes('A = lw'),'Published teaching diagram includes reference');
+      assert(panel.querySelectorAll('[data-ag-reference-graphic]').length===3,'Reference contains three dedicated visual explanations');
+      assert(panel.querySelectorAll('[data-ag-reflection-axis]').length===2&&panel.querySelectorAll('[data-ag-reference-diagonal]').length===2&&panel.querySelector('[data-ag-reference-right-angle]'),'Rectangle graphics show actual reflection axes, diagonals and perpendicular height');
+      assert(printed.querySelectorAll('[data-ag-reference-graphic]').length===3,'Reference graphics included in publication');
+      assert(win.TT99Goodies.modeControl.set('polygon:square'),'Square visual reference accessible');await tick();
+      assert(doc.querySelector('.gd-ag-shape-reference').querySelectorAll('[data-ag-reflection-axis]').length===4,'Square reference shows four axes, not rectangle defaults');
+      assert(win.TT99Goodies.modeControl.set('polygon:free-polygon'),'Free polygon visual reference accessible');await tick();
+      assert(doc.querySelector('.gd-ag-shape-reference').querySelectorAll('[data-ag-reference-triangle]').length===cap().demo.n-2,'Polygon reference shows actual ear-clipped triangulation');
+
     }
     const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
