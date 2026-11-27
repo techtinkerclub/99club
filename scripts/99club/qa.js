@@ -1318,7 +1318,7 @@ try {
    const d=model.generate({type,enrichment:true});
    if(type==='co-interior'&&Number(d.answer)!==180-d.angle)throw Error('Co-interior answer');
    if(type==='similar-side'&&Number(d.answer)!==d.factor*d.length)throw Error('Similarity answer');
-   if(type==='pythagoras'&&Number(d.answer)**2!==d.baseLength**2+d.length**2)throw Error('Pythagoras answer');
+   if(type==='pythagoras'){if(!['base','height','hypotenuse'].includes(d.missingSide)||d.hypotenuse**2!==d.baseLength**2+d.length**2||Number(d.answer)!==(d.missingSide==='base'?d.baseLength:d.missingSide==='height'?d.length:d.hypotenuse))throw Error('Pythagoras answer or right-triangle invariant');}
    if(!d.prompt||!d.answer)throw Error('Empty reasoning challenge');
  }
  for(const kind of ['circle','bisector'])for(let i=0;i<1000;i++){
