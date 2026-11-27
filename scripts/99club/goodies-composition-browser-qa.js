@@ -3424,6 +3424,14 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
               const key=tab.dataset.agTeachingTab;if(tab.hidden||tab.disabled)continue;tab.click();await tick(20);
               const bound=stage.getBoundingClientRect(),nav=panel.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect();
               const overflowX=stage.scrollWidth-stage.clientWidth,overflowY=stage.scrollHeight-stage.clientHeight;
+              if(key==='properties'&&['trapezium','kite'].includes(shape)){
+                const area=panel.querySelector('[data-ag-reference-graphic="area"]'),checks=shape==='trapezium'?[['[data-ag-reference-second-base]','[data-ag-reference-parallel-base]']]:[['[data-ag-reference-diagonal-dimension="d₁"]','[data-ag-reference-area-diagonal="AC"]'],['[data-ag-reference-diagonal-dimension="d₂"]','[data-ag-reference-area-diagonal="BD"]']];
+                for(const [labelSelector,lineSelector] of checks){
+                  const label=area?.querySelector(labelSelector),line=area?.querySelector(lineSelector);
+                  const angle=Number(label?.getAttribute('transform')?.slice(7).split(' ')[0]),dx=Number(line?.getAttribute('x2'))-Number(line?.getAttribute('x1')),dy=Number(line?.getAttribute('y2'))-Number(line?.getAttribute('y1'));
+                  if(!label||!line||!Number.isFinite(angle)||Math.abs(angle)>90.00001||Math.abs(Math.sin(angle*Math.PI/180-Math.atan2(dy,dx)))>1e-6)teachingAudit.push({width,height,shape,key,dimension:labelSelector,problem:'missing or misaligned label'});
+                }
+              }
               if(overflowX>3||overflowY>3||nav.top<bound.top-2||nav.bottom>bound.bottom+2)teachingAudit.push({width,height,shape,key,overflowX,overflowY});
             }
           }
