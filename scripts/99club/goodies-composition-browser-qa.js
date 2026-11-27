@@ -150,6 +150,7 @@ async function run(){
   assert(visible(floatingSettings)&&/UK money settings/i.test(floatingSettings.textContent),'Context Settings opens a whiteboard-level floating palette outside the widget');
   const floatingRect=floatingSettings.getBoundingClientRect();
   assert(floatingRect.width<=300&&floatingRect.height<=innerHeight*.7,'Floating settings palette stays compact enough to sit beside the maths');
+  const boardBounds=document.getElementById('gd-mixed-board').getBoundingClientRect();assert(floatingRect.left>=boardBounds.left-1&&floatingRect.top>=boardBounds.top-1&&floatingRect.right<=boardBounds.right+1&&floatingRect.bottom<=boardBounds.bottom+1,'Settings inspector remains within the board');assert(floatingSettings.querySelector('.gd-board-controls-grip'),'Shared inspector has visible drag grip');assert(getComputedStyle(floatingSettings.querySelector('.gd-board-floating-controls-body')).overflowY==='auto','Inspector scrolls its body independently');
   const floatingHelp=floatingSettings.querySelector('.gd-help:not([role="status"])');
   if(floatingHelp)assert(getComputedStyle(floatingHelp).display==='none','Long instructional help is hidden in the compact whiteboard palette');
   assert(!money.classList.contains('has-context-menu'),'Settings closes the transient context menu');
