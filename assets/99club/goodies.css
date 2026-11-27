@@ -2503,3 +2503,11 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 
 #tt99-goodies-root .gd-ag-local-instrument{gap:4px;padding:3px 5px}
 #tt99-goodies-root .gd-ag-local-instrument button:focus-visible{outline:2px solid #16796e;outline-offset:-2px}
+
+/* Floating palettes: scroll only the body so the drag/close controls remain reachable. */
+#tt99-goodies-root .gd-ag-full-panel:not([hidden]){display:flex;flex-direction:column;overflow:hidden}
+#tt99-goodies-root .gd-ag-full-panel-head{flex:none;justify-content:flex-start;gap:5px;padding:1px 2px 4px}
+#tt99-goodies-root .gd-ag-full-panel-head strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tt99-goodies-root .gd-ag-panel-grip{color:#5b8279;font-size:17px;line-height:1;flex:none}
+#tt99-goodies-root .gd-ag-full-panel-content{min-height:0;overflow:auto;overscroll-behavior:contain}
+#tt99-goodies-root .gd-ag-local-instrument>span{min-width:0;flex:1 1 84px}
