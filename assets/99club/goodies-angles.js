@@ -1120,39 +1120,41 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  // Temporary measuring utensils are separate from the mathematical drawing.
  // All positions and dimensions use the same world units as constructed marks.
  function measuringUtensils(parent,getSvg,onPaint){
-   const N='http://www.w3.org/2000/svg',specs={ruler:{label:'10 cm ruler',arm:420},protractor:{label:'Protractor',arm:192},square45:{label:'45° set square',arm:220},square30:{label:'30°–60° set square',arm:220}};
+   const N='http://www.w3.org/2000/svg',specs={ruler:{label:'Ruler',size:400,min:80,max:4000},protractor:{label:'Protractor',size:170,min:120,max:1200},square45:{label:'45° set square',size:200,min:80,max:2000},square30:{label:'30°–60° set square',size:200,min:80,max:2000}};
    let items=[],selected=null,next=1,drag=null,opened=false,visible=true;
    const bar=document.createElement('div');bar.className='gd-ag-utensils gd-ag-lab-helpers';bar.hidden=true;bar.setAttribute('role','group');bar.setAttribute('aria-label','Measuring utensils');parent.append(bar);
    const additions=document.createElement('div');additions.className='gd-ag-lab-actions';bar.append(additions);
    const actions=document.createElement('div');actions.className='gd-ag-lab-actions';bar.append(actions);
    const node=(p,tag,attrs,value)=>{const e=document.createElementNS(N,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(value!==undefined)e.textContent=value;p.append(e);return e};
-   function add(kind){const svg=getSvg(),v=svg.viewBox.baseVal,k=items.length%5;visible=true;opened=true;const p={id:String(next++),kind,x:v.x+v.width*.32+k*18,y:v.y+v.height*.52+k*18,angle:0};items.push(p);selected=p.id;onPaint()}
+   function add(kind){const svg=getSvg(),v=svg.viewBox.baseVal,k=items.length%5;visible=true;opened=true;const p={id:String(next++),kind,x:v.x+v.width*.32+k*18,y:v.y+v.height*.52+k*18,angle:0,size:specs[kind].size};items.push(p);selected=p.id;onPaint()}
    for(const [kind,spec] of Object.entries(specs))instrumentButton(additions,kind,spec.label,'Add '+spec.label,()=>add(kind),'agUtensilAdd');
    const hide=instrumentButton(actions,'select','Hide utensils','Hide or show measuring utensils',()=>{visible=!visible;selected=null;onPaint()},'agUtensilAction');hide.dataset.agUtensilAction='visibility';
    const remove=instrumentButton(actions,'erase','Remove','Remove selected measuring utensil',()=>{items=items.filter(t=>t.id!==selected);selected=null;onPaint()},'agUtensilAction');remove.dataset.agUtensilAction='remove';
    const rotate=instrumentButton(actions,'reset','Rotate 15°','Rotate selected measuring utensil by 15 degrees',()=>{const t=items.find(t=>t.id===selected);if(t){t.angle=mod(t.angle+15);onPaint()}},'agUtensilAction');rotate.dataset.agUtensilAction='rotate';
    const label=document.createElement('span');label.className='gd-ag-inspect-message';bar.append(label);
    function paint(svg){
-     bar.hidden=!opened;remove.hidden=rotate.hidden=!selected||!visible;hide.hidden=!items.length;hide.querySelector('span').textContent=visible?'Hide utensils':'Show utensils';hide.setAttribute('aria-pressed',String(!visible));label.textContent=selected&&visible?'Drag body to move · Drag round handle to rotate':'Choose a measuring utensil, then drag it on the drawing.';
+     bar.hidden=!opened;remove.hidden=rotate.hidden=!selected||!visible;hide.hidden=!items.length;hide.querySelector('span').textContent=visible?'Hide utensils':'Show utensils';hide.setAttribute('aria-pressed',String(!visible));const chosen=items.find(t=>t.id===selected);label.textContent=chosen&&visible?specs[chosen.kind].label+' · '+Number((chosen.size/LAB_UNIT).toFixed(1))+' cm'+(chosen.kind==='protractor'?' radius':chosen.kind.startsWith('square')?' base':'')+' · Drag round handle to rotate, square handle to resize.':'Choose a measuring utensil, then drag it on the drawing.';
      if(!visible)return;
      const layer=node(svg,'g',{'data-ag-utensil-layer':'1'});
-     for(const t of items){
-       const spec=specs[t.kind],g=node(layer,'g',{'data-ag-utensil':t.id,'data-ag-utensil-kind':t.kind,'data-ag-utensil-angle':t.angle,'data-ag-utensil-selected':String(t.id===selected),transform:'translate('+t.x+' '+t.y+') rotate('+(-t.angle)+')',cursor:'move'});
-       if(t.kind==='ruler')G.instruments.ruler(g,{width:10*LAB_UNIT,length:10,height:44,tickHeight:23,labelSize:11,nonScaling:false});
-       else if(t.kind==='protractor')G.instruments.protractor(g,{radius:170});
-       else G.instruments.setSquare(g,{points:[[0,0],[200,0],[0,-(t.kind==='square45'?200:200*Math.sqrt(3))]],angles:t.kind==='square45'?[90,45,45]:[90,60,30],kind:t.kind,unitsPerCm:LAB_UNIT});
+     for(const t of [...items.filter(t=>t.id!==selected),...items.filter(t=>t.id===selected)]){
+       const g=node(layer,'g',{'data-ag-utensil':t.id,'data-ag-utensil-kind':t.kind,'data-ag-utensil-angle':t.angle,'data-ag-utensil-size':t.size,'data-ag-utensil-selected':String(t.id===selected),transform:'translate('+t.x+' '+t.y+') rotate('+(-t.angle)+')',cursor:'move'});
+       if(t.kind==='ruler')G.instruments.ruler(g,{width:t.size,length:t.size/LAB_UNIT,height:44,tickHeight:23,labelSize:11,nonScaling:false});
+       else if(t.kind==='protractor')G.instruments.protractor(g,{radius:t.size});
+       else G.instruments.setSquare(g,{points:[[0,0],[t.size,0],[0,-(t.kind==='square45'?t.size:t.size*Math.sqrt(3))]],angles:t.kind==='square45'?[90,45,45]:[90,60,30],kind:t.kind,unitsPerCm:LAB_UNIT});
        if(t.id===selected){
-         const scale=Math.hypot(svg.getScreenCTM()?.a||1,svg.getScreenCTM()?.b||0),r=Math.max(6,Math.min(400,13/scale));
-         node(g,'line',{x1:0,y1:0,x2:spec.arm,y2:0,stroke:'#b45309','stroke-width':1.5,'stroke-dasharray':'4 4','pointer-events':'none'});
+         const scale=Math.hypot(svg.getScreenCTM()?.a||1,svg.getScreenCTM()?.b||0),r=Math.max(6,Math.min(400,13/scale)),arm=t.size+3*r,resize=t.kind==='protractor'?[0,-t.size]:[t.size,0];
+         node(g,'line',{x1:t.size,y1:0,x2:arm,y2:0,stroke:'#b45309','stroke-width':1.5,'stroke-dasharray':'4 4','pointer-events':'none'});
          node(g,'circle',{cx:0,cy:0,r:r*.45,fill:'#b45309','pointer-events':'none'});
-         node(g,'circle',{cx:spec.arm,cy:0,r,fill:'#fff',stroke:'#b45309','stroke-width':2,'data-ag-utensil-handle':'rotate',cursor:'grab'});
-         node(g,'path',{d:'M '+(spec.arm-r*.55)+' 0 a '+(r*.55)+' '+(r*.55)+' 0 1 1 '+(r*.55)+' '+(r*.55),fill:'none',stroke:'#b45309','stroke-width':1.5,'pointer-events':'none'});
+         node(g,'circle',{cx:arm,cy:0,r,fill:'#fff',stroke:'#b45309','stroke-width':2,'data-ag-utensil-handle':'rotate',cursor:'grab','aria-label':'Rotate utensil'});
+         node(g,'path',{d:'M '+(arm-r*.55)+' 0 a '+(r*.55)+' '+(r*.55)+' 0 1 1 '+(r*.55)+' '+(r*.55),fill:'none',stroke:'#b45309','stroke-width':1.5,'pointer-events':'none'});
+         node(g,'rect',{x:resize[0]-r,y:resize[1]-r,width:2*r,height:2*r,rx:r*.22,fill:'#fff',stroke:'#16796e','stroke-width':2,'data-ag-utensil-handle':'resize',cursor:'grab','aria-label':'Resize utensil'});
+         const [rx,ry]=resize;node(g,'path',{d:t.kind==='protractor'?'M '+rx+' '+(ry-r*.65)+' v '+(r*1.3)+' m '+(-r*.28)+' '+(-r*.28)+' l '+(r*.28)+' '+(r*.28)+' '+(r*.28)+' '+(-r*.28):'M '+(rx-r*.65)+' '+ry+' h '+(r*1.3)+' m '+(-r*.28)+' '+(-r*.28)+' l '+(r*.28)+' '+(r*.28)+' '+(-r*.28)+' '+(r*.28),stroke:'#16796e','stroke-width':1.8,fill:'none','pointer-events':'none'});
        }
      }
    }
    function locate(e){const svg=getSvg(),m=svg?.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());return [p.x,p.y]}
-   function down(e){if(e.button!==0||!visible)return;const target=e.target.closest?.('[data-ag-utensil]');if(!target){if(selected){selected=null;onPaint()}return}const t=items.find(t=>t.id===target.dataset.agUtensil),p=locate(e);if(!t||!p)return;e.preventDefault();e.stopImmediatePropagation();selected=t.id;opened=true;drag={id:e.pointerId,t,p,x:t.x,y:t.y,angle:t.angle,rotate:!!e.target.closest('[data-ag-utensil-handle]'),startAngle:labAngle([t.x,t.y],p)};try{getSvg().setPointerCapture(e.pointerId)}catch(_){}onPaint()}
-   function move(e){if(drag?.id!==e.pointerId)return;const p=locate(e);if(!p)return;e.preventDefault();e.stopImmediatePropagation();const d=drag;if(d.rotate)d.t.angle=mod(Math.round(d.angle+labAngle([d.x,d.y],p)-d.startAngle));else{d.t.x=d.x+p[0]-d.p[0];d.t.y=d.y+p[1]-d.p[1]}onPaint()}
+   function down(e){if(e.button!==0||!visible)return;const target=e.target.closest?.('[data-ag-utensil]');if(!target){if(selected){selected=null;onPaint()}return}const t=items.find(t=>t.id===target.dataset.agUtensil),p=locate(e);if(!t||!p)return;e.preventDefault();e.stopImmediatePropagation();selected=t.id;opened=true;drag={id:e.pointerId,t,p,x:t.x,y:t.y,angle:t.angle,size:t.size,handle:e.target.closest('[data-ag-utensil-handle]')?.getAttribute('data-ag-utensil-handle'),startAngle:labAngle([t.x,t.y],p)};try{getSvg().setPointerCapture(e.pointerId)}catch(_){}onPaint()}
+   function move(e){if(drag?.id!==e.pointerId)return;const p=locate(e);if(!p)return;e.preventDefault();e.stopImmediatePropagation();const d=drag;if(d.handle==='rotate')d.t.angle=mod(Math.round(d.angle+labAngle([d.x,d.y],p)-d.startAngle));else if(d.handle==='resize'){const spec=specs[d.t.kind],axis=polar(0,0,1,d.angle+(d.t.kind==='protractor'?90:0)),delta=labDot(labSub(p,d.p),axis);d.t.size=Math.max(spec.min,Math.min(spec.max,Math.round((d.size+delta)/4)*4))}else{d.t.x=d.x+p[0]-d.p[0];d.t.y=d.y+p[1]-d.p[1]}onPaint()}
    function finish(e){if(drag?.id!==e.pointerId)return;drag=null;e.stopImmediatePropagation()}
    const svg=getSvg();svg.addEventListener('pointerdown',down,true);svg.addEventListener('pointermove',move,true);for(const type of ['pointerup','pointercancel','lostpointercapture'])svg.addEventListener(type,finish,true);
    return {bar,paint,toggle:()=>{opened=!opened;if(!opened)selected=null;onPaint()},isOpen:()=>opened};
