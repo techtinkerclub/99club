@@ -2475,7 +2475,8 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-dynamic-controls .gd-ag-inspect-btn{min-height:34px!important}
 @media(pointer:coarse){#tt99-goodies-root .gd-ag-dynamic-controls .gd-ag-inspect-btn,#tt99-goodies-root .gd-ag-dynamic-controls .gd-select,#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-dynamic-controls .gd-ag-inspect-btn{min-height:44px!important;height:auto!important}}
 
-/* Keep full-board camera controls together, below the dynamic tools. */
-#tt99-goodies-root .gd-ag-dynamic-navigation{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:4px;padding:4px 3px 2px;border-top:1px solid #dce8e4}
-#tt99-goodies-root .gd-ag-dynamic-navigation .gd-ag-lab-button{min-width:40px;min-height:34px!important;margin:0!important}
-@media(pointer:coarse){#tt99-goodies-root .gd-ag-dynamic-navigation .gd-ag-lab-button{min-height:44px!important;min-width:44px}}
+/* Persistent navigation, independent of collapsible drawing palettes. */
+#tt99-goodies-root .gd-ag-full-tools>.gd-ag-board-navigation{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:5;display:flex;flex-wrap:nowrap;align-items:center;gap:4px;padding:3px;pointer-events:auto;background:rgba(255,255,255,.97);border:1px solid #c9ded7;border-radius:9px;box-shadow:0 2px 8px #294c521a;max-width:calc(100% - 16px);box-sizing:border-box}
+#tt99-goodies-root .gd-ag-board-navigation .gd-ag-lab-button{min-width:38px;min-height:32px!important;margin:0!important;padding:3px 6px!important;white-space:nowrap}
+@media(pointer:coarse){#tt99-goodies-root .gd-ag-board-navigation .gd-ag-lab-button{min-height:44px!important;min-width:44px;height:auto!important}}
+@media(max-width:520px){#tt99-goodies-root .gd-ag-full-tools>.gd-ag-board-navigation{top:auto;bottom:8px}#tt99-goodies-root .gd-ag-full-board>[data-ag-paper-construction]{bottom:60px}}
