@@ -611,18 +611,18 @@ function generate(s={},rng=Math.random){
    return 'M '+labAt(a,n,sign*3).join(' ')+' L '+labAt(p,n,sign*4).join(' ')+' M '+labAt(b,n,sign*3).join(' ')+' L '+labAt(r,n,sign*4).join(' ')+' M '+p.join(' ')+' L '+x.join(' ')+' M '+y.join(' ')+' L '+r.join(' ')+' M '+labAt(p,n,-tick).join(' ')+' L '+labAt(p,n,tick).join(' ')+' M '+labAt(r,n,-tick).join(' ')+' L '+labAt(r,n,tick).join(' ');
  }
  // Physical set-square corners: preserve the original triangle and its base size.
- function labSquareMatches(s,t,scale=1,snapping=false){
+ function labSquareMatches(s,t,scale=1,snapping=false,previous=null){
    if(!['square45','square30'].includes(t.kind)||!(t.size>0)||!Array.isArray(s.names)||s.names.length!==s.points.length)return [];
-   const local=[[0,0],[t.size,0],[0,-t.size*(t.kind==='square30'?Math.sqrt(3):1)]],origin=[t.x,t.y],tol=(snapping?12:4)/Math.max(.001,scale),angleTol=snapping?3:.25,diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),rotate=(p,angle)=>[p[0]*Math.cos(angle*D)+p[1]*Math.sin(angle*D),-p[0]*Math.sin(angle*D)+p[1]*Math.cos(angle*D)],out=[];
+   const local=[[0,0],[t.size,0],[0,-t.size*(t.kind==='square30'?Math.sqrt(3):1)]],origin=[t.x,t.y],tol=(snapping?12:4)/Math.max(.001,scale),angleTol=snapping?3:.25,retaining=snapping&&previous?.kind?.startsWith('Aligned ')&&previous.kind.endsWith('° corner'),releaseTol=retaining?tol*1.5:tol,releaseAngle=retaining?angleTol*1.5:angleTol,diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),rotate=(p,angle)=>[p[0]*Math.cos(angle*D)+p[1]*Math.sin(angle*D),-p[0]*Math.sin(angle*D)+p[1]*Math.cos(angle*D)],out=[];
    for(let corner=0;corner<3;corner++){
      const q=local[corner],offset=rotate(q,t.angle),world=labAt(origin,offset,1),others=local.filter((_,i)=>i!==corner),directions=others.map(p=>labAngle(q,p)),sweep=mod(directions[1]-directions[0]);if(sweep>180)directions.reverse();
      const expected=mod(directions[1]-directions[0]);
-     for(let i=0;i<s.points.length;i++){const o=s.points[i],distance=labDist(world,o);if(distance>tol)continue;const arms=labAngleArms(s,i);
-       for(const a of arms){const angle=mod(a.angle-directions[0]);if(diff(angle,t.angle)>angleTol)continue;
-         for(const b of arms){const sector=labSector(i,a,b);if(Math.abs(sector.sweep-expected)>.01||diff(b.angle,t.angle+directions[1])>angleTol)continue;
-           const off=rotate(q,angle),pose=labSub(o,off),shift=labDist(pose,origin);if(shift>tol)continue;
+     for(let i=0;i<s.points.length;i++){const o=s.points[i],distance=labDist(world,o);if(distance>releaseTol)continue;const arms=labAngleArms(s,i);
+       for(const a of arms){const angle=mod(a.angle-directions[0]);if(diff(angle,t.angle)>releaseAngle)continue;
+         for(const b of arms){const sector=labSector(i,a,b);if(Math.abs(sector.sweep-expected)>.01||diff(b.angle,t.angle+directions[1])>releaseAngle)continue;
+           const off=rotate(q,angle),pose=labSub(o,off),shift=labDist(pose,origin),key='square-corner:'+JSON.stringify([corner,o,a.angle,b.angle]);const held=retaining&&previous.snapKey===key,limit=held?releaseTol:tol,angularLimit=held?releaseAngle:angleTol;if(shift>limit||distance>limit||diff(angle,t.angle)>angularLimit||diff(b.angle,t.angle+directions[1])>angularLimit)continue;
            const mark=labSectorMark(s,sector),target={kind:'angle',...mark,points:[o,...[a,b].map(arm=>arm.j===null?exactPolar(...o,Math.min(t.size,100),arm.angle):s.points[arm.j])],label:'Add '+Math.round(expected)+'° mark',squareAngle:expected};
-           out.push({target,x:pose[0],y:pose[1],angle,kind:'Aligned '+Math.round(expected)+'° corner',score:shift+diff(angle,t.angle)*.8});
+           out.push({target,x:pose[0],y:pose[1],angle,kind:'Aligned '+Math.round(expected)+'° corner',score:shift+diff(angle,t.angle)*.8,snapKey:key});
          }
        }
      }
@@ -1610,7 +1610,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  }
  function sharedInstrumentMath(){return typeof module==='object'&&module.exports?require('./goodies-core.js'):root.TT99Goodies.instruments}
  // Guided sliding may magnetically settle only along its permitted axis.
- function labSquareSlideSnap(s,t,scale=1){
+ function labSquareSlideSnap(s,t,scale=1,previous=null){
    if(t.slideMode!=='across'||!['square45','square30'].includes(t.kind))return null;
    const o=[t.x,t.y],u=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],n=[-u[1],u[0]],tol=12/Math.max(.001,scale),offsets=[];
    for(const e of s.segments){
@@ -1618,14 +1618,14 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
      const [a,b]=e.map(i=>labSub(s.points[i],o)),v=labSub(b,a),len=Math.hypot(...v);
      if(len<1e-8||Math.abs(labCross(u,v))/len>1e-9)continue;
      const p=labDot(a,u),q=labDot(b,u),overlap=Math.min(t.size,Math.max(p,q))-Math.max(0,Math.min(p,q)),delta=labDot(a,n);
-     if(overlap<Math.min(len,t.size)*.1||Math.abs(delta)>tol)continue;
-     if(!offsets.some(x=>Math.abs(x-delta)<1e-7))offsets.push(delta);
+     const key='square-slide:'+JSON.stringify(e.map(i=>s.points[i])),held=previous?.snapKey===key;if(overlap<Math.min(len,t.size)*.1||Math.abs(delta)>tol*(held?1.5:1))continue;
+     const existing=offsets.find(x=>Math.abs(x.delta-delta)<1e-7);if(!existing)offsets.push({delta,key,held});else if(held)Object.assign(existing,{key,held});
    }
-   offsets.sort((a,b)=>Math.abs(a)-Math.abs(b));
-   if(!offsets.length||offsets.length>1&&Math.abs(Math.abs(offsets[0])-Math.abs(offsets[1]))<1e-7)return null;
-   return {x:o[0]+n[0]*offsets[0],y:o[1]+n[1]*offsets[0],angle:t.angle,kind:'Guided parallel edge'};
+   offsets.sort((a,b)=>Number(b.held)-Number(a.held)||Math.abs(a.delta)-Math.abs(b.delta));
+   if(!offsets.length||!offsets[0].held&&offsets.length>1&&Math.abs(Math.abs(offsets[0].delta)-Math.abs(offsets[1].delta))<1e-7)return null;
+   const {delta,key}=offsets[0];return {x:o[0]+n[0]*delta,y:o[1]+n[1]*delta,angle:t.angle,kind:'Guided parallel edge',snapKey:key};
  }
- function utensilAlignment(st,t,mode,scale,previous=null){if(mode==='slide')return labSquareSlideSnap(st,t,scale);if(['move','rotate'].includes(mode)&&t.kind.startsWith('square')){const matches=labSquareMatches(st,t,scale,true);if(matches.length===1){const {target,score,...pose}=matches[0];return pose}}return sharedInstrumentMath().align(instrumentScene(st),t,mode,scale,previous)}
+ function utensilAlignment(st,t,mode,scale,previous=null){if(mode==='slide')return labSquareSlideSnap(st,t,scale,previous);if(['move','rotate'].includes(mode)&&t.kind.startsWith('square')){const matches=labSquareMatches(st,t,scale,true,previous),held=matches.find(m=>m.snapKey===previous?.snapKey);if(held||matches.length===1){const {target,score,...pose}=held||matches[0];return pose}}return sharedInstrumentMath().align(instrumentScene(st),t,mode,scale,previous)}
  function protractorReading(st,t,raw,scale,previous=null){return sharedInstrumentMath().readAngle(instrumentScene(st),t,raw,scale,previous)}
  // A point is its exact mathematical centre, not the edge of its visual dot.
  // Draw a small screen-sized, non-interactive cue above transparent instruments.

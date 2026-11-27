@@ -2004,6 +2004,41 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(r3&&Math.abs(r3.angle-second)<1e-8,'Ruler releases to next actual span');
         }
       }
+      // Keep the acquired real vertex/edge while dragging, but never freeze
+      // motion along the edge or retain geometry that no longer exists.
+      {
+        const mk=(x,y)=>({kind:'ruler',x,y,angle:0,size:200,snap:true});
+        for(const scale of [.5,1,4]){
+          const v=[100,100],w=[100+20/scale,100],scene={points:[v,w],lines:[]};
+          const a=I.align(scene,mk(100+3/scale,100),'move',scale);
+          assert(a.kind==='Point'&&a.x===100,'Acquire actual nearby vertex');
+          const b=I.align(scene,mk(100+15/scale,100),'move',scale,a);
+          assert(b.kind==='Point'&&b.x===100,'Retain vertex across competing point');
+          const c=I.align(scene,mk(100+21/scale,100),'move',scale,b);
+          assert(c.kind==='Point'&&c.x===w[0],'Release to next visible point');
+          const removed=I.align({points:[w],lines:[]},mk(100+15/scale,100),'move',scale,a);
+          assert(removed?.x===w[0],'Deleted vertex cannot stay acquired');
+          const lines=[{a:[0,100],b:[800,100]},{a:[0,100+20/scale],b:[800,100+20/scale]}],edges={points:[],lines};
+          const e=I.align(edges,mk(200,100+3/scale),'move',scale);
+          assert(e.kind==='Aligned edge'&&Math.abs(e.y-100)<1e-8,'Acquire actual measuring edge');
+          const slid=I.align(edges,mk(260,100+15/scale),'move',scale,e);
+          assert(Math.abs(slid.y-100)<1e-8&&Math.abs(slid.x-260)<1e-8,'Keep edge while freely sliding along it');
+          const released=I.align(edges,mk(260,100+21/scale),'move',scale,slid);
+          assert(Math.abs(released.y-lines[1].a[1])<1e-8,'Release to next exact parallel edge');
+          const m={...M.labEmpty(true),points:[[100,100],[300,100],[100,100+20/scale],[300,100+20/scale]],names:['A','B','C','D'],segments:[[0,1],[2,3]]};
+          const square=y=>({kind:'square45',x:100,y,angle:0,size:200,slideMode:'across',snap:true});
+          const sa=M.labSquareSlideSnap(m,square(100+3/scale),scale),sb=M.labSquareSlideSnap(m,square(100+15/scale),scale,sa),sc=M.labSquareSlideSnap(m,square(100+21/scale),scale,sb);
+          assert(sa.y===100&&sb.y===100&&Math.abs(sc.y-m.points[2][1])<1e-8,'Guided set-square slide retains and releases exact supporting edge');
+          const corner={...M.labEmpty(true),points:[[100,100],[300,100],[100,-100]],names:['A','B','C'],segments:[[0,1],[0,2]]};
+          const t={kind:'square45',x:100+2/scale,y:100,angle:0,size:150,snap:true};
+          const ca=M.utensilAlignment(corner,t,'move',scale);
+          assert(ca?.kind==='Aligned 90° corner'&&ca.x===100,'Acquire real right-angle corner');
+          const cb=M.utensilAlignment(corner,{...t,x:100+15/scale},'move',scale,ca);
+          assert(cb?.kind==='Aligned 90° corner'&&cb.x===100,'Hold exact right-angle corner through small motion');
+          const cc=M.utensilAlignment({...corner,segments:[[0,1]]},{...t,x:100+15/scale},'move',scale,ca);
+          assert(cc?.kind!=='Aligned 90° corner','Removed arm cannot retain corner');
+        }
+      }
       // Every interrupted gesture restores the entire original instrument pose.
       for(const kind of ['ruler','protractor','square45','square30'])for(const handle of [null,'rotate','resize',...(kind==='protractor'?['measure']:[])]){
         const pose={kind,x:100,y:200,angle:0,size:200,reading:45,hand:1,snap:true},before=JSON.stringify(pose),p=handle==='resize'&&kind==='protractor'?[100,0]:[300,200],q=handle==='rotate'?[100,0]:[350,150],d=I.beginGesture(pose,p,handle,100);
