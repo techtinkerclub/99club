@@ -1445,6 +1445,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(at?.names.join('')==='BAC'&&M.labApplyMeasurement(angleScene,at),'Protractor matches actual vertex and named arms');
       const values=[];M.labNotation(angleScene,()=>{},(_,v)=>values.push(v));assert(values.join('')==='34.3°','Persistent angle uses exact geometry and display precision');
       assert(!M.labMeasurementTarget(angleScene,{...anglePose,reading:40},1),'Unaligned measuring arm cannot annotate');
+      angleScene.angleNotation[0].labelMode='custom';angleScene.angleNotation[0].label='x';M.labApplyMeasurement(angleScene,at);assert(angleScene.angleNotation.length===1&&angleScene.angleNotation[0].labelMode==='measured','Reapplying measurement edits existing annotation rather than duplicating');
       angleScene.segments=[[0,1]];angleScene.rays=[{i:0,angle:34.27,relativeTo:'C',relativeAngle:0,construction:false}];assert(M.labMeasurementTarget(angleScene,anglePose,1)?.names.join('')==='BAC','Referenced ray can serve as measured angle arm');
       // Named intersection E is internal to both rays, not their origin.
       const crossing={...M.labEmpty(true),points:[[0,200],[200,200],[400,200],[100,300],[300,100]],names:['A','E','D','B','C'],segments:[],rays:[{i:0,angle:0,construction:true},{i:3,angle:45,construction:true}],showConstruction:true};
@@ -1454,7 +1455,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.labApplyMeasurement(crossing,crossTarget)&&crossing.points.length===5,'Intersection annotation persists without artificial points');
       crossing.showConstruction=false;assert(!M.labMeasurementTarget(crossing,crossPose,2),'Hidden intersecting rays cannot create annotations');
       crossing.showConstruction=true;crossing.points.push([500,200]);crossing.names.push('F');assert(M.labMeasurementTarget(crossing,crossPose,2)?.names.join('')==='DEC','Collinear named points on one arm use nearest reference');
-      angleScene.angleNotation[0].labelMode='custom';angleScene.angleNotation[0].label='x';M.labApplyMeasurement(angleScene,at);assert(angleScene.angleNotation.length===1&&angleScene.angleNotation[0].labelMode==='measured','Reapplying measurement edits existing annotation rather than duplicating');
+      assert(!M.labApplyMeasurement(angleScene,at),'Stale measurement cannot be reapplied after its source segment is replaced');
       const square=M.utensilAlignment(exact,{kind:'square45',x:100,y:106,angle:92,size:200},'move',1);
       assert(square.kind==='Aligned vertex'&&square.angle===90,'Set square can align perpendicular leg to existing edge');
 
