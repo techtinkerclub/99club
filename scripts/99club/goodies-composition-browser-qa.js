@@ -3208,10 +3208,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(Math.abs(Math.atan2(dy,dx)*180/Math.PI-angle)<1e-8&&model.tilt===expected,'Transversal geometry follows the actual two intersections');
         }
       }
+      for(const [topic,total] of [['facts','180°'],['facts:point','360°'],['facts:opposite',null]]){
+        assert(bridge.set(topic),'Angle fact reachable');await tick();const svg=doc.querySelector('.gd-ag-visual svg'),handle=svg.querySelector('[data-ag-fact-handle]');assert(handle&&svg.querySelector('[data-ag-fact-equation]')&&svg.querySelector('[data-ag-angle-shade]'),'Visible angle relationship and movable ray');if(total)assert(svg.querySelector('[data-ag-fact-equation]').textContent.endsWith(total),'Explicit angle sum');
+        const pic=svg.parentElement,matrix=svg.getScreenCTM(),start=new win.DOMPoint(+handle.getAttribute('cx'),+handle.getAttribute('cy')).matrixTransform(matrix),a=(cap().demo.rotation||0)+75,end=new win.DOMPoint(400+165*Math.cos(a*Math.PI/180),220-165*Math.sin(a*Math.PI/180)).matrixTransform(matrix);handle.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,pointerId:91,button:0,clientX:start.x,clientY:start.y}));pic.dispatchEvent(new win.PointerEvent('pointermove',{bubbles:true,pointerId:91,clientX:end.x,clientY:end.y}));pic.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true,pointerId:91,clientX:end.x,clientY:end.y}));assert(cap().demo.angle===75,'Direct ray manipulation updates the actual angle');
+      }
       for(const fact of relations){
         assert(bridge.set('facts:'+fact),'Direct navigation opens '+fact);await tick();
         let visual=doc.querySelector('.gd-ag-visual svg');
         assert(visual.querySelectorAll('[data-ag-transversal-parallel]').length===2&&visual.querySelectorAll('[data-ag-angle-mark]').length===2,'Teaching shows matched angle arcs and parallel markings');
+        assert(visual.querySelectorAll('[data-ag-angle-shade]').length===2&&visual.querySelector('[data-ag-fact-handle="transversal"]'),'Angle pair highlighted and crossing line draggable');
         doc.querySelector('[data-ag-action="transversal-parallel"]').click();await tick();visual=doc.querySelector('.gd-ag-visual svg');
         assert(!visual.querySelector('[data-ag-transversal-parallel]')&&visual.querySelector('[data-ag-transversal-condition]').dataset.agTransversalCondition==='nonparallel','Nonparallel counterexample is visible');
         const pack=P.createDocument();pack.addCurrent(id,cap());const paper=P.renderItem(pack.list()[0],false);
@@ -3502,7 +3507,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       }
       for(let i=0;i<labels.length;i++)for(let j=i+1;j<labels.length;j++){const a=at(labels[i]),b=at(labels[j]);assert(Math.hypot(a[0]-b[0],a[1]-b[1])>=(size(labels[i])+size(labels[j]))/2,'Circle label centres remain separated')}
     };
-    verifyCircleClearance(circleSvg());
+    verifyCircleClearance(circleSvg());assert(circleSvg().querySelectorAll('[data-ag-diameter-half]').length===2&&circleSvg().querySelectorAll('[data-ag-radius-equal-mark]').length===2,'Diameter visibly comprises two equal radii');
     doc.querySelector('[data-ag-action="circle-extension"]').click();await tick();
     assert(circleSvg().querySelectorAll('[data-ag-circle-formula]').length===2&&circleSvg().querySelectorAll('[data-ag-circle-working]').length===2,'KS3 extension shows general formulae and substituted numerical working');
     {
@@ -3517,7 +3522,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(Math.abs(m.arc+op.arc-2*Math.PI*radius)<1e-8&&Math.abs(m.segment+op.segment-Math.PI*radius*radius)<1e-8,'Complementary arcs and segments complete circle');
       }
       const select=view=>{const n=doc.querySelector('#ag-circle-view');n.value=view;n.dispatchEvent(new win.Event('change',{bubbles:true}))};
-      select('chord');await tick();assert(circleSvg().querySelector('[data-ag-circle-chord]')&&circleSvg().querySelector('[data-ag-circle-chord-bisector]')&&circleSvg().querySelectorAll('[data-ag-circle-handle]').length===2,'Chord explorer exposes draggable endpoints and midpoint');
+      select('chord');await tick();assert(circleSvg().querySelectorAll('[data-ag-chord-equal-mark]').length===2,'Chord halves marked equal');assert(circleSvg().querySelector('[data-ag-circle-chord]')&&circleSvg().querySelector('[data-ag-circle-chord-bisector]')&&circleSvg().querySelectorAll('[data-ag-circle-handle]').length===2,'Chord explorer exposes draggable endpoints and midpoint');
       const move=(which,angle,cancel=false)=>{const svg=circleSvg(),node=svg.querySelector('[data-ag-circle-handle="'+which+'"]'),surface=svg.parentElement,m=M.circleInvestigation(cap().demo),matrix=svg.getScreenCTM(),start=new win.DOMPoint(...m[which]).matrixTransform(matrix),end=new win.DOMPoint(m.O[0]+m.R*Math.cos(angle*Math.PI/180),m.O[1]-m.R*Math.sin(angle*Math.PI/180)).matrixTransform(matrix),emit=(target,type,p)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:186,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}));emit(node,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end)};
       select('sector');await tick();let m=M.circleInvestigation(cap().demo);move('B',m.start+240.123456);m=M.circleInvestigation(cap().demo);assert(Math.abs(m.span-240.123456)<1e-6&&circleSvg().querySelector('[data-ag-circle-sector]').getAttribute('d').includes(' 0 1 0 '),'Dragging creates a major sector using unrounded angles');
       const prior=m.span;move('B',m.start+45,true);assert(Math.abs(M.circleInvestigation(cap().demo).span-prior)<1e-8,'Cancelled circle drag restores exact angle');
