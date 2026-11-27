@@ -20,6 +20,14 @@ This section is the active execution order; earlier sections retain design histo
 
 Do not open new parallel feature streams simply because an idea arises. Record it under the appropriate gate and finish the current gate first, except for genuine blocking regressions. No timed worksheet presets or automatic selection by duration. Preserve the three existing geometry modes; coordinate visibility is a display setting, not a fourth mode. No claim of full general constraint solving, infinite-line support, or actual classroom verification until delivered and tested.
 
+## Reconciled delivery status — 27 November 2026, after #367
+
+**Geometry development remains active.** The successful main QA and Pages deployment at 58b883b establish a stable foundation, not completion. Current source declares 58 challenge families (48 primary, 10 enrichment), 12 generated construction families and 36 independently verifiable guided construction methods. The three geometry environments, exact construction primitives, measuring utensils, annotation selection and initial constrained/custom loci are implemented; physical acceptance remains open.
+
+The recovered capability and teaching/enrichment backlog is tracked in [#369](https://github.com/techtinkerclub/99club/issues/369). The original 6H–6L and G4–G6 requirements below are not superseded by G3 precision and gesture QA. Reconcile each against current code before implementation. Resume G3 cross-host Measures & Angles completion, then G4 practical annotation and question authoring, 6I–6K transformations/measurements, G5 teaching explorers and assessed constructions, G6 deeper investigations and dependencies, and G7 acceptance. Run whole-Studio regression testing in parallel only; do not move on to final acceptance or freeze planned geometry expansion. Preserve the primary-first, opt-in enrichment policy, paper-equivalent construction vs exploration distinction, full internal floating-point precision with display-only rounding, no timed worksheets and compact UI.
+
+Reference recheck: GeometryLab.net now lists 20 tools/collections and eight shape pages. Revision Library and Polypad public catalogue pages rechecked; no claim of exhaustive source content or interactive usability review. Use original educational content. See #369 for cross-widget ownership and deliberate deferrals.
+
 ## Research basis
 
 - DfE national curriculum: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
