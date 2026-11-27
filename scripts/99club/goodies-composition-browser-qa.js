@@ -1612,6 +1612,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const test={points:[[0,0],[100.52,0],[0,-100]],names:['A','B','C'],measurementPrecision:2,dimensionLabels:{'A:B':{mode:'measured'}},segments:[[0,1],[0,2]],rays:[],circles:[],given:false};
       assert(M.labDimensionText(test,0,1,false)==='2.51 cm','Two-decimal length formatting');
       assert(M.labAngleAnnotation(test,{names:['B','A','C'],labelMode:'measured'}).value==='90.00°','Two-decimal angle formatting including trailing zeros');
+      const sample=JSON.parse(JSON.stringify(cap()));sample.demo.labDrawing={...test,points:[[200,300],[300.52,300],[200,200]],angleNotation:[{names:['B','A','C'],kind:'angle1',labelMode:'measured'}],showMeasurements:true};
+      const published=P.createDocument();published.addCurrent(id,sample);const vector=P.renderItem(published.list()[0],false);
+      assert(vector.querySelector('[data-ag-annotation-value]')?.textContent==='90.00°'&&vector.textContent.includes('2.51 cm'),'Published vector retains two-decimal angles and lengths');
       precision.value='1';precision.dispatchEvent(new win.Event('change',{bubbles:true}));
       assert(cap().demo.labDrawing.measurementPrecision===1,'One-decimal display restored');
     }
