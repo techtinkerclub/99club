@@ -3288,6 +3288,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       proofPanel.querySelector('[data-ag-proof-reset]').click();proofPanel.querySelector('[data-ag-proof-next]').click();proofPanel.querySelector('[data-ag-proof-next]').click();
       assert(proofPanel.querySelector('[data-ag-proof-outline]')&&proofPanel.querySelector('[data-ag-proof-next]').disabled,'Area proof reaches completed dissection');
       proofPanel.querySelector('[data-ag-proof-reset]').click();assert(proofPanel.querySelector('[data-ag-proof-back]').disabled,'Area proof restarts');
+      const proofDimensions=Array.from(proofPanel.querySelectorAll('[data-ag-teaching-dimension]')),proofHeight=proofDimensions.find(l=>l.textContent==='h'),proofBase=proofDimensions.find(l=>l.textContent==='b');assert(proofHeight&&proofBase,'Area proof identifies base and height on diagram');assert(Math.abs(Number(proofHeight.getAttribute('transform').slice(7).split(' ')[0]))===90&&Number(proofBase.getAttribute('transform').slice(7).split(' ')[0])===0,'Area proof height is vertical and base horizontal');
+      assert(proofPanel.querySelector('.gd-ag-teaching-formula').textContent.includes('b')&&proofPanel.querySelector('.gd-ag-teaching-formula').textContent.includes('h'),'Formula uses the diagram variables');
+
       const proofPack=P.createDocument();proofPack.addCurrent(id,cap());assert(P.renderItem(proofPack.list()[0],false).querySelectorAll('[data-ag-area-proof-graphic]').length===3,'All proof stages included in print');
       for(const [shape,order] of [['square',4],['rectangle',2],['equilateral',3],['scalene',1],['rhombus',2],['kite',1]]){
         const m=ref(shape),step=360/order;
