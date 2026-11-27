@@ -1511,6 +1511,30 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(!M.labApplyMeasurement(angleScene,at),'Stale measurement cannot be reapplied after its source segment is replaced');
       const square=M.utensilAlignment(exact,{kind:'square45',x:100,y:106,angle:92,size:200},'move',1);
       assert(square.kind==='Aligned vertex'&&square.angle===90,'Set square can align perpendicular leg to existing edge');
+      // Reference comparison uses actual segment geometry, not the set square's pose.
+      {
+        const model={...M.labEmpty(true),points:[[100,100],[200,100],[100,220],[200,220],[330,100],[330,200]],names:['A','B','C','D','E','F'],segments:[[0,1],[2,3],[4,5]]};
+        const pose={kind:'square45',x:80,y:100,angle:0,size:200};
+        for(const kind of ['square45','square30']){
+          const ref=M.labSquareComparison(model,{...pose,kind},1).candidate;assert(ref?.key==='A:B','Square base identifies visible reference');
+          const locked={...pose,kind,squareReference:ref.key},parallel={...locked,y:220};
+          const before=JSON.stringify(model);
+          let result=M.labSquareComparison(model,parallel,1);
+          assert(result.relation==='Parallel'&&result.angle<1e-8&&result.candidate.key==='C:D','Set square compares separate parallel segments');
+          result=M.labSquareComparison(model,{...locked,x:330,y:220,angle:90},1);
+          assert(result.relation==='Perpendicular'&&Math.abs(result.angle-90)<1e-8,'Set square compares separate perpendicular segments');
+          assert(JSON.stringify(model)===before,'Reference comparison never modifies geometry or markings');
+          model.points[3]=[200,220.2];result=M.labSquareComparison(model,parallel,1);
+          assert(result.relation==='Neither'&&result.angle>.01,'Visually aligned but nearly parallel segments are not verified');
+          model.points[3]=[200,220];
+          model.segmentStyles={'A:B':true};model.showConstruction=false;
+          assert(M.labSquareComparison(model,parallel,1).missing,'Hidden reference cannot certify geometry');
+          model.showConstruction=true;model.segmentStyles={};
+          assert(!M.labSquareComparison(model,locked,1).candidate,'A reference cannot compare with itself');
+          model.segments.push([2,3]);assert(!M.labSquareComparison(model,parallel,1).candidate,'Ambiguous targets cannot certify geometry');model.segments.pop();
+          model.segments.shift();assert(M.labSquareComparison(model,parallel,1).missing,'Deleted reference cannot certify geometry');model.segments.unshift([0,1]);
+        }
+      }
       // Independent physical corner fixtures, including the acute corners away from the origin.
       for(const [kind,angles] of [['square45',[[0,90],[135,180],[270,315]]],['square30',[[0,90],[120,180],[270,300]]]]){
         const size=200,base=[330,520],corners=[base,[base[0]+size,base[1]],[base[0],base[1]-size*(kind==='square30'?Math.sqrt(3):1)]];
