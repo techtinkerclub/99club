@@ -2619,3 +2619,20 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-w
 #tt99-goodies-root [data-ag-geometry-reasoning] [data-ag-reasoning-graphic]{width:100%;max-width:640px;display:block;margin:auto}
 #tt99-goodies-root [data-ag-geometry-reasoning] .gd-select{width:100%;max-width:100%;min-width:0}
 #tt99-goodies-root [data-ag-geometry-reasoning] .gd-row{flex-wrap:wrap}
+
+#tt99-goodies-root [data-ag-triangle-angle-sum]{display:block;width:100%;max-width:500px;margin:auto}
+#tt99-goodies-root [data-ag-diagonal-enrichment],#tt99-goodies-root [data-ag-reference-extra]{margin-top:10px;border-top:1px solid #dbe7e3;padding-top:8px;min-width:0}
+#tt99-goodies-root [data-ag-diagonal-enrichment]>summary,#tt99-goodies-root [data-ag-reference-extra]>summary{cursor:pointer;color:var(--gd-ink,#263e43);font-weight:600;font-size:.9rem;line-height:1.4;white-space:normal}
+
+#tt99-goodies-root .gd-ag-teaching-formula{display:block;text-align:center;font-size:clamp(16px,2vw,22px);padding:5px 0}
+#tt99-goodies-root [data-ag-rotation-picture],#tt99-goodies-root [data-ag-reflection-picture]{touch-action:none}
+#tt99-goodies-root [data-ag-rotation-moving-vertex],#tt99-goodies-root [data-ag-fold-handle]{cursor:grab;touch-action:none}
+#tt99-goodies-root :is([data-ag-proof-manual],[data-ag-reflection-advanced]){margin-top:8px;font-size:.9rem}
+html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){overflow-anchor:none;scroll-behavior:auto!important;justify-content:flex-start!important}
+
+#tt99-goodies-root :is([data-ag-basic-area-graphic],[data-ag-pythagoras-squares]){display:block;width:100%;max-width:500px;margin:8px auto}
+#tt99-goodies-root [data-ag-pythagoras-details]{margin-top:12px;border-top:1px solid #dbe7e3;padding-top:8px}
+
+#tt99-goodies-root [data-ag-classification-picture]{display:block;width:100%;max-width:420px;margin:0 auto}
+#tt99-goodies-root :is([data-ag-family-more],[data-ag-triangle-family-more]){margin-top:10px;border-top:1px solid #dbe7e3;padding-top:8px}
+#tt99-goodies-root :is([data-ag-family-key],[data-ag-triangle-family-result]){font-size:1.05rem;font-weight:700;text-align:center}

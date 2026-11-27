@@ -3208,10 +3208,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
           assert(Math.abs(Math.atan2(dy,dx)*180/Math.PI-angle)<1e-8&&model.tilt===expected,'Transversal geometry follows the actual two intersections');
         }
       }
+      for(const [topic,total] of [['facts','180°'],['facts:point','360°'],['facts:opposite',null]]){
+        assert(bridge.set(topic),'Angle fact reachable');await tick();const svg=doc.querySelector('.gd-ag-visual svg'),handle=svg.querySelector('[data-ag-fact-handle]');assert(handle&&svg.querySelector('[data-ag-fact-equation]')&&svg.querySelector('[data-ag-angle-shade]'),'Visible angle relationship and movable ray');if(total)assert(svg.querySelector('[data-ag-fact-equation]').textContent.endsWith(total),'Explicit angle sum');
+        const pic=svg.parentElement,matrix=svg.getScreenCTM(),start=new win.DOMPoint(+handle.getAttribute('cx'),+handle.getAttribute('cy')).matrixTransform(matrix),a=(cap().demo.rotation||0)+75,end=new win.DOMPoint(400+165*Math.cos(a*Math.PI/180),220-165*Math.sin(a*Math.PI/180)).matrixTransform(matrix);handle.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,pointerId:91,button:0,clientX:start.x,clientY:start.y}));pic.dispatchEvent(new win.PointerEvent('pointermove',{bubbles:true,pointerId:91,clientX:end.x,clientY:end.y}));pic.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true,pointerId:91,clientX:end.x,clientY:end.y}));assert(cap().demo.angle===75,'Direct ray manipulation updates the actual angle');
+      }
       for(const fact of relations){
         assert(bridge.set('facts:'+fact),'Direct navigation opens '+fact);await tick();
         let visual=doc.querySelector('.gd-ag-visual svg');
         assert(visual.querySelectorAll('[data-ag-transversal-parallel]').length===2&&visual.querySelectorAll('[data-ag-angle-mark]').length===2,'Teaching shows matched angle arcs and parallel markings');
+        assert(visual.querySelectorAll('[data-ag-angle-shade]').length===2&&visual.querySelector('[data-ag-fact-handle="transversal"]'),'Angle pair highlighted and crossing line draggable');
         doc.querySelector('[data-ag-action="transversal-parallel"]').click();await tick();visual=doc.querySelector('.gd-ag-visual svg');
         assert(!visual.querySelector('[data-ag-transversal-parallel]')&&visual.querySelector('[data-ag-transversal-condition]').dataset.agTransversalCondition==='nonparallel','Nonparallel counterexample is visible');
         const pack=P.createDocument();pack.addCurrent(id,cap());const paper=P.renderItem(pack.list()[0],false);
@@ -3247,9 +3252,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const v=proof.target.map((p,i)=>p.map((x,k)=>proof.target[(i+1)%4][k]-x));
         assert(Math.hypot(v[0][0]+v[2][0],v[0][1]+v[2][1])<1e-6&&Math.hypot(v[1][0]+v[3][0],v[1][1]+v[3][1])<1e-6,'Final boundary is a parallelogram: '+shape);
       }
+      for(const shape of ['rectangle','square','kite']){
+        const m=ref(shape),a=M.basicAreaModel(m);assert(a&&Math.abs(a.area-m.area)<1e-8,'Basic area picture matches exact geometry: '+shape);
+        assert(win.TT99Goodies.modeControl.set('polygon:'+shape),'Basic area topic accessible');await tick();doc.querySelector('[data-ag-teaching-tab="proof"]').click();await tick();
+        const panel=doc.querySelector('[data-ag-basic-area]'),graphic=panel.querySelector('[data-ag-basic-area-graphic]');
+        assert(!panel.hidden&&graphic.dataset.agBasicAreaGraphic===a.kind,'Area picture shown');
+        assert(shape==='kite'?graphic.querySelectorAll('[data-ag-kite-inside]').length===4&&graphic.querySelectorAll('[data-ag-kite-outside]').length===4:graphic.querySelector('[data-ag-unit-square]'),'Meaningful area units or matched triangles');
+        panel.querySelector('[data-ag-basic-area-toggle]').click();assert(!panel.querySelector('[data-ag-unit-square],[data-ag-kite-box]'),'Can hide construction overlay');
+        const basicPack=P.createDocument();basicPack.addCurrent(id,cap());assert(P.renderItem(basicPack.list()[0],false).querySelector('[data-ag-basic-area-graphic]'),'Basic area picture published');
+      }
       assert(win.TT99Goodies.modeControl.set('polygon:parallelogram'),'Parallelogram proof accessible');await tick();
       const proofPanel=doc.querySelector('[data-ag-area-proof]');assert(proofPanel?.querySelector('[data-ag-proof-next]'),'Area proof has visible step controls');
-      proofPanel.querySelector('[data-ag-proof-next]').click();proofPanel.querySelector('[data-ag-proof-next]').click();
+      doc.querySelector('[data-ag-teaching-tab="proof"]').click();await tick();
+      assert(proofPanel.querySelector('[data-ag-proof-play]')&&proofPanel.querySelector('[data-ag-proof-manual]').open===false,'Replay and result are primary; manual steps optional');
+      proofPanel.querySelector('[data-ag-proof-play]').click();for(let j=0;j<100&&!proofPanel.querySelector('[data-ag-proof-play]').textContent.includes('Replay');j++)await tick(50);
+      assert(proofPanel.querySelector('[data-ag-proof-outline]')&&proofPanel.querySelector('[data-ag-proof-play]').textContent.includes('Replay'),'Area rearrangement completes at exact result');
+      proofPanel.querySelector('[data-ag-proof-reset]').click();proofPanel.querySelector('[data-ag-proof-final]').click();
+      assert(proofPanel.querySelector('[data-ag-proof-outline]'),'Static result available without animation');
+      proofPanel.querySelector('[data-ag-proof-reset]').click();proofPanel.querySelector('[data-ag-proof-next]').click();proofPanel.querySelector('[data-ag-proof-next]').click();
       assert(proofPanel.querySelector('[data-ag-proof-outline]')&&proofPanel.querySelector('[data-ag-proof-next]').disabled,'Area proof reaches completed dissection');
       proofPanel.querySelector('[data-ag-proof-reset]').click();assert(proofPanel.querySelector('[data-ag-proof-back]').disabled,'Area proof restarts');
       const proofPack=P.createDocument();proofPack.addCurrent(id,cap());assert(P.renderItem(proofPack.list()[0],false).querySelectorAll('[data-ag-area-proof-graphic]').length===3,'All proof stages included in print');
@@ -3265,6 +3285,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='false','45 degree square turn is not a match');
       rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
+      doc.querySelector('[data-ag-teaching-tab="symmetry"]').click();await tick();
+      const turnPic=rotationPanel.querySelector('[data-ag-rotation-picture]'),turnSvg=turnPic.querySelector('svg'),turnHandle=turnSvg.querySelector('[data-ag-rotation-moving-vertex]'),turnMatrix=turnSvg.getScreenCTM(),turnX=Number(turnHandle.getAttribute('cx')),turnY=Number(turnHandle.getAttribute('cy')),turnStart=new win.DOMPoint(turnX,turnY).matrixTransform(turnMatrix),turnEnd=new win.DOMPoint(210+turnY-120,120-(turnX-210)).matrixTransform(turnMatrix);
+      turnHandle.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,pointerId:84,pointerType:'touch',button:0,clientX:turnStart.x,clientY:turnStart.y}));turnPic.dispatchEvent(new win.PointerEvent('pointermove',{bubbles:true,pointerId:84,pointerType:'touch',clientX:turnEnd.x,clientY:turnEnd.y}));turnPic.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true,pointerId:84,pointerType:'touch'}));
+      assert(Number(rotationSlider.value)===90&&turnPic.querySelector('svg').dataset.agRotationMatch==='true','Drag a corner directly through a quarter turn');rotationPanel.querySelector('[data-ag-rotation-reset]').click();
       const rotationPack=P.createDocument();rotationPack.addCurrent(id,cap());const rotationPrint=P.renderItem(rotationPack.list()[0],false);
       assert(rotationPrint.querySelector('[data-ag-rotation-graphic]'),'Rotational symmetry graphic printed');
       const printedView=rotationPrint.viewBox.baseVal;assert([printedView.x,printedView.y,printedView.width,printedView.height].every(Number.isFinite)&&printedView.width>0&&printedView.height>0&&!rotationPrint.outerHTML.includes('NaN'),'Teaching publication has finite SVG geometry: '+rotationPrint.getAttribute('viewBox'));
@@ -3287,6 +3311,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       reflectionPanel.querySelector('[data-ag-mirror-next-axis]').click();assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='true','Next exact reflection axis matches');
       mirrorOffset.value=10;mirrorOffset.dispatchEvent(new win.Event('input',{bubbles:true}));assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='false','Moving mirror line away from centre changes match');
       reflectionPanel.querySelector('[data-ag-mirror-reset]').click();assert(Number(mirrorOffset.value)===0&&Number(mirrorAngle.value)===0,'Mirror investigation resets');
+      assert(!reflectionPanel.querySelector('[data-ag-reflection-advanced]').open&&reflectionPanel.querySelector('[data-ag-fold-handle]'),'Physical fold is the default, exact mirror controls optional');
+      reflectionPanel.querySelector('[data-ag-fold-play]').click();for(let j=0;j<60&&Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)!==1;j++)await tick(50);
+      assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===1&&reflectionPanel.querySelector('[data-ag-reflection-result]').textContent.includes('fit exactly'),'Fold animation reaches exact matching half');
+      reflectionPanel.querySelector('[data-ag-fold-play]').click();for(let j=0;j<60&&Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)!==0;j++)await tick(50);assert(Number(reflectionPanel.querySelector('[data-ag-fold-progress]').dataset.agFoldProgress)===0,'Fold is reversible');
       assert(rotationPrint.querySelector('[data-ag-reflection-graphic]'),'Reflection illustration included in publication');
       for(const [shape,expected] of [['square',['Quadrilateral','Trapezium','Parallelogram','Rectangle','Kite','Rhombus','Square']],['rectangle',['Quadrilateral','Trapezium','Parallelogram','Rectangle']],['rhombus',['Quadrilateral','Trapezium','Parallelogram','Kite','Rhombus']],['parallelogram',['Quadrilateral','Trapezium','Parallelogram']],['kite',['Quadrilateral','Kite']],['trapezium',['Quadrilateral','Trapezium']]]){
         const f=M.quadrilateralFamilyModel(ref(shape).points);
@@ -3294,7 +3322,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(f.links.every(e=>!f.members.includes(e.child)||f.members.includes(e.parent)),'All hierarchy implications hold: '+shape);
       }
       const familyPanel=doc.querySelector('[data-ag-family-reference]'),familySelect=familyPanel.querySelector('[data-ag-family-select]');
-      assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===7,'Square belongs to all seven inclusive families');
+      assert(familyPanel.querySelectorAll('[data-ag-classification-right]').length===4&&familyPanel.querySelectorAll('[data-ag-classification-equal-side]').length===4&&!familyPanel.querySelector('[data-ag-family-more]').open,'Square shows sides and right angles before the hierarchy');assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===7,'Square belongs to all seven inclusive families');
       familySelect.value='Rectangle';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));
       assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===4&&familyPanel.querySelector('[data-ag-family-node="Square"]').dataset.agFamilyMember==='false','Rectangle example is not necessarily square');
       familySelect.value='Concave quadrilateral';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===1,'Concave example belongs only to general quadrilateral family');
@@ -3311,7 +3339,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       }
       assert(win.TT99Goodies.modeControl.set('polygon:equilateral'),'Triangle classification investigation accessible');await tick();
       const trianglePanel=doc.querySelector('[data-ag-triangle-family-reference]'),triangleSelect=trianglePanel.querySelector('[data-ag-triangle-family-select]');
-      assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Equilateral|Acute"]').dataset.agFamilySelected==='true','Current equilateral example highlighted');
+      assert(trianglePanel.querySelectorAll('[data-ag-classification-angle]').length===3&&trianglePanel.querySelectorAll('[data-ag-classification-equal-side]').length===3&&!trianglePanel.querySelector('[data-ag-triangle-family-more]').open,'Triangle classification starts with actual marked sides and angles');assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Equilateral|Acute"]').dataset.agFamilySelected==='true','Current equilateral example highlighted');
       triangleSelect.value='Isosceles|Right-angled';triangleSelect.dispatchEvent(new win.Event('change',{bubbles:true}));
       assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Isosceles|Right-angled"]').dataset.agFamilySelected==='true'&&trianglePanel.textContent.includes('45°'),'Isosceles right triangle selection gives accurate example');
       assert(trianglePanel.querySelectorAll('[data-ag-family-possible="false"]').length===2,'Impossible equilateral right and obtuse cells explicitly shown');
@@ -3351,14 +3379,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       }
       assert(win.TT99Goodies.modeControl.set('polygon'),'Polygon proof accessible');await tick();
       const polygonPanel=doc.querySelector('[data-ag-polygon-proof]');doc.querySelector('[data-ag-teaching-tab="polygon-proof"]').click();await tick();
-      const polygonProof=M.polygonFormulaProof(M.shapeTeachingReference(cap().demo).points),nextProof=polygonPanel.querySelector('[data-ag-polygon-proof-next]'),vertexChoice=polygonPanel.querySelector('[data-ag-polygon-proof-vertex]');
-      vertexChoice.value=2;vertexChoice.dispatchEvent(new win.Event('change',{bubbles:true}));assert(polygonPanel.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.n-3,'Selecting a different vertex shows its diagonals');
-      nextProof.click();assert(polygonPanel.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.all.length,'All unique diagonals shown when counting every vertex');
-      nextProof.click();assert(polygonPanel.querySelector('[data-ag-proof-double-example]'),'Double counting example shown');
-      nextProof.click();assert(polygonPanel.querySelectorAll('[data-ag-proof-triangle]').length===polygonProof.n-2&&polygonPanel.querySelectorAll('[data-ag-proof-internal-cut]').length===polygonProof.n-3,'Triangulation displayed separately');
-      nextProof.click();assert(nextProof.disabled&&polygonPanel.querySelector('[data-ag-proof-equation]').textContent.includes(String((polygonProof.n-2)*180)+'°'),'Final angle sum explained');
-      polygonPanel.querySelector('[data-ag-polygon-proof-reset]').click();assert(polygonPanel.querySelector('[data-ag-polygon-proof-back]').disabled,'Polygon proof reset');
-      const polygonPack=P.createDocument();polygonPack.addCurrent(id,cap());assert(P.renderItem(polygonPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===5,'All polygon formula proof stages printable');
+      const polygonProof=M.polygonFormulaProof(M.shapeTeachingReference(cap().demo).points),nextProof=polygonPanel.querySelector('[data-ag-polygon-proof-next]'),vertexChoice=polygonPanel.querySelector('[data-ag-polygon-proof-vertex]'),extra=polygonPanel.querySelector('[data-ag-diagonal-enrichment]'),anglePicture=polygonPanel.querySelector('[data-ag-angle-sum-picture]');
+      assert(!extra.open&&anglePicture.querySelectorAll('[data-ag-proof-triangle]').length===polygonProof.n-2&&anglePicture.querySelector('[data-ag-proof-equation]').textContent.includes(String((polygonProof.n-2)*180)+'°'),'Default lesson immediately shows angle sum using coloured triangles');
+      assert(!anglePicture.querySelector('[data-ag-proof-counted-diagonal]'),'Diagonal counting is not part of the core lesson');
+      const polygonPack=P.createDocument();polygonPack.addCurrent(id,cap());assert(P.renderItem(polygonPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===1,'Default publication contains angle sum only');
+      extra.open=true;await tick();vertexChoice.value=2;vertexChoice.dispatchEvent(new win.Event('change',{bubbles:true}));assert(extra.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.n-3,'Optional diagonal investigation retained');
+      nextProof.click();assert(extra.querySelectorAll('[data-ag-proof-counted-diagonal]').length===polygonProof.all.length,'All unique diagonals shown');
+      nextProof.click();assert(nextProof.disabled&&extra.querySelector('[data-ag-proof-double-example]'),'Optional double counting explanation');
+      polygonPanel.querySelector('[data-ag-polygon-proof-reset]').click();assert(polygonPanel.querySelector('[data-ag-polygon-proof-back]').disabled,'Diagonal investigation reset');
+      const extendedPack=P.createDocument();extendedPack.addCurrent(id,cap());assert(P.renderItem(extendedPack.list()[0],false).querySelectorAll('[data-ag-polygon-proof-graphic]').length===4,'Optional diagonal stages printable');
+      assert(win.TT99Goodies.modeControl.set('polygon:scalene'),'Triangle angle sum accessible');await tick();doc.querySelector('[data-ag-teaching-tab="polygon-proof"]').click();await tick();
+      const triangleSum=doc.querySelector('[data-ag-angle-sum-picture]');assert(triangleSum.querySelectorAll('[data-ag-angle-sum-corner]').length===3&&triangleSum.querySelectorAll('[data-ag-angle-sum-piece]').length===3&&triangleSum.textContent.includes('180°'),'Actual triangle corners rearranged on a straight line');
+      const triangleSumPack=P.createDocument();triangleSumPack.addCurrent(id,cap());assert(P.renderItem(triangleSumPack.list()[0],false).querySelector('[data-ag-triangle-angle-sum]'),'Triangle angle explanation printable');
       // Exact rearrangement of four congruent triangles; no rounding in model.
       for(const a of [1.25,3,4,7.5,12])for(const b of [1.5,4,5,9.75]){
         for(const angle of [0,.53,1.2]){
@@ -3377,7 +3409,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(win.TT99Goodies.modeControl.set('polygon:right-triangle'),'Pythagoras teaching accessible');await tick();
       doc.querySelector('[data-ag-teaching-tab="pythagoras"]').click();await tick();
       const pp=doc.querySelector('[data-ag-pythagoras-proof]'),pn=pp.querySelector('[data-ag-pythagoras-next]');
-      assert(!pp.hidden&&pp.querySelectorAll('[data-ag-pythagoras-piece]').length===4,'Four congruent triangles visible');
+      assert(!pp.hidden&&pp.querySelectorAll('[data-ag-pythagoras-side-square]').length===3&&!pp.querySelector('[data-ag-pythagoras-details]').open,'Three squares first, proof optional');pp.querySelector('[data-ag-pythagoras-details]').open=true;assert(pp.querySelectorAll('[data-ag-pythagoras-piece]').length===4,'Four congruent triangles available');
       pn.click();assert(pp.querySelector('[data-ag-pythagoras-square="c"]'),'Central hypotenuse square');
       pn.click();assert(pp.querySelectorAll('[data-ag-pythagoras-square]').length===2,'Two leg squares');
       pn.click();assert(pn.disabled&&pp.querySelectorAll('[data-ag-pythagoras-piece]').length===8&&pp.querySelectorAll('[data-ag-pythagoras-outer]').length===2,'Two equal-area arrangements compared');
@@ -3475,7 +3507,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       }
       for(let i=0;i<labels.length;i++)for(let j=i+1;j<labels.length;j++){const a=at(labels[i]),b=at(labels[j]);assert(Math.hypot(a[0]-b[0],a[1]-b[1])>=(size(labels[i])+size(labels[j]))/2,'Circle label centres remain separated')}
     };
-    verifyCircleClearance(circleSvg());
+    verifyCircleClearance(circleSvg());assert(circleSvg().querySelectorAll('[data-ag-diameter-half]').length===2&&circleSvg().querySelectorAll('[data-ag-radius-equal-mark]').length===2,'Diameter visibly comprises two equal radii');
     doc.querySelector('[data-ag-action="circle-extension"]').click();await tick();
     assert(circleSvg().querySelectorAll('[data-ag-circle-formula]').length===2&&circleSvg().querySelectorAll('[data-ag-circle-working]').length===2,'KS3 extension shows general formulae and substituted numerical working');
     {
@@ -3490,7 +3522,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(Math.abs(m.arc+op.arc-2*Math.PI*radius)<1e-8&&Math.abs(m.segment+op.segment-Math.PI*radius*radius)<1e-8,'Complementary arcs and segments complete circle');
       }
       const select=view=>{const n=doc.querySelector('#ag-circle-view');n.value=view;n.dispatchEvent(new win.Event('change',{bubbles:true}))};
-      select('chord');await tick();assert(circleSvg().querySelector('[data-ag-circle-chord]')&&circleSvg().querySelector('[data-ag-circle-chord-bisector]')&&circleSvg().querySelectorAll('[data-ag-circle-handle]').length===2,'Chord explorer exposes draggable endpoints and midpoint');
+      select('chord');await tick();assert(circleSvg().querySelectorAll('[data-ag-chord-equal-mark]').length===2,'Chord halves marked equal');assert(circleSvg().querySelector('[data-ag-circle-chord]')&&circleSvg().querySelector('[data-ag-circle-chord-bisector]')&&circleSvg().querySelectorAll('[data-ag-circle-handle]').length===2,'Chord explorer exposes draggable endpoints and midpoint');
       const move=(which,angle,cancel=false)=>{const svg=circleSvg(),node=svg.querySelector('[data-ag-circle-handle="'+which+'"]'),surface=svg.parentElement,m=M.circleInvestigation(cap().demo),matrix=svg.getScreenCTM(),start=new win.DOMPoint(...m[which]).matrixTransform(matrix),end=new win.DOMPoint(m.O[0]+m.R*Math.cos(angle*Math.PI/180),m.O[1]-m.R*Math.sin(angle*Math.PI/180)).matrixTransform(matrix),emit=(target,type,p)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:186,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}));emit(node,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end)};
       select('sector');await tick();let m=M.circleInvestigation(cap().demo);move('B',m.start+240.123456);m=M.circleInvestigation(cap().demo);assert(Math.abs(m.span-240.123456)<1e-6&&circleSvg().querySelector('[data-ag-circle-sector]').getAttribute('d').includes(' 0 1 0 '),'Dragging creates a major sector using unrounded angles');
       const prior=m.span;move('B',m.start+45,true);assert(Math.abs(M.circleInvestigation(cap().demo).span-prior)<1e-8,'Cancelled circle drag restores exact angle');
