@@ -1337,7 +1337,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A5';wsField('apply').click();await tick();
     assert(work.viewBox.baseVal.width===840&&work.viewBox.baseVal.height===592,'A5 format can shrink the empty sheet below the old minimum');
     const previewPointer=(type,p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:47,button:0,clientX:v.x,clientY:v.y}))};
-    const checkRuler=(cm,endpoint)=>{doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);previewPointer('pointermove',endpoint);const ruler=work.querySelector('[data-geometry-instrument="ruler"]'),ticks=ruler.querySelectorAll('[data-me-division]');assert(ticks.length===cm*10+1&&Number(ticks[10].getAttribute('x1'))===40&&Number(ticks[1].getAttribute('x1'))===4&&Number(ticks[ticks.length-1].getAttribute('x1'))===cm*40,'Ruler has correct millimetre and centimetre graduations for '+cm+' cm');doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.points.length===0,'Ruler preview cleanup preserves empty sheet')};
+    const checkRuler=()=>{
+      doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);
+      for(const endpoint of [[460,160],[97,160],[183,236],[660,160],[260,160]]){
+        previewPointer('pointermove',endpoint);
+        const ruler=work.querySelector('[data-geometry-instrument="ruler"]'),ticks=ruler.querySelectorAll('[data-me-division]'),width=Number(ruler.querySelector('rect').getAttribute('width')),len=Math.hypot(endpoint[0]-60,endpoint[1]-160);
+        assert(width-len>=20-.01&&width-len<24+.01,'Construction ruler extends only 5–6 mm beyond active endpoint');
+        assert(ticks.length===Math.round(width/4)+1&&Math.abs(Number(ticks[1].getAttribute('x1'))-4)<1e-7&&Math.abs(Number(ticks[ticks.length-1].getAttribute('x1'))-width)<1e-7,'Growing and shrinking ruler maintains exact millimetre graduations');
+        if(ticks.length>10)assert(Math.abs(Number(ticks[10].getAttribute('x1'))-40)<1e-7,'Centimetre graduations remain calibrated');
+      }
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.points.length===0,'Ruler preview cleanup preserves empty sheet');
+    };
     {
       const N='http://www.w3.org/2000/svg',sample=doc.createElementNS(N,'svg');
       for(const [kind,pts,angles] of [['square45',[[0,0],[200,0],[0,200]],[90,45,45]],['square30',[[0,0],[200,0],[0,200*Math.sqrt(3)]],[90,60,30]]]){
@@ -1409,7 +1419,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37°','Rendered angle annotation agrees with geometry: '+label);
       reset();assert(cap().demo.labDrawing.points.length===0,'Instrument verification leaves empty sheet: '+label);
     };
-    checkRuler(15,[460,160]);verifyInstruments('A5 normal');
+    checkRuler();verifyInstruments('A5 normal');
     {
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},centre=[200,200];
       tool('compass').click();tool('compass-arc').click();tap(centre);tap([320,200]);previewPointer('pointermove',[200,80]);
@@ -1428,12 +1438,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.labSnap(m,[440,200],.5).kind==='On line','Other invisible arc continuation is not a line intersection');
     }
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
-    checkRuler(30,[460,160]);verifyInstruments('A4 normal');
+    checkRuler();verifyInstruments('A4 normal');
     {
       const frame=fixture.frame,max=frame.querySelector('[data-board-maximise]');
       api.select(fixture.record.id);max.click();await tick(150);
       assert(frame.classList.contains('is-geometry-board'),'Full board entered for instrument scale checks');
-      verifyInstruments('A4 full board');
+      checkRuler();verifyInstruments('A4 full board');
       const original=JSON.stringify(cap().demo.labDrawing),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),add=kind=>doc.querySelector('[data-ag-utensil-add="'+kind+'"]').click(),action=id=>doc.querySelector('[data-ag-utensil-action="'+id+'"]'),utensil=kind=>work.querySelector('[data-ag-utensil-kind="'+kind+'"]');
       tool('measuring-tools').click();for(const kind of ['ruler','protractor','square45','square30'])add(kind);
       assert(work.querySelectorAll('[data-ag-utensil]').length===4,'Four independent measuring utensils can coexist');
