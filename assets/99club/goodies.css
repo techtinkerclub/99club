@@ -2513,7 +2513,12 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-local-instrument>span{min-width:0;flex:1 1 84px}
 
 /* Shared inspector header and board-relative height, for every inspector mode. */
-#tt99-goodies-root .gd-board-floating-controls{max-height:min(var(--gd-inspector-height,100vh),760px);box-sizing:border-box}
+#tt99-goodies-root .gd-board-floating-controls{max-height:min(var(--gd-inspector-height,100vh),64vh,620px);box-sizing:border-box}
+#tt99-goodies-root .gd-board-floating-controls.is-help{max-height:min(var(--gd-inspector-height,100vh),78vh,720px)}
+#tt99-goodies-root .gd-board-floating-controls[data-tool="number-line"]:not(.is-help):not(.is-challenge-launcher){max-height:min(var(--gd-inspector-height,100vh),78vh,760px)}
+#tt99-goodies-root .gd-board-floating-controls[data-tool="maths-canvas"]:not(.is-help):not(.is-challenge-launcher):not(.is-money-palette){max-height:min(var(--gd-inspector-height,100vh),76vh,720px)}
+#tt99-goodies-root .gd-board-floating-controls.is-challenge-launcher{max-height:min(var(--gd-inspector-height,100vh),70vh,520px)}
+#tt99-goodies-root .gd-board-floating-controls.is-money-palette{max-height:min(var(--gd-inspector-height,100vh),70vh)}
 #tt99-goodies-root .gd-board-floating-controls-head{flex:none;min-height:36px;padding:4px 6px;gap:5px;justify-content:flex-start;box-sizing:border-box}
 #tt99-goodies-root .gd-board-floating-controls-head strong{flex:1;min-width:0}
 #tt99-goodies-root .gd-board-controls-grip{flex:none;color:#5b8279;font-size:17px;line-height:1}
