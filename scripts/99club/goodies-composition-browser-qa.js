@@ -2757,6 +2757,31 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},6,'triangle-criterion');
       for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelectorAll('[data-ag-inspect-polygon]').length===1&&!pupil.querySelector('[data-ag-criterion-result]'),'Pupil worksheet gives only stated evidence');assert(key.querySelectorAll('[data-ag-inspect-polygon]').length===2&&key.querySelector('[data-ag-criterion-result]')&&key.querySelector('[data-ag-criterion-explanation]'),'Teacher annex shows second valid triangle and explanation')}
     }
+    {
+      const M=win.TT99Goodies.angles,dist=(p,q)=>Math.hypot(p[0]-q[0],p[1]-q[1]);
+      for(let a=1;a<=15;a++)for(let b=1;b<=15;b++)for(let c=1;c<=15;c++){
+        const m=M.triangleInequality([a,b,c]),sum=a+b+c,longest=Math.max(a,b,c),expected=2*longest<sum?'valid':2*longest===sum?'flat':'impossible';
+        assert(m.kind===expected,'Triangle inequality classification for all integer side triples');
+        if(expected==='valid'){const [p,q,r]=m.points,actual=[dist(p,q),dist(q,r),dist(r,p)].sort((x,y)=>x-y);assert(actual.every((v,i)=>Math.abs(v-m.sorted[i])<1e-8)&&r[1]<0,'Valid triangle realizes all three exact lengths and has positive area')}
+        else if(expected==='flat')assert(m.points.every(p=>p[1]===0),'Equality gives only a zero-area straight line');
+        else assert(m.points===null,'Impossible sides do not fabricate a triangle');
+      }
+      assert(M.triangleInequality([0,3,3])===null&&M.triangleInequality([2,-1,3])===null,'Nonpositive sides rejected');
+      assert(M.triangleInequality([.1,.2,.3]).kind==='flat'&&M.triangleInequality([.1,.2,.299999999]).kind==='valid','Floating point boundary distinguished from small positive area');
+      const shape=doc.querySelector('#ag-shape-view');shape.value='triangle-inequality';shape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+      const svg=()=>doc.querySelector('.gd-ag-visual svg'),change=(id,value)=>{const n=doc.querySelector('#'+id);n.value=value;n.dispatchEvent(new win.Event('change',{bubbles:true}))},result=()=>svg().querySelector('[data-ag-inequality-result]')?.getAttribute('data-ag-inequality-result');
+      for(const [c,kind] of [[5,'valid'],[7,'flat'],[9,'impossible']]){
+        change('ag-inequality-2',String(c));await tick();assert(!result()&&svg().querySelectorAll('[data-ag-inequality-side]').length===3,'Changed side returns to prediction with exactly three givens');
+        doc.querySelector('[data-ag-action="inequality-reveal"]').click();await tick();assert(result()===kind&&svg().querySelector('[data-ag-inequality-equation]'),'Reveal explains correct inequality');
+        assert(!!svg().querySelector('[data-ag-inequality-gap]')===(kind==='impossible'),'Gap is displayed only for impossible lengths');
+      }
+      const draft=P.createDocument();draft.addCurrent(id,cap());assert(P.renderItem(draft.list()[0],false).querySelector('[data-ag-inequality-result="impossible"]'),'Revealed teaching diagram publishes actual case');
+      doc.querySelector('[data-ag-action="inequality-reset"]').click();await tick();assert(!result()&&M.inequalitySettings(cap().demo).join(',')==='3,4,5','Reset returns to original prediction');
+      const cases=new Set();for(let i=0;i<60;i++){const t=M.generate({type:'triangle-inequality',enrichment:true}),m=M.triangleInequality(t.inequalityLengths);cases.add(m.kind);assert(t.answer===(m.kind==='valid'?'Yes':'No')&&t.inequalityLengths.every(v=>v>=1&&v<=15),'Generated givens and answer agree with model')}
+      assert(cases.size===3,'Generated family includes valid, flat and impossible cases');
+      const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},6,'triangle-inequality');
+      for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelectorAll('[data-ag-inequality-given]').length===3&&!pupil.querySelector('[data-ag-inequality-result]'),'Pupil worksheet displays side lengths without the answer');assert(key.querySelector('[data-ag-inequality-equation]')&&key.querySelector('[data-ag-inequality-result]').getAttribute('data-ag-inequality-result')===M.triangleInequality(item.data.inequalityLengths).kind,'Teacher annex shows matching case and mathematical explanation')}
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
