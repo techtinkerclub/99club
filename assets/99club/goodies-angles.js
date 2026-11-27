@@ -263,7 +263,7 @@ const FAMILIES=[
  ['rectangle','Angles in rectangles','polygon',5],['rectangle-length','Missing length in a rectangle','polygon',5],['isosceles-angle','Missing base angle in an isosceles triangle','polygon',6],['diagonal-equal','Equal diagonals in quadrilaterals','polygon',5],['diagonal-bisect','Diagonals that bisect each other','polygon',6],['diagonal-perpendicular','Perpendicular diagonals','polygon',6],['side-count','Count sides of a polygon','polygon',2],['parallel-count','Count pairs of parallel sides','polygon',3],['shape-family','Recognise inclusive shape families','polygon',5],['quad-reasoning','Quadrilateral reasoning: always, sometimes or never','polygon',6],['circle-part','Name a circle part','circle',6],['circle-diameter','Find diameter from radius','circle',6],['circle-radius','Find radius from diameter','circle',6],['triangle-type','Classify a triangle by sides','polygon',4],['triangle-angle-type','Classify a triangle by angles','polygon',4],['triangle-centroid-ratio','Divide a median at the centroid','polygon',7],['triangle-centre','Identify a triangle centre','polygon',7],['euler-ratio','Find a distance on the Euler line','polygon',7],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
  ['triangle','Missing angle in a triangle','polygon',6],['quadrilateral','Missing angle in a quadrilateral','polygon',6],['regular','Interior angle of a regular polygon','polygon',6],
  ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],['build-midpoint','Locate the midpoint of a segment','construct',4],['build-perpendicular','Construct a perpendicular segment','construct',5],['build-circle','Construct a circle of given radius','construct',6],['build-asa','Construct a triangle from two angles and a side','construct',6],['build-bisector','Construct a perpendicular bisector','construct',7],['build-rhombus','Construct a rhombus from a side and angle','construct',7],
- ['exterior','Exterior angle of a regular polygon','polygon',7],['circle-circumference','Find circumference using π','circle',7],['circle-area','Find circle area using π','circle',7],['parallel','Corresponding and alternate angles','facts',7],['co-interior','Co-interior angles','facts',7],['similar-side','Missing length in similar triangles','polygon',7],['triangle-comparison','Congruent, similar or neither','polygon',7],['triangle-criterion','Is the triangle uniquely determined?','polygon',7],['triangle-inequality','Can these sides form a triangle?','polygon',7],['pythagoras','Find a hypotenuse','polygon',7],['polygon-sum','Interior angle sum of a polygon','polygon',7]
+ ['exterior','Exterior angle of a regular polygon','polygon',7],['circle-circumference','Find circumference using π','circle',7],['circle-area','Find circle area using π','circle',7],['parallel','Corresponding and alternate angles','facts',7],['co-interior','Co-interior angles','facts',7],['similar-side','Missing length in similar triangles','polygon',7],['triangle-comparison','Congruent, similar or neither','polygon',7],['triangle-criterion','Is the triangle uniquely determined?','polygon',7],['triangle-inequality','Can these sides form a triangle?','polygon',7],['pythagoras','Find a hypotenuse','polygon',7],['polygon-sum','Interior angle sum of a polygon','polygon',7],['polygon-missing','Missing angle in an irregular polygon','polygon',7],['polygon-turn-missing','Missing signed exterior turn','polygon',7],['polygon-diagonal-count','Count all diagonals of a polygon','polygon',7]
 ];
 const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.length-1)];
 function settings(s={}){return {level:LEVELS.some(x=>x[0]===s.level)?s.level:'medium',mode:MODES.some(x=>x[0]===s.mode)?s.mode:'angle',year:YEARS.some(x=>x[0]===String(s.year))?String(s.year):'custom',enrichment:s.enrichment===true||s.enrichment===1||s.enrichment==='1'||s.enrichment==='true'}}
@@ -367,6 +367,13 @@ function generate(s={},rng=Math.random){
  if(type==='regularity'){const n=pick(rng,[4,5,6,8]),regular=rng()<.5;return task({n,regular},'Is the polygon regular or irregular?',regular?'Regular':'Irregular','A regular polygon has all sides equal and all interior angles equal.',['Regular','Irregular'])}
  if(type==='triangle'){const a=angle(30,70),b=angle(35,75),c=180-a-b;return task({angles:[a,b,c]},'Calculate the missing interior angle x.',c,'Angles in a triangle total 180°. Subtract the two given angles.')}
  if(type==='quadrilateral'){const a=angle(55,125),b=180-a;return task({angles:[a,b,a,b]},'Find the missing interior angle x in the parallelogram.',b,'The four interior angles total 360°. Subtract the three given angles.')}
+ if(type==='polygon-missing'||type==='polygon-turn-missing'){
+   const examples=polygonInvestigationExamples(),ex=pick(rng,examples),pts=ex.points.map(p=>p.slice()),n=pts.length,turns=polygonInvestigationTurns(pts),angles=turns.map(v=>180-v),unknown=rand(rng,0,n-1),exterior=type==='polygon-turn-missing',values=exterior?turns:angles,sum=exterior?360:180*(n-2),answer=values[unknown],known=values.filter((_,i)=>i!==unknown).reduce((a,b)=>a+b,0);
+   return task({n,regular:false,investigationPoints:pts,investigationAngles:angles,investigationTurns:turns,unknownVertex:unknown},exterior?'The signed exterior turns total 360°. Negative turns are inward turns. Find the missing turn at '+pointNameForInvestigation(unknown)+' in degrees.':'Find the missing interior angle at '+pointNameForInvestigation(unknown)+' in degrees.',answer,(exterior?'Signed exterior turns total 360°.':'Interior angles total ('+n+' − 2) × 180° = '+sum+'°. ')+' The given '+(exterior?'signed turns':'angles')+' total '+known+'°. Missing value = '+sum+' − ('+known+') = '+answer+'°.');
+ }
+ if(type==='polygon-diagonal-count'){
+   const n=rand(rng,4,12),answer=n*(n-3)/2;return task({n,regular:true},'How many different diagonals can be drawn in this '+n+'-sided polygon? Do not count sides.',answer,'Each vertex can join to '+(n-3)+' non-adjacent vertices. Each diagonal is counted twice, so '+n+' × '+(n-3)+' ÷ 2 = '+answer+'.');
+ }
  if(['regular','exterior','polygon-sum'].includes(type)){const n=pick(rng,[3,4,5,6,8,9,10,12]);return task({n,regular:true},type==='regular'?'Find one interior angle of this regular '+n+'-sided polygon.':type==='exterior'?'Find the exterior turning angle of this regular '+n+'-sided polygon.':'Find the sum of all interior angles of this '+n+'-sided polygon.',type==='regular'?polyInterior(n):type==='exterior'?polyExterior(n):180*(n-2),type==='regular'?'Divide the interior angle sum '+180*(n-2)+'° by '+n+'.':type==='exterior'?'One complete turn is 360°. Divide by '+n+'.':'Divide the polygon into '+(n-2)+' triangles, each with angle sum 180°.')}
  if(type==='parallel'){const a=angle(35,145),relation=pick(rng,['corresponding','alternate']);return task({angle:a,relation,rotation:0},'The lines are parallel. Find the marked '+relation+' angle x.',a,'Corresponding and alternate angles between parallel lines are equal.')}
  if(type==='build-sss'||type==='build-equilateral'){
@@ -1052,6 +1059,22 @@ function generate(s={},rng=Math.random){
  function quadReasoningPoints(name){return ({
    Square:[[0,0],[4,0],[4,4],[0,4]],Rectangle:[[0,0],[6,0],[6,4],[0,4]],Rhombus:[[0,0],[5,0],[8,4],[3,4]],Parallelogram:[[0,0],[6,0],[9,4],[3,4]],Trapezium:[[0,0],[8,0],[6,4],[2,4]],Kite:[[0,0],[3,4],[0,10],[-3,4]],'Concave quadrilateral':[[0,0],[6,0],[2,2],[0,6]]
  })[name].map(p=>p.map(x=>x*40))}
+ // Exact integer-angle examples, including concave polygons. Model coordinates
+ // are retained; rotation and uniform scaling in the renderer preserve angles.
+ function pointNameForInvestigation(i){return String.fromCharCode(65+i)}
+ function polygonInvestigationExamples(){
+   return [
+    {name:'Bevelled pentagon',points:[[0,0],[8,0],[8,4],[5,7],[0,7]]},
+    {name:'Bevelled hexagon',points:[[2,0],[8,0],[10,2],[10,6],[0,6],[0,2]]},
+    {name:'Clipped heptagon',points:[[2,0],[8,0],[10,2],[10,6],[8,8],[0,8],[0,2]]},
+    {name:'L-shaped hexagon',points:[[0,0],[9,0],[9,3],[4,3],[4,8],[0,8]]},
+    {name:'Notched octagon',points:[[0,0],[12,0],[12,8],[8,8],[8,3],[4,3],[4,8],[0,8]]},
+    {name:'Bevelled octagon',points:[[2,0],[10,0],[12,2],[12,6],[10,8],[2,8],[0,6],[0,2]]}
+   ];
+ }
+ function polygonInvestigationTurns(pts){
+   const n=pts.length,sign=Math.sign(pts.reduce((s,p,i)=>s+labCross(p,pts[(i+1)%n]),0));return pts.map((p,i)=>{const a=labSub(p,pts[(i+n-1)%n]),b=labSub(pts[(i+1)%n],p);return Math.round(Math.atan2(sign*labCross(a,b),labDot(a,b))/D)});
+ }
  function freeQuadrilateralPoints(d){
    const p=d.quadrilateralPoints;
    return Array.isArray(p)&&p.length===4&&p.every(q=>Array.isArray(q)&&q.length===2&&q.every(Number.isFinite))?p.map(q=>q.slice()):[[175,100],[625,100],[625,320],[175,320]];
@@ -1299,7 +1322,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1623,6 +1646,24 @@ function diagram(d,teacher=false,options={}){
  }
  if(mode==='polygon'&&type==='triangle-centre'){
    const ar=rot*D,pts=fit(trianglePoints(d.angles[0],d.angles[1]).map(([x,y])=>[x*Math.cos(ar)-y*Math.sin(ar),x*Math.sin(ar)+y*Math.cos(ar)]));polygon(pts);const extent=triangleCentreGraphic(pts,d.centre,teacher);return triangleCentreFrame(extent,d.centre,teacher)
+ }
+ if(mode==='polygon'&&['polygon-missing','polygon-turn-missing','polygon-diagonal-count'].includes(type)){
+   const diagonal=type==='polygon-diagonal-count',exterior=type==='polygon-turn-missing',n=d.n,ar=rot*D,raw=diagonal?Array.from({length:n},(_,i)=>exactPolar(0,0,150,90+i*360/n)):d.investigationPoints,pts=fit(raw.map(([x,y])=>[x*Math.cos(ar)-y*Math.sin(ar),x*Math.sin(ar)+y*Math.cos(ar)]));
+   polygon(pts);
+   if(diagonal){
+     if(teacher){for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(j-i!==1&&j-i!==n-1)line(pts[i],pts[j],teal,1.3,{'data-ag-counted-diagonal':i+':'+j,'stroke-opacity':.65});text(400,410,n+' × '+(n-3)+' ÷ 2 = '+d.answer,22,{'data-ag-polygon-investigation-answer':'1'})}
+     return frame(30,0,740,teacher?460:400);
+   }
+   // A separated value table avoids ambiguous or colliding labels around
+   // small edges, concave corners and rotated polygons.
+   const values=exterior?d.investigationTurns:d.investigationAngles;
+   for(let i=0;i<n;i++){
+     const row=Math.floor(i/4),col=i%4,p=pts[i],unknown=i===d.unknownVertex,v=unknown&&!teacher?'x':String(values[i])+'°';
+     if(unknown){add('circle',{cx:p[0],cy:p[1],r:10,fill:'none',stroke:orange,'stroke-width':2.5,'data-ag-polygon-unknown-vertex':i})}
+     text(120+col*185,408+row*35,pointName(i)+': '+v,19,{'data-ag-polygon-investigation-value':i});
+   }
+   const base=408+Math.ceil(n/4)*35;if(teacher)text(400,base,(exterior?'Signed turn total = 360°':'Interior angle sum = '+180*(n-2)+'°')+' · x = '+d.answer+'°',20,{'data-ag-polygon-investigation-answer':'1'});
+   return frame(15,0,770,base+(teacher?24:0))
  }
  if(mode==='polygon'&&type==='quad-reasoning'){
    // Pupil task leaves reasoning space rather than revealing the counterexample.
