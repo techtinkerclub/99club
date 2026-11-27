@@ -1464,6 +1464,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         model.points.push([260,208]);model.names.push('C');paint();const choose=()=>svg.querySelector('[data-ag-utensil-action="choose-distance"]');assert(choose()&&!action(),'Three aligned points require explicit pair choice');choose().click();assert(action()&&svg.querySelectorAll('[data-ag-measurement-reference]').length===2,'Explicit pair choice enables Add to drawing');action().click();assert(applied===2&&M.labIndependentDimensions(model).length===1,'A ruler can annotate a distance without a segment');allowed=false;paint();assert(!action()&&!svg.querySelector('[data-ag-measurement-reference]'),'Host can disable measurement annotation and preview');
         host.remove();
       }
+      // Exercise the real shared instrument pointer handlers and local mark action.
+      {
+        const host=doc.createElement('div'),svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('viewBox','0 0 500 400');svg.style.cssText='width:500px;height:400px';host.append(svg);doc.body.append(host);
+        const model={...M.labEmpty(true),points:[[190,230],[290,230],[190,130]],names:['A','B','C'],segments:[[0,1],[0,2]]};
+        const original=JSON.stringify([model.points,model.segments]);let controller,applied=0;
+        const paint=()=>{svg.replaceChildren();controller.paint(svg)};
+        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['square45'],align:(t,mode,scale)=>M.utensilAlignment(model,t,mode,scale),annotation:{target:(t,scale)=>M.labMeasurementTarget(model,t,scale),apply:t=>{if(M.labApplyMeasurement(model,t))applied++;paint()}}});
+        controller.add('square45');
+        const action=()=>svg.querySelector('[data-ag-utensil-action="annotate"]');
+        assert(!action(),'Misaligned square has no Add mark action');
+        const gesture=(node,type,p)=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:782,pointerType:'mouse',button:0,clientX:q.x,clientY:q.y}))};
+        gesture(svg.querySelector('[data-ag-utensil]'),'pointerdown',[180,188]);gesture(svg,'pointermove',[208,208]);gesture(svg,'pointerup',[208,208]);
+        assert(action()?.getAttribute('aria-label')==='Add 90° mark'&&svg.querySelectorAll('[data-ag-measurement-reference]').length===3,'Dragging square into aligned position exposes verified right angle');
+        action().click();
+        assert(applied===1&&model.angleNotation[0].kind==='right'&&JSON.stringify([model.points,model.segments])===original,'Local set square action creates only right angle annotation');
+        host.remove();
+      }
       // Instrument annotations resolve named, visible geometric references.
       const measured={...M.labEmpty(true),points:[[100,100],[500,100],[240,100]],names:['A','B','C'],segments:[[0,1]]};
       const rulerPose={kind:'ruler',x:80,y:100,angle:0,size:480};
@@ -1493,6 +1511,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(!M.labApplyMeasurement(angleScene,at),'Stale measurement cannot be reapplied after its source segment is replaced');
       const square=M.utensilAlignment(exact,{kind:'square45',x:100,y:106,angle:92,size:200},'move',1);
       assert(square.kind==='Aligned vertex'&&square.angle===90,'Set square can align perpendicular leg to existing edge');
+      // Independent physical corner fixtures, including the acute corners away from the origin.
+      for(const [kind,angles] of [['square45',[[0,90],[135,180],[270,315]]],['square30',[[0,90],[120,180],[270,300]]]]){
+        const size=200,base=[330,520],corners=[base,[base[0]+size,base[1]],[base[0],base[1]-size*(kind==='square30'?Math.sqrt(3):1)]];
+        for(let i=0;i<3;i++){
+          const o=corners[i],end=a=>[o[0]+70*Math.cos(a*Math.PI/180),o[1]-70*Math.sin(a*Math.PI/180)],pair=angles[i],expected=pair[1]-pair[0],scene={...M.labEmpty(true),points:[o,end(pair[0]),end(pair[1])],names:['A','B','C'],segments:[[0,1],[0,2]]},pose={kind,x:base[0],y:base[1],angle:0,size};
+          const target=M.labMeasurementTarget(scene,pose,1);
+          assert(target&&Math.abs(target.squareAngle-expected)<1e-7,'Set square identifies correct physical corner: '+kind+' '+expected);
+          const before=JSON.stringify([scene.points,scene.segments]);assert(M.labApplyMeasurement(scene,target)&&JSON.stringify([scene.points,scene.segments])===before,'Verified set square annotation preserves geometry');
+          assert(scene.angleNotation[0].kind===(expected===90?'right':'angle1'),'Only verified right angle receives square notation');
+          const snap=M.utensilAlignment(scene,{...pose,x:pose.x+2,y:pose.y+2,angle:1},'move',1);
+          assert(snap?.kind==='Aligned '+expected+'° corner'&&Math.hypot(snap.x-pose.x,snap.y-pose.y)<1e-6&&Math.abs(snap.angle)<1e-6,'Magnet aligns actual physical corner');
+          if(expected===90){scene.angleNotation[0].kind='angle1';assert(M.labApplyMeasurement(scene,target)&&scene.angleNotation.length===1&&scene.angleNotation[0].kind==='right','Verified right angle upgrades an existing mark without duplication');}
+          scene.points[2]=end(pair[1]-.9);assert(!M.labMeasurementTarget(scene,pose,1),'Incorrect angle cannot be certified by set square');
+          const oldMarks=JSON.stringify(scene.angleNotation);assert(!M.labApplyMeasurement(scene,target)&&JSON.stringify(scene.angleNotation)===oldMarks,'Stale verified set-square target cannot mark changed geometry');
+          scene.points[2]=end(pair[1]);assert(!M.labMeasurementTarget(scene,{...pose,x:pose.x+8,y:pose.y+8},1),'Displaced square cannot certify angle');
+        }
+      }
+
 
     }
     {

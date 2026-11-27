@@ -581,7 +581,28 @@ function generate(s={},rng=Math.random){
    const x=labAt(p,u,Math.max(0,Math.min(len,mid-gap))),y=labAt(p,u,Math.max(0,Math.min(len,mid+gap))),tick=4;
    return 'M '+labAt(a,n,sign*3).join(' ')+' L '+labAt(p,n,sign*4).join(' ')+' M '+labAt(b,n,sign*3).join(' ')+' L '+labAt(r,n,sign*4).join(' ')+' M '+p.join(' ')+' L '+x.join(' ')+' M '+y.join(' ')+' L '+r.join(' ')+' M '+labAt(p,n,-tick).join(' ')+' L '+labAt(p,n,tick).join(' ')+' M '+labAt(r,n,-tick).join(' ')+' L '+labAt(r,n,tick).join(' ');
  }
+ // Physical set-square corners: preserve the original triangle and its base size.
+ function labSquareMatches(s,t,scale=1,snapping=false){
+   if(!['square45','square30'].includes(t.kind)||!(t.size>0)||!Array.isArray(s.names)||s.names.length!==s.points.length)return [];
+   const local=[[0,0],[t.size,0],[0,-t.size*(t.kind==='square30'?Math.sqrt(3):1)]],origin=[t.x,t.y],tol=(snapping?12:4)/Math.max(.001,scale),angleTol=snapping?3:.25,diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),rotate=(p,angle)=>[p[0]*Math.cos(angle*D)+p[1]*Math.sin(angle*D),-p[0]*Math.sin(angle*D)+p[1]*Math.cos(angle*D)],out=[];
+   for(let corner=0;corner<3;corner++){
+     const q=local[corner],offset=rotate(q,t.angle),world=labAt(origin,offset,1),others=local.filter((_,i)=>i!==corner),directions=others.map(p=>labAngle(q,p)),sweep=mod(directions[1]-directions[0]);if(sweep>180)directions.reverse();
+     const expected=mod(directions[1]-directions[0]);
+     for(let i=0;i<s.points.length;i++){const o=s.points[i],distance=labDist(world,o);if(distance>tol)continue;const arms=labAngleArms(s,i);
+       for(const a of arms){const angle=mod(a.angle-directions[0]);if(diff(angle,t.angle)>angleTol)continue;
+         for(const b of arms){const sector=labSector(i,a,b);if(Math.abs(sector.sweep-expected)>.01||diff(b.angle,t.angle+directions[1])>angleTol)continue;
+           const off=rotate(q,angle),pose=labSub(o,off),shift=labDist(pose,origin);if(shift>tol)continue;
+           const mark=labSectorMark(s,sector),target={kind:'angle',...mark,points:[o,...[a,b].map(arm=>arm.j===null?exactPolar(...o,Math.min(t.size,100),arm.angle):s.points[arm.j])],label:'Add '+Math.round(expected)+'° mark',squareAngle:expected};
+           out.push({target,x:pose[0],y:pose[1],angle,kind:'Aligned '+Math.round(expected)+'° corner',score:shift+diff(angle,t.angle)*.8});
+         }
+       }
+     }
+   }
+   return out.sort((a,b)=>a.score-b.score);
+ }
  function labMeasurementTarget(s,t,scale=1){
+   if(['square45','square30'].includes(t.kind)){const matches=labSquareMatches(s,t,scale);return matches.length===1?matches[0].target:null}
+
    const origin=[t.x,t.y],tol=Math.min(2,4/Math.max(.001,scale)),direction=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],points=s.points,names=s.names||points.map((_,i)=>pointName(i));
    if(t.kind==='ruler'){const matches=labRulerTargets(s,t,scale);return matches.length===1?matches[0]:null}
    if(t.kind!=='protractor'||!(t.reading>.01&&t.reading<=180))return null;
@@ -597,7 +618,7 @@ function generate(s={},rng=Math.random){
    if(!target)return false;
    const ids=target.names.map(n=>s.names.indexOf(n));if(target.kind==='length'&&(ids.length!==2||ids[0]===ids[1]||ids.some(i=>i<0)))return false;
    if(target.kind==='length'){const key=labStyleKey(s,...ids);s.dimensionLabels||={};s.dimensionLabels[key]={...s.dimensionLabels[key],mode:'measured'};delete s.dimensionLabels[key].text;return true}
-   if(target.kind==='angle'){const mark={names:target.names.slice(),...(target.arms?{arms:target.arms,sweepMode:target.sweepMode}:{}),kind:'angle1',labelMode:'measured'};if(!labAngleAnnotation(s,mark))return false;s.angleNotation||=[];const existing=s.angleNotation.find(m=>labSameAngle(s,m,mark));if(existing){existing.labelMode='measured';delete existing.label}else s.angleNotation.push(mark);return true}
+   if(target.kind==='angle'){const mark={names:target.names.slice(),...(target.arms?{arms:target.arms,sweepMode:target.sweepMode}:{}),kind:Math.abs((target.squareAngle??0)-90)<.01?'right':'angle1',labelMode:'measured'};const resolved=labAngleAnnotation(s,mark);if(!resolved||(target.squareAngle!==undefined&&Math.abs(resolved.angle-target.squareAngle)>.01))return false;s.angleNotation||=[];const existing=s.angleNotation.find(m=>labSameAngle(s,m,mark));if(existing){if(mark.kind==='right')existing.kind='right';existing.labelMode='measured';delete existing.label}else s.angleNotation.push(mark);return true}
    return false;
  }
  function labMeasurementDigits(s){return s.measurementPrecision===2?2:1}
@@ -1333,7 +1354,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    return {points:st.points,lines};
  }
  function sharedInstrumentMath(){return typeof module==='object'&&module.exports?require('./goodies-core.js'):root.TT99Goodies.instruments}
- function utensilAlignment(st,t,mode,scale){return sharedInstrumentMath().align(instrumentScene(st),t,mode,scale)}
+ function utensilAlignment(st,t,mode,scale){if(['move','rotate'].includes(mode)&&t.kind.startsWith('square')){const matches=labSquareMatches(st,t,scale,true);if(matches.length===1){const {target,score,...pose}=matches[0];return pose}}return sharedInstrumentMath().align(instrumentScene(st),t,mode,scale)}
  function protractorReading(st,t,raw,scale){return sharedInstrumentMath().readAngle(instrumentScene(st),t,raw,scale)}
  // A point is its exact mathematical centre, not the edge of its visual dot.
  // Draw a small screen-sized, non-interactive cue above transparent instruments.
