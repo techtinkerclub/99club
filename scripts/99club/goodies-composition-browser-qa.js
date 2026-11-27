@@ -3385,6 +3385,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const proof=P.createDocument();proof.addCurrent(id,cap());const printed=P.renderItem(proof.list()[0],false);assert(printed.querySelector('[data-ag-circle-theorem="'+view+'"]')&&!printed.querySelector('[data-ag-circle-handle]'),'Theorem publication excludes handles');
       }
       select('same-segment');await tick();dragTheorem('D',.8123456);assert(Math.abs(M.circleTheoremModel(cap().demo).f-.8123456)<1e-7,'Second inscribed angle is independently draggable');
+      for(const span of [45,90,120,180,225,285])for(const c of [.1,.4,.8]){
+        const m=M.circleTheoremModel({circleView:'alternate-segment',theoremSpan:span,theoremC:c});
+        assert(Math.abs(m.tangentAngle-m.Cangle)<1e-8,'Alternate segment equality');
+        const u=m.T.map((v,i)=>v-m.A[i]),v=m.O.map((v,i)=>v-m.A[i]);assert(Math.abs(u[0]*v[0]+u[1]*v[1])<1e-8,'Tangent perpendicular to radius');
+      }
+      for(const radius of [1,5,15])for(const ratio of [1.2,1.9,2.6])for(const direction of [-25,0,25]){
+        const m=M.circleTheoremModel({circleView:'equal-tangents',radius,tangentRatio:ratio,tangentDirection:direction});
+        assert(Math.abs(m.PA-m.PB)<1e-8&&Math.abs(m.PA*m.PA+radius*radius-m.OP*m.OP)<1e-8,'Equal tangents and Pythagoras');
+        assert(Math.abs(m.angleA-90)<1e-8&&Math.abs(m.angleB-90)<1e-8&&Math.abs(m.halfA-m.halfB)<1e-8,'Tangent radii perpendicular and OP bisects angle');
+      }
+      select('alternate-segment');await tick();assert(circleSvg().querySelector('[data-ag-theorem-tangent]')&&circleSvg().querySelector('[data-ag-theorem-equation]').textContent.includes('TAB'),'Alternate segment diagram and angle statement');
+      dragTheorem('C',.41234567);assert(Math.abs(M.circleTheoremModel(cap().demo).c-.41234567)<1e-7,'Alternate segment point draggable');
+      select('equal-tangents');await tick();assert(circleSvg().querySelectorAll('[data-ag-equal-tangent]').length===2&&circleSvg().querySelectorAll('[data-ag-tangent-equal-mark]').length===2,'Equal tangent diagram contains two marked tangents');
+      const dragExternal=(ratio,angle,cancel=false)=>{const svg=circleSvg(),node=svg.querySelector('[data-ag-circle-handle="P"]'),surface=svg.parentElement,m=M.circleTheoremModel(cap().demo),matrix=svg.getScreenCTM(),a=angle*Math.PI/180,start=new win.DOMPoint(...m.P).matrixTransform(matrix),end=new win.DOMPoint(m.O[0]+m.R*ratio*Math.cos(a),m.O[1]-m.R*ratio*Math.sin(a)).matrixTransform(matrix),emit=(target,type,p)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:188,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}));emit(node,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end)};
+      dragExternal(2.1234567,12.345678);let ext=M.circleTheoremModel(cap().demo);assert(Math.abs(ext.ratio-2.1234567)<1e-7&&Math.abs(ext.direction-12.345678)<1e-6,'External point follows pointer at full precision');
+      dragExternal(1.5,-20,true);assert(Math.abs(M.circleTheoremModel(cap().demo).ratio-ext.ratio)<1e-8,'Cancelled external drag restores position');
+      for(const view of ['alternate-segment','equal-tangents']){select(view);await tick();const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);assert(printed.querySelector('[data-ag-circle-theorem="'+view+'"]')&&!printed.querySelector('[data-ag-circle-handle]'),'Tangent theorem print excludes handles');}
+
       select('overview');await tick();
 
     }
