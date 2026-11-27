@@ -1072,6 +1072,22 @@ function generate(s={},rng=Math.random){
   {id:'kite-parallel',prompt:'A convex kite has two pairs of parallel sides.',answer:'Sometimes',note:'A rhombus is a kite under the inclusive definition and has two parallel pairs. Other kites need not have parallel sides.',examples:['Rhombus','Kite']},
   {id:'concave-square',prompt:'A concave quadrilateral is a square.',answer:'Never',note:'A concave quadrilateral has an interior angle greater than 180°. A square has four 90° angles.',examples:['Concave quadrilateral']}
  ];
+ const QUAD_FAMILY_DEFINITIONS={
+   Quadrilateral:'A simple polygon with four sides.',
+   Trapezium:'A convex quadrilateral with at least one pair of parallel opposite sides.',
+   Parallelogram:'Both pairs of opposite sides are parallel.',
+   Rectangle:'Four right angles.',
+   Kite:'Two pairs of equal adjacent sides; the pairs may be the same length.',
+   Rhombus:'Four equal sides.',
+   Square:'Four equal sides and four right angles.'
+ };
+ const QUAD_FAMILY_LINKS=[['Trapezium','Quadrilateral'],['Kite','Quadrilateral'],['Parallelogram','Trapezium'],['Rectangle','Parallelogram'],['Rhombus','Parallelogram'],['Rhombus','Kite'],['Square','Rectangle'],['Square','Rhombus']];
+ const QUAD_FAMILY_EXAMPLES=['Square','Rectangle','Rhombus','Parallelogram','Trapezium','Kite','Concave quadrilateral'];
+ function quadrilateralFamilyModel(points){
+   const p=quadrilateralProperties(points);if(!p)return null;
+   const members=p.families.slice(),nodes=Object.keys(QUAD_FAMILY_DEFINITIONS).map(name=>({name,member:members.includes(name),definition:QUAD_FAMILY_DEFINITIONS[name]}));
+   return {kind:p.kind,points,members,nodes,links:QUAD_FAMILY_LINKS.map(([child,parent])=>({child,parent,active:members.includes(child)&&members.includes(parent)}))};
+ }
  function quadReasoningPoints(name){return ({
    Square:[[0,0],[4,0],[4,4],[0,4]],Rectangle:[[0,0],[6,0],[6,4],[0,4]],Rhombus:[[0,0],[5,0],[8,4],[3,4]],Parallelogram:[[0,0],[6,0],[9,4],[3,4]],Trapezium:[[0,0],[8,0],[6,4],[2,4]],Kite:[[0,0],[3,4],[0,10],[-3,4]],'Concave quadrilateral':[[0,0],[6,0],[2,2],[0,6]]
  })[name].map(p=>p.map(x=>x*40))}
@@ -1497,7 +1513,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={quadrilateralFamilyModel,reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -2160,6 +2176,27 @@ function mountReflectionReference(container,m,demo){
  next.onclick=()=>{if(!axes.length)return;angle=offset!==0&&axes.some(v=>Math.abs(v-angle)<1e-8)?angle:axes.find(v=>v>angle+1e-8)??axes[0];offset=0;show()};
  container.appendChild(section);show();
 }
+function quadrilateralFamilyGraphic(f){
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=600,H=356;
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const pos={Quadrilateral:[235,30],Trapezium:[120,91],Kite:[356,91],Parallelogram:[120,152],Rectangle:[78,224],Rhombus:[268,224],Square:[173,291]},width=146,height=35;
+ const label=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':14,'text-anchor':'middle',fill:'#264a49',...attrs},value);
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',f.kind+' belongs to '+f.members.join(', '));svg.dataset.agFamilyGraphic='1';
+ add('rect',{width:W,height:H,fill:'#fff'});
+ for(const e of f.links){const [x,y]=pos[e.child],[u,v]=pos[e.parent],start=[x,y-height/2],end=[u,v+height/2],dx=end[0]-start[0],dy=end[1]-start[1],len=Math.hypot(dx,dy),a=[dx/len,dy/len],n=[-a[1],a[0]],back=labAt(end,a,-8);const stroke=e.active?'#277b70':'#b5c5c3';add('line',{x1:start[0],y1:start[1],x2:end[0],y2:end[1],stroke,'stroke-width':e.active?2.5:1.4,'data-ag-family-link':e.child+'>'+e.parent});add('polyline',{points:[labAt(back,n,4),end,labAt(back,n,-4)].map(p=>p.join(',')).join(' '),fill:'none',stroke,'stroke-width':1.6})}
+ for(const node of f.nodes){const [x,y]=pos[node.name];add('rect',{x:x-width/2,y:y-height/2,width,height,rx:7,fill:node.member?'#d9eee6':'#f6f8f7',stroke:node.member?'#277b70':'#c6d3d0','stroke-width':node.member?2:1,'data-ag-family-node':node.name,'data-ag-family-member':String(node.member)});label(x,y+5,node.name,{'font-weight':node.member?700:400})}
+ const pts=f.points,xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),loX=Math.min(...xs),hiX=Math.max(...xs),loY=Math.min(...ys),hiY=Math.max(...ys),s=Math.min(105/(hiX-loX),105/(hiY-loY)),map=p=>[508+(p[0]-(loX+hiX)/2)*s,191+(p[1]-(loY+hiY)/2)*s];
+ add('polygon',{points:pts.map(p=>map(p).join(',')).join(' '),fill:'#d9eee6',stroke:'#277b70','stroke-width':2.3,'data-ag-family-example':'1'});label(508,267,f.kind,{'font-size':12,'font-weight':700});
+ label(300,329,'Highlighted boxes are all families of this shape.',{'font-size':14,'font-weight':700});label(300,347,'Each arrow means “is a special case of”.',{'font-size':13});
+ return svg;
+}
+function mountQuadrilateralFamily(container,m,demo){
+ const section=document.createElement('section');section.className='gd-ag-family-reference';section.dataset.agFamilyReference='1';
+ section.innerHTML='<h4>Explore the quadrilateral family tree</h4><p>One shape can belong to several families. Compare the current shape with other examples.</p><label>Example <select class="gd-select" data-ag-family-select><option value="current">Current shape</option>'+QUAD_FAMILY_EXAMPLES.map(name=>'<option value="'+esc(name)+'">'+esc(name)+'</option>').join('')+'</select></label><div data-ag-family-picture></div><p data-ag-family-members aria-live="polite"></p><dl data-ag-family-definitions></dl><p class="gd-ag-family-convention">Convention: here a trapezium has at least one pair of parallel sides, and a kite has two pairs of adjacent equal sides (including a rhombus). Some textbooks use exclusive definitions instead.</p>';
+ const select=section.querySelector('[data-ag-family-select]');select.value=QUAD_FAMILY_EXAMPLES.includes(demo.familyExample)?demo.familyExample:'current';
+ const show=()=>{demo.familyExample=select.value;const f=quadrilateralFamilyModel(select.value==='current'?m.points:quadReasoningPoints(select.value));section.querySelector('[data-ag-family-picture]').replaceChildren(quadrilateralFamilyGraphic(f));section.querySelector('[data-ag-family-members]').textContent=f.kind+' belongs to: '+f.members.join(', ')+'.';section.querySelector('[data-ag-family-definitions]').innerHTML=f.nodes.filter(n=>n.member).map(n=>'<dt>'+esc(n.name)+'</dt><dd>'+esc(n.definition)+'</dd>').join('')};
+ select.onchange=show;container.appendChild(section);show();
+}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
  const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').trim().split(/\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
@@ -2177,6 +2214,7 @@ function appendShapeReference(svg,d){
  }
  const rotation=rotationReferenceGraphic(m,360/m.symmetry.rotation),rw=Math.min(w-40,420),rh=rw*280/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Rotational symmetry');at+=size+12;rotation.setAttribute('x',x+(w-rw)/2);rotation.setAttribute('y',at);rotation.setAttribute('width',rw);rotation.setAttribute('height',rh);svg.append(rotation);at+=rh+16;
  const mirror=reflectionReferenceGraphic(m,reflectionInvestigation(m).axes[0]??0,0),mw=Math.min(w-40,420),mh=mw*310/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Reflection symmetry');at+=size+12;mirror.setAttribute('x',x+(w-mw)/2);mirror.setAttribute('y',at);mirror.setAttribute('width',mw);mirror.setAttribute('height',mh);svg.append(mirror);at+=mh+16;
+ if(m.quad){const family=quadrilateralFamilyGraphic(quadrilateralFamilyModel(m.points)),fw=w-2*margin,fh=fw*356/600;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Quadrilateral family tree');at+=size+12;family.setAttribute('x',x+margin);family.setAttribute('y',at);family.setAttribute('width',fw);family.setAttribute('height',fh);svg.append(family);at+=fh+8;for(const line of G.exportTools.wrapPaperText('Inclusive definitions: a trapezium has at least one parallel pair; a kite has two pairs of adjacent equal sides.',w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}
  const proof=shapeAreaProof(m);if(proof){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why the area formula works');at+=size+12;for(let i=0;i<proof.steps.length;i++){const g=areaProofGraphic(proof,i),gw=Math.min(w-40,480),gh=gw*230/480;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(proof.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
  bg.setAttribute('height',at-y-h+10);svg.setAttribute('viewBox',[x,y,w,at-y+10].join(' '));return svg;
 }
@@ -3059,7 +3097,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -3120,6 +3158,7 @@ G.anglesTool=function(){
     [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
     mountRotationReference(body,m,demo);
     mountReflectionReference(body,m,demo);
+    if(m.quad)mountQuadrilateralFamily(body,m,demo);
     const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
