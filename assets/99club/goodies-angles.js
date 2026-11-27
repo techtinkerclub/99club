@@ -985,6 +985,22 @@ function generate(s={},rng=Math.random){
    const sides=pairs===2?'Equilateral':pairs===1?'Isosceles':'Scalene',max=Math.max(...angles),kind=Math.abs(max-90)<=1e-8?'Right-angled':max>90?'Obtuse':'Acute',midpoints=pts.map((_,i)=>labAt(pts[(i+1)%3],labSub(pts[(i+2)%3],pts[(i+1)%3]),.5)),centroid=[0,1].map(k=>pts.reduce((sum,p)=>sum+p[k],0)/3);
    return {sides,kind,angles,lengths,midpoints,centroid,alsoIsosceles:sides==='Equilateral'};
  }
+ const TRIANGLE_FAMILY_SIDES=['Equilateral','Isosceles','Scalene'],TRIANGLE_FAMILY_ANGLES=['Acute','Right-angled','Obtuse'];
+ // Exclusive rows describe exact side classification; inclusive membership
+ // is stated separately, since every equilateral triangle is isosceles.
+ const TRIANGLE_FAMILY_EXAMPLES={
+   'Equilateral|Acute':[60,60],
+   'Isosceles|Acute':[50,50],'Isosceles|Right-angled':[45,45],'Isosceles|Obtuse':[30,30],
+   'Scalene|Acute':[50,60],'Scalene|Right-angled':[30,60],'Scalene|Obtuse':[25,40]
+ };
+ function triangleFamilyExample(sides,kind){
+   const a=TRIANGLE_FAMILY_EXAMPLES[sides+'|'+kind];return a?trianglePoints(a[0],a[1],0,0,300):null;
+ }
+ function triangleFamilyModel(points){
+   const p=triangleProperties(points);if(!p)return null;
+   const cells=TRIANGLE_FAMILY_SIDES.flatMap(sides=>TRIANGLE_FAMILY_ANGLES.map(kind=>({sides,kind,possible:!!TRIANGLE_FAMILY_EXAMPLES[sides+'|'+kind],selected:p.sides===sides&&p.kind===kind})));
+   return {...p,points,cells,members:['Triangle',p.sides,...(p.alsoIsosceles?['Isosceles']:[]),p.kind],explanation:p.alsoIsosceles?'Three equal sides imply three 60° angles. An equilateral triangle is always acute and is also isosceles under the inclusive definition.':p.sides==='Isosceles'?'Exactly two equal sides have equal opposite angles. An isosceles triangle may be acute, right-angled or obtuse.':'Three unequal sides have three unequal opposite angles. A scalene triangle may be acute, right-angled or obtuse.'};
+ }
  function triangleCentres(pts){
    const p=triangleProperties(pts);if(!p)return null;
    const [a,b,c]=pts,u=labSub(b,a),v=labSub(c,a),den=2*labCross(u,v),uu=labDot(u,u),vv=labDot(v,v);
@@ -1513,7 +1529,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={quadrilateralFamilyModel,reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={triangleFamilyModel,triangleFamilyExample,quadrilateralFamilyModel,reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -2197,6 +2213,37 @@ function mountQuadrilateralFamily(container,m,demo){
  const show=()=>{demo.familyExample=select.value;const f=quadrilateralFamilyModel(select.value==='current'?m.points:quadReasoningPoints(select.value));section.querySelector('[data-ag-family-picture]').replaceChildren(quadrilateralFamilyGraphic(f));section.querySelector('[data-ag-family-members]').textContent=f.kind+' belongs to: '+f.members.join(', ')+'.';section.querySelector('[data-ag-family-definitions]').innerHTML=f.nodes.filter(n=>n.member).map(n=>'<dt>'+esc(n.name)+'</dt><dd>'+esc(n.definition)+'</dd>').join('')};
  select.onchange=show;container.appendChild(section);show();
 }
+function triangleFamilyGraphic(f){
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=600,H=385;
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const label=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':14,'text-anchor':'middle',fill:'#264a49',...attrs},value);
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',f.sides+' and '+f.kind+' triangle. Seven of nine side and angle combinations are possible.');svg.dataset.agTriangleFamilyGraphic='1';
+ add('rect',{width:W,height:H,fill:'#fff'});
+ const gridX=132,gridY=52,cw=146,ch=94;
+ label(350,16,'Classify by angles',{'font-weight':700});
+ TRIANGLE_FAMILY_ANGLES.forEach((name,i)=>label(gridX+cw*(i+.5),37,name,{'font-weight':700}));
+ TRIANGLE_FAMILY_SIDES.forEach((name,i)=>label(66,gridY+ch*(i+.5),name,{'font-weight':700,'font-size':13}));
+ for(const cell of f.cells){
+   const row=TRIANGLE_FAMILY_SIDES.indexOf(cell.sides),col=TRIANGLE_FAMILY_ANGLES.indexOf(cell.kind),x=gridX+col*cw,y=gridY+row*ch;
+   add('rect',{x:x+2,y:y+2,width:cw-4,height:ch-4,rx:7,fill:cell.selected?'#d9eee6':cell.possible?'#f6f9f7':'#f5f1ef',stroke:cell.selected?'#277b70':'#ccd8d4','stroke-width':cell.selected?2.5:1,'data-ag-triangle-family-cell':cell.sides+'|'+cell.kind,'data-ag-family-possible':String(cell.possible),'data-ag-family-selected':String(cell.selected)});
+   if(!cell.possible){label(x+cw/2,y+41,'Impossible',{'font-weight':700,fill:'#85551f'});label(x+cw/2,y+62,'All angles are 60°',{'font-size':12});continue}
+   const pts=cell.selected?f.points:triangleFamilyExample(cell.sides,cell.kind),xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),loX=Math.min(...xs),hiX=Math.max(...xs),loY=Math.min(...ys),hiY=Math.max(...ys),s=Math.min(94/(hiX-loX),57/(hiY-loY)),map=p=>[x+cw/2+(p[0]-(loX+hiX)/2)*s,y+35+(p[1]-(loY+hiY)/2)*s];
+   const v=pts.map(map);add('polygon',{points:v.map(p=>p.join(',')).join(' '),fill:cell.selected?'#d9eee6':'#fff',stroke:'#277b70','stroke-width':1.7});
+   if(cell.selected)label(x+cw/2,y+82,'Current example',{'font-weight':700,'font-size':12});
+   else label(x+cw/2,y+82,'Possible',{'font-size':12});
+ }
+ label(300,356,'One exact side classification + one angle classification',{'font-weight':700});
+ label(300,376,'An equilateral triangle also belongs to the inclusive isosceles family.',{'font-size':12});
+ return svg;
+}
+function mountTriangleFamily(container,m,demo){
+ const section=document.createElement('section');section.className='gd-ag-triangle-family';section.dataset.agTriangleFamilyReference='1';
+ const options=Object.keys(TRIANGLE_FAMILY_EXAMPLES);
+ section.innerHTML='<h4>Explore triangle classifications</h4><p>Classify the same triangle by its sides and by its angles. Not all combinations are possible.</p><label>Example <select class="gd-select" data-ag-triangle-family-select><option value="current">Current triangle</option>'+options.map(key=>'<option value="'+esc(key)+'">'+esc(key.replace('|',' · '))+'</option>').join('')+'</select></label><div data-ag-triangle-family-picture></div><p data-ag-triangle-family-result aria-live="polite"></p><p data-ag-triangle-family-measures></p><p data-ag-triangle-family-explanation></p>';
+ const select=section.querySelector('[data-ag-triangle-family-select]');select.value=options.includes(demo.triangleFamilyExample)?demo.triangleFamilyExample:'current';
+ const show=()=>{demo.triangleFamilyExample=select.value;const f=triangleFamilyModel(select.value==='current'?m.points:triangleFamilyExample(...select.value.split('|')));section.querySelector('[data-ag-triangle-family-picture]').replaceChildren(triangleFamilyGraphic(f));section.querySelector('[data-ag-triangle-family-result]').textContent='Classification: '+f.sides+' · '+f.kind+'.';section.querySelector('[data-ag-triangle-family-measures]').textContent='Angles: '+f.angles.map(v=>Number(v.toFixed(2))+'°').join(' + ')+' = 180°. Side lengths (model cm): '+f.lengths.map(v=>Number((v/LAB_UNIT).toFixed(2))).join(', ')+'.';section.querySelector('[data-ag-triangle-family-explanation]').textContent=f.explanation};
+ select.onchange=show;container.appendChild(section);show();
+}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
  const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').trim().split(/\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
@@ -2215,6 +2262,7 @@ function appendShapeReference(svg,d){
  const rotation=rotationReferenceGraphic(m,360/m.symmetry.rotation),rw=Math.min(w-40,420),rh=rw*280/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Rotational symmetry');at+=size+12;rotation.setAttribute('x',x+(w-rw)/2);rotation.setAttribute('y',at);rotation.setAttribute('width',rw);rotation.setAttribute('height',rh);svg.append(rotation);at+=rh+16;
  const mirror=reflectionReferenceGraphic(m,reflectionInvestigation(m).axes[0]??0,0),mw=Math.min(w-40,420),mh=mw*310/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Reflection symmetry');at+=size+12;mirror.setAttribute('x',x+(w-mw)/2);mirror.setAttribute('y',at);mirror.setAttribute('width',mw);mirror.setAttribute('height',mh);svg.append(mirror);at+=mh+16;
  if(m.quad){const family=quadrilateralFamilyGraphic(quadrilateralFamilyModel(m.points)),fw=w-2*margin,fh=fw*356/600;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Quadrilateral family tree');at+=size+12;family.setAttribute('x',x+margin);family.setAttribute('y',at);family.setAttribute('width',fw);family.setAttribute('height',fh);svg.append(family);at+=fh+8;for(const line of G.exportTools.wrapPaperText('Inclusive definitions: a trapezium has at least one parallel pair; a kite has two pairs of adjacent equal sides.',w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}
+ if(m.n===3){const family=triangleFamilyGraphic(triangleFamilyModel(m.points)),fw=w-2*margin,fh=fw*385/600;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Triangle classifications');at+=size+12;family.setAttribute('x',x+margin);family.setAttribute('y',at);family.setAttribute('width',fw);family.setAttribute('height',fh);svg.append(family);at+=fh+16}
  const proof=shapeAreaProof(m);if(proof){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why the area formula works');at+=size+12;for(let i=0;i<proof.steps.length;i++){const g=areaProofGraphic(proof,i),gw=Math.min(w-40,480),gh=gw*230/480;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(proof.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
  bg.setAttribute('height',at-y-h+10);svg.setAttribute('viewBox',[x,y,w,at-y+10].join(' '));return svg;
 }
@@ -3097,7 +3145,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.familyExample='current';demo.triangleFamilyExample='current';demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -3159,6 +3207,7 @@ G.anglesTool=function(){
     mountRotationReference(body,m,demo);
     mountReflectionReference(body,m,demo);
     if(m.quad)mountQuadrilateralFamily(body,m,demo);
+    if(m.n===3)mountTriangleFamily(body,m,demo);
     const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every

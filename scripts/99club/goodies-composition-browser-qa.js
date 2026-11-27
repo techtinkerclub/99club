@@ -3300,6 +3300,24 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       familySelect.value='Concave quadrilateral';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===1,'Concave example belongs only to general quadrilateral family');
       familySelect.value='current';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===7,'Return to current square');
       assert(rotationPrint.querySelector('[data-ag-family-graphic]'),'Current shape family hierarchy printed');
+      for(const sides of ['Equilateral','Isosceles','Scalene'])for(const kind of ['Acute','Right-angled','Obtuse']){
+        const pts=M.triangleFamilyExample(sides,kind),possible=sides!=='Equilateral'||kind==='Acute';
+        assert(!!pts===possible,'Triangle classification feasibility: '+sides+' '+kind);
+        if(!pts)continue;
+        const f=M.triangleFamilyModel(pts);assert(f.sides===sides&&f.kind===kind&&f.cells.filter(c=>c.selected).length===1,'Triangle example actually satisfies both classifications');
+        assert(f.cells.filter(c=>c.possible).length===7,'Exactly seven feasible classification combinations');
+        assert(Math.abs(f.angles.reduce((s,v)=>s+v,0)-180)<1e-8,'Triangle example angle sum');
+        if(sides==='Equilateral')assert(f.members.includes('Isosceles'),'Equilateral triangle also has inclusive isosceles membership');
+      }
+      assert(win.TT99Goodies.modeControl.set('polygon:equilateral'),'Triangle classification investigation accessible');await tick();
+      const trianglePanel=doc.querySelector('[data-ag-triangle-family-reference]'),triangleSelect=trianglePanel.querySelector('[data-ag-triangle-family-select]');
+      assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Equilateral|Acute"]').dataset.agFamilySelected==='true','Current equilateral example highlighted');
+      triangleSelect.value='Isosceles|Right-angled';triangleSelect.dispatchEvent(new win.Event('change',{bubbles:true}));
+      assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Isosceles|Right-angled"]').dataset.agFamilySelected==='true'&&trianglePanel.textContent.includes('45°'),'Isosceles right triangle selection gives accurate example');
+      assert(trianglePanel.querySelectorAll('[data-ag-family-possible="false"]').length===2,'Impossible equilateral right and obtuse cells explicitly shown');
+      triangleSelect.value='current';triangleSelect.dispatchEvent(new win.Event('change',{bubbles:true}));
+      const trianglePack=P.createDocument();trianglePack.addCurrent(id,cap());assert(P.renderItem(trianglePack.list()[0],false).querySelector('[data-ag-triangle-family-graphic]'),'Triangle classification grid printed');
+
 
 
 
