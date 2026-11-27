@@ -2611,3 +2611,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference)::-w
 #tt99-goodies-root .gd-ag-area-proof [data-ag-area-comparison-graphic]{width:100%;max-width:640px;display:block;margin:auto}
 #tt99-goodies-root [data-ag-area-comparison] [data-ag-area-comparison-value]{min-width:100px;max-width:100%;flex:1 1 130px;touch-action:pan-y}
 #tt99-goodies-root [data-ag-area-comparison] .gd-select{max-width:100%}
+
+#tt99-goodies-root [data-ag-geometry-reasoning] [data-ag-reasoning-graphic]{width:100%;max-width:640px;display:block;margin:auto}
+#tt99-goodies-root [data-ag-geometry-reasoning] .gd-select{width:100%;max-width:100%;min-width:0}
+#tt99-goodies-root [data-ag-geometry-reasoning] .gd-row{flex-wrap:wrap}
