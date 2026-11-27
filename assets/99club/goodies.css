@@ -2455,3 +2455,12 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-full-board>[data-ag-paper-construction]{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;z-index:10;padding:5px 10px;margin:0!important;min-height:0!important;background:#ffffffde;border-radius:7px;pointer-events:none;font-size:11px;line-height:1.25;color:#365e55}
 #tt99-goodies-root .gd-ag-full-board .gd-ag-full-help{position:absolute;right:10px;top:54px;width:min(310px,calc(100% - 20px));max-height:calc(100% - 65px);overflow:auto;z-index:35;background:#fff;border:1px solid #c9ded7;border-radius:9px;padding:8px;box-shadow:0 3px 15px #284d461c}
 @media(max-width:560px){#tt99-goodies-root .gd-ag-full-panel{max-width:min(270px,calc(100% - 8px))}#tt99-goodies-root .gd-ag-full-panel[data-ag-full-panel="Instruments"]{max-width:190px}#tt99-goodies-root .gd-ag-full-panel .gd-ag-lab-button{min-height:34px!important}}
+
+/* Dynamic construction controls float above the same full-viewport surface. */
+#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel]{width:min(330px,calc(100% - 8px));max-width:min(330px,calc(100% - 8px))}
+#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-inspect-tools{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px;padding:3px;border:0;background:transparent;margin:0}
+#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-inspect-tools[hidden]{display:none!important}
+#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-inspect-tools>select[data-ag-locus-preset],#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-inspect-tools>select[data-ag-custom-operation]{width:100%;min-width:0;font-size:12px}
+#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-inspect-message{flex:1 0 100%;font-size:11px;line-height:1.4;white-space:normal;text-align:left}
+#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-btn{min-height:32px!important;font-size:11px!important;padding:4px 7px!important}
+@media(max-width:600px){#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel]{width:min(250px,calc(100% - 8px))}}
