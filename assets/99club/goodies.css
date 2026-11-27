@@ -2464,3 +2464,13 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-inspect-message{flex:1 0 100%;font-size:11px;line-height:1.4;white-space:normal;text-align:left}
 #tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-btn{min-height:32px!important;font-size:11px!important;padding:4px 7px!important}
 @media(max-width:600px){#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel]{width:min(250px,calc(100% - 8px))}}
+
+/* Dynamic geometry uses the same compact action strip in normal and full-board modes. */
+#tt99-goodies-root .gd-ag-dynamic-controls{justify-content:flex-start;min-width:0;box-sizing:border-box;align-content:flex-start}
+#tt99-goodies-root .gd-ag-dynamic-controls>select[data-ag-locus-preset],#tt99-goodies-root .gd-ag-dynamic-controls>select[data-ag-custom-operation]{flex:1 0 100%;width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+#tt99-goodies-root .gd-ag-dynamic-controls>.gd-ag-inspect-message{flex:1 0 100%;min-width:0;white-space:normal;text-align:left;overflow-wrap:anywhere;padding:2px 3px}
+#tt99-goodies-root .gd-ag-dynamic-controls .gd-ag-inspect-btn{min-height:34px!important;max-width:100%;white-space:normal;line-height:1.2;text-align:center}
+#tt99-goodies-root .gd-ag-dynamic-controls [data-ag-locus-action="clear"],#tt99-goodies-root .gd-ag-dynamic-controls [data-ag-custom-action="clear-traces"]{border-color:#bacdc7!important}
+#tt99-goodies-root .gd-ag-dynamic-controls .gd-ag-inspect-btn:focus-visible{outline:2px solid #16796e;outline-offset:2px}
+#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-dynamic-controls .gd-ag-inspect-btn{min-height:34px!important}
+@media(pointer:coarse){#tt99-goodies-root .gd-ag-dynamic-controls .gd-ag-inspect-btn,#tt99-goodies-root .gd-ag-dynamic-controls .gd-select,#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-dynamic-controls .gd-ag-inspect-btn{min-height:44px!important;height:auto!important}}
