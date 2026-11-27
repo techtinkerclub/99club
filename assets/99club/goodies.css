@@ -2480,3 +2480,10 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-board-navigation .gd-ag-lab-button{min-width:38px;min-height:32px!important;margin:0!important;padding:3px 6px!important;white-space:nowrap}
 @media(pointer:coarse){#tt99-goodies-root .gd-ag-board-navigation .gd-ag-lab-button{min-height:44px!important;min-width:44px;height:auto!important}}
 @media(max-width:520px){#tt99-goodies-root .gd-ag-full-tools>.gd-ag-board-navigation{top:auto;bottom:8px}#tt99-goodies-root .gd-ag-full-board>[data-ag-paper-construction]{bottom:60px}}
+
+/* Independent measuring utensils: compact optional contextual tray. */
+#tt99-goodies-root .gd-ag-utensils{display:grid;gap:5px;min-width:0;padding:5px;border:1px solid #d1e1dd;border-radius:7px;background:#f8fbfa}
+#tt99-goodies-root .gd-ag-utensils[hidden],#tt99-goodies-root .gd-ag-utensils [hidden]{display:none!important}
+#tt99-goodies-root .gd-ag-utensils .gd-ag-lab-actions{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:4px}
+#tt99-goodies-root .gd-ag-utensils .gd-ag-inspect-message{text-align:left;min-width:0;flex:none}
+@media(pointer:coarse){#tt99-goodies-root .gd-ag-utensils .gd-ag-lab-button{min-height:44px!important;height:auto!important}}
