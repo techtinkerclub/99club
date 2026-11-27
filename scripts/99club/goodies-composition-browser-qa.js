@@ -2590,6 +2590,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     panel.querySelector('[data-board-controls-close]').click();await tick();
     const challengeButton=fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]');assert(challengeButton,'Frame Challenge action exists for '+id);challengeButton.click();await tick();
     assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);
+    if(id==='angles'){
+      const groups=JSON.parse(fixture.doc.querySelector('[data-gd-native-prefix="ag"]').dataset.gdNativeGroups),group=groups.find(g=>g.id==='properties'),chip=[...panel.querySelectorAll('[data-board-launcher-category]')].find(n=>n.dataset.boardLauncherCategory===group.id);assert(chip,'Quick geometry category uses stable identity');chip.click();await tick();
+      assert(panel.querySelector('[data-board-launcher-category="properties"]').getAttribute('aria-pressed')==='true'&&panel.querySelector('.gd-launch-category-random').textContent==='Random · '+group.label,'Selected category has explicit matching random action');
+      assert([...panel.querySelectorAll('[data-ag-challenge-mode]')].every(n=>group.ids.includes(n.dataset.agChallengeMode)),'Specific questions belong to selected category');
+    }
     panel.querySelector('[data-board-launcher-settings]').click();await tick();
     assert(panel.querySelector('.gd-panel-native-random')&&panel.querySelector('[data-board-launcher-back]'),'Specialist full challenge settings: '+id);
     if(id==='angles'){
@@ -2615,6 +2620,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
     assert(fixture.doc.querySelector('#gd-stage .gd-native-challenge,#gd-stage .gd-challenge-banner,#gd-stage .gd-ab-task'),'Specialist full settings Random generates: '+id);
     panel.querySelector('[data-board-launcher-back]').click();await tick();
+    if(id==='angles')assert(panel.querySelector('[data-board-launcher-category="properties"]')?.getAttribute('aria-pressed')==='true','Quick category retained across detailed settings');
     panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
     assert(!visible(panel),'Specialist quick generation closes launcher: '+id);
     if(['column-addition','column-subtraction','written-multiplication','written-division','statistics-table','function-machine','angles'].includes(id)){
