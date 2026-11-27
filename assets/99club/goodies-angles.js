@@ -1966,12 +1966,21 @@ function diagram(d,teacher=false,options={}){
      const q=exactPolar(...O,R+24,a);circle(p,5,teal);text(q[0],q[1]+5,name,19,{'data-ag-point-label':name,'paint-order':'stroke',stroke:'#fff','stroke-width':3});
      if(!paper)add('circle',{cx:p[0],cy:p[1],r:22,fill:'transparent',stroke:'none','data-ag-circle-handle':name,cursor:'grab','aria-label':'Move circle point '+name});
    }
-   const names={chord:'A line from the centre at 90° cuts a chord in half.',sector:'A sector is a slice of the circle: two radii and an arc.',segment:'A segment is the region between a chord and its arc.',tangent:'A tangent touches the circle at one point, at 90° to the radius.'};
+   const names={chord:'A perpendicular from the centre cuts a chord in half.',sector:'A sector is bounded by two radii and an arc.',segment:'A segment is bounded by a chord and its arc.',tangent:'A tangent touches the circle at one point, at 90° to the radius.'};
+   const heading={chord:'AM = MB   ·   OM ⟂ AB',sector:'Arc length = (θ ÷ 360°) × 2πr',segment:'Minor segment = minor sector − triangle',tangent:'Radius ⟂ tangent'};
+   // Reserve a small formula band above the circle without moving its model
+   // coordinates: the pointer transform remains based on the same geometry.
+   const twoLines=show&&(view==='sector'||view==='segment'),top=twoLines?-65:-35;
+   text(400,top+24,show||view==='chord'||tangentView?heading[view]:view==='sector'?'Sector: a fraction of a circle':'Segment: between a chord and an arc',22,{'font-weight':700,'data-ag-circle-investigation-heading':view});
+   if(twoLines)text(400,top+50,view==='sector'?'Sector area = (θ ÷ 360°) × πr²':'Major segment = circle − minor segment',19,{'data-ag-circle-investigation-general-formula':view});
+   const radiusLines=[[O,A],...(!tangentView?[[O,B]]:[]),...(chordView?[[A,B]]:[])];
+   const radiusLabel=dimensionPlacement(O,A,'r = '+r+' cm',{size:paper?29:17,offset:22,lines:radiusLines,bounds:[55,0,745,375],outside:labAt(A,labSub(A,B),1)});
+   if(radiusLabel)text(...radiusLabel.p,'r = '+r+' cm',paper?29:17,{'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3,transform:'rotate('+radiusLabel.angle+' '+radiusLabel.p.join(' ')+')','data-ag-circle-investigation-radius-label':'1'});
    text(400,395,names[view],19,{'data-ag-circle-investigation-rule':view});let y=425;
    const values=view==='chord'?'AM = MB = '+(m.chord/2).toFixed(2)+' cm · AB = '+m.chord.toFixed(2)+' cm':tangentView?'Angle between radius and tangent = 90°':(span>180?'Major':span===180?'Semicircle':'Minor')+' '+(view==='sector'?'sector':'segment')+' · Central angle = '+span.toFixed(2)+'°';
    text(400,y,values,18,{'data-ag-circle-investigation-value':view});
    if(show&&!tangentView){y+=30;const formula=view==='chord'?'OM = '+m.distance.toFixed(2)+' cm':view==='sector'?'Arc = '+m.arc.toFixed(2)+' cm · Sector area = '+m.sector.toFixed(2)+' cm²':'Arc = '+m.arc.toFixed(2)+' cm · Segment area = '+m.segment.toFixed(2)+' cm²';text(400,y,formula,18,{'data-ag-circle-investigation-formula':view})}
-   return frame(45,0,710,y+30);
+   return frame(45,top,710,y+30-top);
  }
  if(mode==='circle'){
    const r=d.radius||5,x=400,y=180,R=explore?65+6*r:145,p=[x,y],left=[x-R,y],right=[x+R,y],top=[x,y-R];
@@ -1990,18 +1999,20 @@ function diagram(d,teacher=false,options={}){
    if(isPart){if(teacher)text(x,baseline,highlight,19);return frame(200,12,400,teacher?380:338)}
    const given=explore||teacher?'r = '+r+' cm     ·     D = '+2*r+' cm':type==='circle-radius'?'D = '+2*r+' cm':'r = '+r+' cm';
    text(x,baseline,given,18,{'data-ag-circle-values':'1'});
-   if(explore||teacher&&['circle-radius','circle-diameter'].includes(type)){baseline+=25;text(x,baseline,'D = 2r  (Diameter = 2 × radius)',17,{'data-ag-circle-rule':'1'})}
+   if(explore)text(x,-6,'D = 2r  (Diameter = 2 × radius)',20,{'font-weight':700,'data-ag-circle-rule':'1'});
+   else if(teacher&&['circle-radius','circle-diameter'].includes(type)){baseline+=25;text(x,baseline,'D = 2r  (Diameter = 2 × radius)',17,{'data-ag-circle-rule':'1'})}
    if(explore&&d.circleEnrichment){
-     baseline+=30;text(x,baseline,'Circumference: C = πD = 2πr',17,{'data-ag-circle-formula':'circumference'});
-     baseline+=23;text(x,baseline,'C = 2 × π × '+r+' ≈ '+(2*Math.PI*r).toFixed(2)+' cm',16,{'data-ag-circle-working':'circumference'});
-     baseline+=30;text(x,baseline,'Area: A = πr²',17,{'data-ag-circle-formula':'area'});
-     baseline+=23;text(x,baseline,'A = π × '+r+'² ≈ '+(Math.PI*r*r).toFixed(2)+' cm²',16,{'data-ag-circle-working':'area'});
+     text(x,-58,'Circumference: C = πD = 2πr',20,{'font-weight':700,'data-ag-circle-formula':'circumference'});
+     text(x,-32,'Area: A = πr²',20,{'font-weight':700,'data-ag-circle-formula':'area'});
+     baseline+=26;text(x,baseline,'C = 2 × π × '+r+' ≈ '+(2*Math.PI*r).toFixed(2)+' cm',16,{'data-ag-circle-working':'circumference'});
+     baseline+=25;text(x,baseline,'A = π × '+r+'² ≈ '+(Math.PI*r*r).toFixed(2)+' cm²',16,{'data-ag-circle-working':'area'});
    }
    if(teacher&&['circle-area','circle-circumference'].includes(type)){
      const area=type==='circle-area';baseline+=26;text(x,baseline,area?'A = πr²':'C = 2πr',17,{'data-ag-circle-formula':area?'area':'circumference'});
      baseline+=23;text(x,baseline,(area?'A = 3.14 × '+r+'²':'C = 2 × 3.14 × '+r)+' = '+d.answer+(area?' cm²':' cm'),16,{'data-ag-circle-working':area?'area':'circumference'});
    }
-   return frame(190,12,420,baseline+12);
+   const topEdge=explore?(d.circleEnrichment?-85:-32):12;
+   return frame(190,topEdge,420,baseline+24-topEdge);
  }
  if(mode==='polygon'&&['rectangle-length','diagonal-equal','diagonal-bisect','diagonal-perpendicular','parallel-count','shape-family','isosceles-angle'].includes(type)){
    let pts;
