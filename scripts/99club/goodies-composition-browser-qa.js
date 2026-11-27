@@ -3539,6 +3539,13 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(!!area.querySelector('[data-ag-measure-base-extension]')===external,'Base extension is shown only when needed: '+name);
         assert(M.shapeMeasureNote(measure,'area').includes('outside the triangle')===external,'External altitude has a useful explanation: '+name);
         assert(Math.abs(measure.area-reference.area)<1e-8,'Area remains exact: '+name);
+        const compact=M.shapeReferenceGraphic(reference,'area'),base=compact.querySelector('[data-ag-reference-base]'),height=compact.querySelector('[data-ag-reference-height]'),right=compact.querySelector('[data-ag-reference-right-angle]'),lineEnds=node=>[1,2].map(i=>[Number(node.getAttribute('x'+i)),Number(node.getAttribute('y'+i))]),[A,B]=lineEnds(base),[Q,F]=lineEnds(height),delta=(a,b)=>b.map((x,i)=>x-a[i]),dot=(a,b)=>a[0]*b[0]+a[1]*b[1],axis=delta(A,B),along=dot(delta(A,F),axis)/dot(axis,axis);
+        assert(!!compact.querySelector('[data-ag-reference-base-extension]')===external,'Compact reference extends base when required: '+name);
+        assert(Math.abs(dot(axis,delta(F,Q)))<1e-7*Math.hypot(...axis)*Math.hypot(...delta(F,Q)),'Compact height stays perpendicular: '+name);
+        const corner=right.getAttribute('points').split(' ').map(q=>q.split(',').map(Number)),arm=delta(F,corner[0]),rise=delta(F,corner[2]);
+        assert(dot(arm,axis)*(along>1?-1:1)>0&&dot(rise,delta(F,Q))>0,'Compact right-angle marker faces measured base and height: '+name);
+        assert(Math.hypot(...arm)<=Math.hypot(...axis)*.14+1e-8&&Math.hypot(...rise)<=Math.hypot(...delta(F,Q))*.18+1e-8,'Compact right-angle marker scales down for thin or short triangles: '+name);
+
         for(const [selector,a,b] of [['[data-ag-measure-base-label]',p[0],p[1]],['[data-ag-measure-height-label]',...ends]]){
           const label=area.querySelector(selector);if(label)checkTeachingEdge(label,a,b);else assert(name==='thin'||name==='short-base','Ordinary external altitude must retain both labels: '+name);
         }
