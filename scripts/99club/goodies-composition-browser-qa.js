@@ -3179,6 +3179,25 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     const regionDraft=P.createDocument();regionDraft.addCurrent(id,cap());assert(P.renderItem(regionDraft.list()[0],false).querySelectorAll('[data-ag-region]').length===2,'Authored mathematical shading survives publication');
     doc.querySelector('[data-ag-polygon-shade]').click();
 
+    {
+      const M=win.TT99Goodies.angles,types=['circle-chord-half','circle-chord-distance','circle-arc-length','circle-sector-area','circle-segment-area','circle-tangent-angle'];
+      for(const type of types){
+        for(let i=0;i<60;i++){
+          const d=M.generate({type,enrichment:true},()=> (i+.5)/60),m=M.circleInvestigation(d),theta=d.circleSpan*Math.PI/180;
+          const expected=type==='circle-chord-half'?d.chordLength/2:type==='circle-chord-distance'?Math.sqrt(d.radius**2-(d.chordLength/2)**2):type==='circle-arc-length'?d.radius*theta:type==='circle-sector-area'?d.radius**2*theta/2:type==='circle-segment-area'?d.radius**2*(theta-Math.sin(theta))/2:90-d.tangentAngle;
+          assert(Math.abs(Number(d.answer)-expected)<=.005000001,'Circle challenge answer independently verified: '+type);
+          if(type.startsWith('circle-chord'))assert(Math.abs(m.chord-d.chordLength)<1e-8&&Math.abs(m.distance-d.chordDistance)<1e-8,'Chord challenge diagram faithfully represents given lengths');
+        }
+        const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},8,type);
+        assert(pack.list().length===8,'Circle challenge can generate eight worksheet items: '+type);
+        for(const item of pack.list()){
+          const pupil=P.renderItem(item,false),key=P.answerGraphic(item);
+          assert(!pupil.querySelector('[data-ag-circle-challenge-answer]')&&key.querySelector('[data-ag-circle-challenge-answer]').textContent.includes(item.data.answer),'Circle challenge separates pupil and teacher solutions: '+type);
+          assert(pupil.querySelector('[data-ag-circle-challenge-given]')&&!pupil.querySelector('[data-ag-circle-handle]'),'Printed circle challenge includes givens without interactive handles');
+          if(type==='circle-sector-area'||type==='circle-segment-area')assert(pupil.querySelector(type==='circle-sector-area'?'[data-ag-circle-sector]':'[data-ag-circle-segment]'),'Correct selected region shown on pupil worksheet');
+        }
+      }
+    }
     const circleMode=doc.getElementById('ag-mode');circleMode.value='circle';circleMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     assert(doc.querySelector('.gd-ag-visual svg').textContent.includes('Diameter = 2 × radius'),'Circle explorer explains radius-diameter relationship');
     const beforeRadius=cap().demo.radius||5;doc.querySelector('[data-ag-action="radius-up"]').click();await tick();
