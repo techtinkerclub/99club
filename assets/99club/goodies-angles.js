@@ -3703,7 +3703,7 @@ G.anglesTool=function(){
       for(const [key,label] of available){const button=document.createElement('button');button.type='button';button.className='gd-btn';button.dataset.agTeachingTab=key;button.textContent=label;button.onclick=()=>{demo.teachingScreen='lesson';demo.teachingTab=key;syncReferenceTabs();host.scrollTop=0};nav.appendChild(button)}
     }
     for(const button of nav.querySelectorAll('button')){const active=explore?button.hasAttribute('data-ag-teaching-explore'):button.dataset.agTeachingTab===selected;button.setAttribute('aria-pressed',String(active));button.classList.toggle('gd-btn--primary',active)}
-    for(const section of sections)section.hidden=section.dataset.agTeachingPanel!==selected;
+    for(const section of sections){section.hidden=section.dataset.agTeachingPanel!==selected;section.style.setProperty('--gd-ag-lesson-rows',String(Math.max(1,section.children.length-1)))}
     nav.hidden=!available.length;
     body.dataset.agTeachingActive=selected;
   }
