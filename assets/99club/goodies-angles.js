@@ -2278,6 +2278,17 @@ function methodPublication(data,teacher=false){
  para(m.conditions,15);svg.setAttribute('viewBox','0 0 '+W+' '+Math.ceil(y+12));return svg
 }
 // Small purpose-specific diagrams keep the main explorer uncluttered.
+// Teaching graphics share the same collision-aware, upright edge labels as geometry diagrams.
+function teachingDimensions(add,{bounds,lines=[],size=13}={}){
+ const occupied=[];
+ return (a,b,value,options={})=>{
+   const fontSize=options.size||size,placement=dimensionPlacement(a,b,value,{size:fontSize,offset:options.offset||16,outside:options.outside,lines:[...lines,...(options.lines||[])],occupied,bounds});
+   if(!placement)return null;
+   occupied.push(placement.box);
+   const [x,y]=placement.p;
+   return add('text',{x,y,'font-family':'Arial,sans-serif','font-size':fontSize,'text-anchor':'middle','dominant-baseline':'central',fill:'#263e43','paint-order':'stroke',stroke:'#fff','stroke-width':3,transform:'rotate('+placement.angle+' '+x+' '+y+')','data-ag-teaching-dimension':'1',...(options.attrs||{})},value);
+ };
+}
 function shapeReferenceGraphic(m,kind){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=320,H=200,pts=m.points,n=pts.length,p=m.polygon;
  const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
@@ -2316,7 +2327,10 @@ function shapeReferenceGraphic(m,kind){
      const corner=[labAt(F,u1,8),labAt(labAt(F,u1,8),h1,8),labAt(F,h1,8)];
      add('polyline',{points:corner.map(v=>v.join(',')).join(' '),fill:'none',stroke:'#b56d2c','stroke-width':1.5,'data-ag-reference-right-angle':'1'});
      if(parallelSide)line(...parallelSide.map(map),{stroke:'#277b70','stroke-width':3,'data-ag-reference-parallel-base':'1'});
-     label([160,174],'Base = '+fmt(labDist(a,b)/LAB_UNIT)+' cm; height = '+fmt(labDist(q,f)/LAB_UNIT)+' cm');
+     const dimensions=teachingDimensions(add,{size:10,bounds:[3,3,W-3,163],lines:[...v.map((point,i)=>[point,v[(i+1)%n]]),[Q,F]]});
+     dimensions(A,B,'b = '+fmt(labDist(a,b)/LAB_UNIT)+' cm',{outside:labAt(mid(A,B),h1,-20)});
+     dimensions(F,Q,'h = '+fmt(labDist(q,f)/LAB_UNIT)+' cm',{outside:labAt(mid(F,Q),u1,labDot(labSub(F,A),u1)<ul/2?-20:20)});
+     label([160,174],n===3?'A = ½ × b × h':m.quad.parallelPairs.length===2?'A = b × h':'Area uses both parallel bases');
    }else if(m.quad?.kind==='Kite'){
      line(v[0],v[2],{'data-ag-reference-area-diagonal':'AC'});line(v[1],v[3],{stroke:'#b56d2c','data-ag-reference-area-diagonal':'BD'});
      label([160,174],'A = ½ × diagonal × diagonal');
@@ -2349,8 +2363,11 @@ function areaComparisonGraphic(m,reveal=true,challenge=false,interactive=false){
      const q=map([s.apex+(s.apex>s.width/2?-1:1)*Math.min(.3,s.width/8),Math.min(.3,s.height/8)]);add('path',{d:'M '+foot[0]+' '+q[1]+' L '+q.join(' ')+' L '+q[0]+' '+foot[1],fill:'none',stroke:'#52676e','stroke-width':1.4});
    }
    if(interactive&&i===1){const p=map(m.kind==='base-height'?[s.apex,s.height]:[s.width,0]);add('circle',{cx:p[0],cy:p[1],r:12,fill:'#fff',stroke:'#a56a2e','stroke-width':2.5,'data-ag-comparison-handle':'1','data-ag-comparison-origin':origin,'data-ag-comparison-scale':scale});add('path',{d:'M '+(p[0]-7)+' '+p[1]+' H '+(p[0]+7)+' M '+(p[0]-7)+' '+p[1]+' l 4 -4 m -4 4 l 4 4 M '+(p[0]+7)+' '+p[1]+' l -4 -4 m 4 4 l -4 4',fill:'none',stroke:'#a56a2e','stroke-width':1.8,'pointer-events':'none'});}
-   label(cx,220,(m.kind==='base-height'?'Base ':'Width ')+fmt(s.width)+' cm',{'data-ag-area-comparison-width':i});
-   label(cx,243,(m.kind==='base-height'?'Perpendicular height ':'Height ')+(hidden?'?':fmt(s.height)+' cm'),{'data-ag-area-comparison-height-label':i});
+   const left=map([0,0]),right=map([s.width,0]),heightBottom=map([m.kind==='base-height'?s.apex:0,0]),heightTop=map([m.kind==='base-height'?s.apex:0,s.height]),edges=v.map((p,j)=>[p,v[(j+1)%v.length]]),dims=teachingDimensions(add,{bounds:[i*320+4,56,(i+1)*320-4,247],size:interactive?12:17,lines:[...edges,[heightBottom,heightTop]]});
+   const widthText=(m.kind==='base-height'?'b = ':'w = ')+fmt(s.width)+' cm',heightText='h = '+(hidden?'?':fmt(s.height)+' cm');
+   if(!dims(left,right,widthText,{outside:[cx,230],attrs:{'data-ag-area-comparison-width':i}}))label(cx,220,widthText,{'data-ag-area-comparison-width':i});
+   const side=m.kind==='base-height'&&s.apex>s.width/2?1:-1;
+   if(!dims(heightBottom,heightTop,heightText,{outside:[heightBottom[0]+side*30,(heightBottom[1]+heightTop[1])/2],attrs:{'data-ag-area-comparison-height-label':i}}))label(cx,243,heightText,{'data-ag-area-comparison-height-label':i});
    if(reveal||challenge&&i===0){
      label(cx,268,'Area = '+fmt(s.area)+' cm²',{'font-weight':700,'data-ag-area-comparison-area':i});label(cx,291,'Perimeter = '+fmt(s.perimeter)+' cm',{'font-weight':700,'data-ag-area-comparison-perimeter':i});
    }else{label(cx,268,'Area = ?',{'data-ag-area-comparison-area':i});label(cx,291,'Perimeter = ?',{'data-ag-area-comparison-perimeter':i})}
@@ -2397,13 +2414,15 @@ function shapeMeasureGraphic(m,mode='area',count=m.triangles.length){
      if(t<0||t>len)line(t<0?a:b,p,{stroke:'#657c7e','stroke-width':1.5,'stroke-dasharray':'4 3'});
      line(c,p,{stroke:'#996221','stroke-width':2,'stroke-dasharray':'5 4','data-ag-measure-height':'1'});
      const r=labAt(p,side,mark),q=labAt(p,up,mark);add('path',{d:'M '+r.join(' ')+' L '+labAt(r,up,mark).join(' ')+' L '+q.join(' '),stroke:'#35565a',fill:'none','stroke-width':1.4,'data-ag-measure-right':'1'});
-     const baseLabel=labAt(labAt(a,u,.5),up,-15),heightLabel=labAt(labAt(p,h,.5),along,t<len/2?17:-17),style={'font-size':13,'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':4};
-     label(baseLabel[0],baseLabel[1],'b = '+fmt(m.edges[0].length)+' cm',style);label(heightLabel[0],heightLabel[1],'h = '+fmt(2*m.area/m.edges[0].length)+' cm',style);
+     const dimensions=teachingDimensions(add,{bounds:[4,4,W-4,239],lines:[...v.map((point,i)=>[point,v[(i+1)%n]]),[c,p]]});
+     dimensions(a,b,'b = '+fmt(m.edges[0].length)+' cm',{outside:labAt(labAt(a,u,.5),up,-20),attrs:{'data-ag-measure-base-label':'1'}});
+     dimensions(p,c,'h = '+fmt(2*m.area/m.edges[0].length)+' cm',{outside:labAt(labAt(p,h,.5),along,t<len/2?-20:20),attrs:{'data-ag-measure-height-label':'1'}});
    }
    const subtotal=m.triangles.slice(0,count).reduce((a,t)=>a+t.area,0);label(250,253,n===3?'Area is the space inside the triangle':count+' of '+m.triangles.length+' pieces counted');label(250,278,(count===m.triangles.length?'Total area: ':'Area so far: ')+fmt(subtotal)+' cm²',{'font-weight':700,'data-ag-measure-total':'area'});
  }else{
    poly(v,{fill:'none',stroke:'#b56d2c','stroke-width':5,'stroke-linejoin':'round','data-ag-measure-boundary':'1'});for(const [i,p] of v.entries()){const q=vertexLabel(p,v[(i+n-1)%n],v[(i+1)%n],16);label(q[0],q[1],pointName(i),{'font-size':14,'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':3})}
-   if(n<=6)for(const e of m.edges){const a=v[e.from],b=v[e.to],mid=labAt(a,labSub(b,a),.5),u=labSub(b,a),len=Math.hypot(...u),normal=[u[1]/len,-u[0]/len],probe=labAt(mid,normal,5),sign=labContains(v,probe)?-1:1,q=labAt(mid,normal,sign*16);label(q[0],q[1],fmt(e.length)+' cm',{'font-size':13,'dominant-baseline':'central','paint-order':'stroke',stroke:'#fff','stroke-width':4,'data-ag-measure-side':e.from})}
+   const dimensions=teachingDimensions(add,{bounds:[4,4,W-4,239],lines:v.map((point,i)=>[point,v[(i+1)%n]])});
+   if(n<=6)for(const e of m.edges){const a=v[e.from],b=v[e.to],mid=labAt(a,labSub(b,a),.5),u=labSub(b,a),len=Math.hypot(...u),normal=[u[1]/len,-u[0]/len],probe=labAt(mid,normal,5),sign=labContains(v,probe)?-1:1;dimensions(a,b,fmt(e.length)+' cm',{outside:labAt(mid,normal,sign*20),attrs:{'data-ag-measure-side':e.from}})}
    label(250,253,'Add the '+n+' outside sides');label(250,278,'Perimeter: '+fmt(m.perimeter)+' cm',{'font-weight':700,'data-ag-measure-total':'perimeter'});
  }
  return svg;
@@ -2470,7 +2489,14 @@ function basicAreaGraphic(m,show=true){
    if(show){for(let i=1;i<m.w;i++)line([i,0],[i,m.h],{stroke:'#87b8ae','stroke-width':1});for(let i=1;i<m.h;i++)line([0,i],[m.w,i],{stroke:'#87b8ae','stroke-width':1});if(m.w>=1&&m.h>=1)add('rect',{x,y,width:s,height:s,fill:'#f3d9a8',stroke:'#a56a2e','stroke-width':1.5,'data-ag-unit-square':'1'});}
    label(250,258,show?'Orange square = 1 cm²':'Cover the shape with square units');
  }
- label(250,y+m.h*s+22,fmt(m.w)+' cm',{'font-weight':700});label(x-10,y+m.h*s/2,fmt(m.h)+' cm',{'text-anchor':'end','font-size':14});label(250,294,m.formula+' = '+fmt(m.area)+' cm²',{'font-size':17,'font-weight':700});return svg;
+ const dims=teachingDimensions(add,{bounds:[4,4,W-4,246],size:14});
+ if(m.kind==='Kite'){
+   dims(pt(0,m.b),pt(m.w,m.b),'d₁ = '+fmt(m.w)+' cm',{outside:pt(m.w/2,m.b-.2)});
+   dims(pt(m.a,0),pt(m.a,m.h),'d₂ = '+fmt(m.h)+' cm',{outside:pt(m.a-.2,m.h/2)});
+ }else{
+   dims(pt(0,m.h),pt(m.w,m.h),fmt(m.w)+' cm',{outside:pt(m.w/2,m.h+1)});
+   dims(pt(0,0),pt(0,m.h),fmt(m.h)+' cm',{outside:pt(-1,m.h/2)});
+ }label(250,294,m.formula+' = '+fmt(m.area)+' cm²',{'font-size':17,'font-weight':700});return svg;
 }
 function mountBasicArea(container,m,demo){
  const section=document.createElement('section');section.className='gd-ag-area-proof';section.dataset.agAreaProof='1';section.dataset.agBasicArea='1';let show=true;
@@ -2495,7 +2521,7 @@ function pythagorasGraphic(p,index){
    const regions=which==='c'?[p.centre]:p.small;
    if(index>0)regions.forEach((region,i)=>{poly(region,{fill:'#fff5ce',stroke:'#a56a2e','stroke-width':1.5,'data-ag-pythagoras-square':which==='c'?'c':i?'b':'a'});const q=map([0,1].map(k=>region.reduce((s,v)=>s+v[k],0)/4));label(q[0],q[1]+5,which==='c'?'c²':i?'b²':'a²',{'font-weight':700,'font-size':Math.min(17,Math.max(9,(which==='c'?p.c:i?p.b:p.a)*scale*.22))})});
    label(x+95,y-9,'a + b',{'font-size':13});label(x+95,y+210,which==='c'?'Four triangles around c²':'Same four triangles around a² + b²',{'font-size':12});
-   if(index===0){label(x+p.a*scale/2,y+14,'a',{'font-size':13});label(x+13,y+p.b*scale/2,'b',{'font-size':13});label(x+p.a*scale/2+12,y+p.b*scale/2+12,'c',{'font-size':13})}
+   if(index===0){const [a,b,c]=p.around[0].map(map),dims=teachingDimensions(add,{bounds:[x+2,y+2,x+188,y+188],size:12,lines:[[a,b],[a,c],[b,c]]});dims(a,b,'a',{outside:[x+30,y+24],offset:10});dims(a,c,'b',{outside:[x+24,y+30],offset:10});dims(b,c,'c',{outside:[x+95,y+95],offset:10})}
  };
  svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.setAttribute('aria-label',p.steps[index].note);svg.dataset.agPythagorasGraphic=String(index);
  add('rect',{width:W,height:H,fill:'#fff'});
@@ -2519,8 +2545,8 @@ function areaProofGraphic(proof,index,progress=1){
  add('rect',{width:W,height:H,fill:'#fff'});
  step.pieces.forEach((piece,i)=>{const before=index===2?proof.steps[1].pieces[i]:null,drawn=before&&progress<1?piece.map((q,j)=>labAt(before[j],labSub(q,before[j]),progress)):piece;poly(drawn,{fill:i?'#f3d9a8':'#d9eee6',stroke:i?'#a56a2e':'#277b70','stroke-width':2,'data-ag-proof-piece':i})});
  if(index===1&&proof.kind==='parallelogram'){const a=map(step.pieces[1][1]),b=map(step.pieces[1][2]);add('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#a56a2e','stroke-width':2.5,'stroke-dasharray':'5 3','data-ag-proof-cut':'1'})}
- if(step.outline&&progress===1){poly(step.outline,{fill:'none',stroke:'#27494c','stroke-width':2,'stroke-dasharray':'5 3','data-ag-proof-outline':'1'});const bottom=step.outline.filter(q=>Math.abs(q[1])<1e-6).sort((a,b)=>a[0]-b[0]);if(bottom.length>=2){const a=map(bottom[0]),b=map(bottom.at(-1)),h=map([bottom[0][0],proof.height]);add('line',{x1:a[0],y1:a[1]+8,x2:b[0],y2:b[1]+8,stroke:'#277b70','stroke-width':2});add('text',{x:(a[0]+b[0])/2,y:a[1]+22,'text-anchor':'middle',fill:'#27494c','font-size':13},proof.kind==='trapezium'?'a + b':'base');add('line',{x1:a[0]-8,y1:a[1],x2:h[0]-8,y2:h[1],stroke:'#a56a2e','stroke-width':2,'stroke-dasharray':'4 3'});add('text',{x:a[0]-12,y:(a[1]+h[1])/2,'text-anchor':'end',fill:'#a56a2e','font-size':13},'h')}}
- const a=map([0,0]),b=map([proof.base,0]);if(index===0){add('line',{x1:a[0],y1:a[1]+9,x2:b[0],y2:b[1]+9,stroke:'#277b70','stroke-width':2});add('text',{x:(a[0]+b[0])/2,y:a[1]+24,'text-anchor':'middle',fill:'#27494c','font-size':13},'base');const h=map([0,proof.height]);add('line',{x1:a[0]-10,y1:a[1],x2:h[0]-10,y2:h[1],stroke:'#a56a2e','stroke-dasharray':'4 3','stroke-width':2});add('text',{x:a[0]-15,y:(a[1]+h[1])/2,'text-anchor':'end',fill:'#a56a2e','font-size':13},'h')}
+ if(step.outline&&progress===1){poly(step.outline,{fill:'none',stroke:'#27494c','stroke-width':2,'stroke-dasharray':'5 3','data-ag-proof-outline':'1'});const bottom=step.outline.filter(q=>Math.abs(q[1])<1e-6).sort((a,b)=>a[0]-b[0]);if(bottom.length>=2){const a=map(bottom[0]),b=map(bottom.at(-1)),h=map([bottom[0][0],proof.height]);const dims=teachingDimensions(add,{bounds:[3,3,W-3,205],size:12});add('line',{x1:a[0],y1:a[1]+8,x2:b[0],y2:b[1]+8,stroke:'#277b70','stroke-width':2});dims([a[0],a[1]+8],[b[0],b[1]+8],proof.kind==='trapezium'?'a + b':'b',{outside:[a[0],a[1]+30],offset:13});add('line',{x1:a[0]-8,y1:a[1],x2:h[0]-8,y2:h[1],stroke:'#a56a2e','stroke-width':2,'stroke-dasharray':'4 3'});dims([a[0]-8,a[1]],[h[0]-8,h[1]],'h',{outside:[a[0]-30,a[1]],offset:13})}}
+ const a=map([0,0]),b=map([proof.base,0]);if(index===0){const dims=teachingDimensions(add,{bounds:[3,3,W-3,205],size:12});add('line',{x1:a[0],y1:a[1]+9,x2:b[0],y2:b[1]+9,stroke:'#277b70','stroke-width':2});dims([a[0],a[1]+9],[b[0],b[1]+9],'b',{outside:[a[0],a[1]+30],offset:13});const h=map([0,proof.height]);add('line',{x1:a[0]-10,y1:a[1],x2:h[0]-10,y2:h[1],stroke:'#a56a2e','stroke-dasharray':'4 3','stroke-width':2});dims([a[0]-10,a[1]],[h[0]-10,h[1]],'h',{outside:[a[0]-32,a[1]],offset:13});if(proof.kind==='trapezium'){const p=step.pieces[0],A=map(p[2]),B=map(p[3]);dims(A,B,'a',{outside:[A[0],A[1]-24],offset:13})}}
  add('text',{x:240,y:217,'text-anchor':'middle','font-family':'Arial,sans-serif','font-size':16,'font-weight':700,fill:'#27494c'},index===2&&progress===1?(proof.copies===2?'Half the combined area: ':'Same area: ')+Number((proof.originalArea/(LAB_UNIT*LAB_UNIT)).toFixed(2))+' cm²':index===2?'Move the orange piece':index===1?(proof.copies===2?'Two identical shapes':'Cut along the height'):'Start with the original shape');
  return svg;
 }
@@ -2529,8 +2555,9 @@ function areaProofGraphic(proof,index,progress=1){
 function mountAreaProof(container,proof,demo){
  let index=0,token=0;
  const section=document.createElement('section');section.className='gd-ag-area-proof';section.dataset.agAreaProof='1';
- const formula=proof.kind==='triangle'?'Area = ½ × base × height':proof.kind==='trapezium'?'Area = ½ × (parallel side + parallel side) × height':'Area = base × height';
- const why=proof.copies===2?'Two identical shapes fit together. The original has half the combined area.':'Cut and move the triangle. The pieces form a rectangle without changing their area.';
+ const formula=proof.kind==='triangle'?'A = ½ × b × h':proof.kind==='trapezium'?'A = ½ × (a + b) × h':'A = b × h';
+ const variables=proof.kind==='trapezium'?'a and b are the parallel sides; h is their perpendicular separation. ':'b is the base; h is the perpendicular height. ';
+ const why=variables+(proof.copies===2?'Two identical shapes fit together. The original has half the combined area.':'Cut and move the triangle. The pieces form a rectangle without changing their area.');
  section.innerHTML='<h4>See where the area formula comes from</h4><strong class="gd-ag-teaching-formula">'+esc(formula)+'</strong><p>'+esc(why)+'</p><div data-ag-proof-picture></div><p data-ag-proof-note aria-live="polite"></p><div class="gd-row"><button type="button" class="gd-btn gd-btn--primary" data-ag-proof-play>Play demonstration</button><button type="button" class="gd-btn" data-ag-proof-final>Show result</button><button type="button" class="gd-btn" data-ag-proof-reset>Reset</button></div><details data-ag-proof-manual><summary>Go through each step</summary><div class="gd-row"><button type="button" class="gd-btn" data-ag-proof-back>Previous</button><strong data-ag-proof-count></strong><button type="button" class="gd-btn" data-ag-proof-next>Next step</button></div></details>';
  const q=s=>section.querySelector(s),show=(progress=1)=>{demo.areaProofStep=index;q('[data-ag-proof-picture]').replaceChildren(areaProofGraphic(proof,index,progress));q('[data-ag-proof-note]').textContent=proof.steps[index].note;q('[data-ag-proof-count]').textContent=(index+1)+' / 3';q('[data-ag-proof-back]').disabled=index===0;q('[data-ag-proof-next]').disabled=index===2;};
  const stop=()=>{token++;q('[data-ag-proof-play]').textContent='Play demonstration'};
