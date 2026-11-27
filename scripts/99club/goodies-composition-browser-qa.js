@@ -1232,6 +1232,27 @@ async function run(){
       assert(JSON.stringify(indices('data-pub-answer-number'))===JSON.stringify(expected)&&JSON.stringify(indices('data-pub-answer-graphic'))===JSON.stringify(expected),'Mixed construction annex has one numbered graphical answer per challenge in order');
       assert(expected.every(i=>indices('data-pub-answer-note').includes(i)),'Every construction answer includes marking guidance');
     }
+    {
+      const enrichmentWasEnabled=doc.querySelector('#ag-enrich').checked;if(!enrichmentWasEnabled){doc.querySelector('#ag-enrich').click();await tick()}
+      const bisector=doc.querySelector('[data-ag-challenge-mode="build-bisector"]');assert(bisector,'Enrichment exposes perpendicular bisector challenge');bisector.click();await tick();
+      const model=win.TT99Goodies.angles,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),view=()=>svg.getAttribute('viewBox').split(' ').map(Number),state=()=>JSON.stringify(cap().lab);
+      const screen=p=>new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM()),send=(type,p,id=161)=>svg.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:id,pointerType:'touch',button:0,buttons:type==='pointerup'?0:1,clientX:p.x,clientY:p.y})),tap=p=>{const q=screen(p);send('pointerdown',q);send('pointerup',q)};
+      tool('compass').click();tap([340,302]);tap([520,302]);tool('compass-opening').click();tap([580,302]);
+      const before=state(),[a,b]=cap().lab.points,intersections=model.labIntersections(cap().lab).map(v=>v.p).filter(p=>Math.abs(p[0]-460)<1e-6),upper=intersections.find(p=>p[1]<302),lower=intersections.find(p=>p[1]>400);
+      assert(upper&&lower,'Equal compass circles have one intersection below initial assessed viewport');
+      tool('point').click();tap(upper);const prior=state();tool('pan').click();const p=screen([400,300]),q=screen([400,150]);
+      send('pointerdown',p);send('pointermove',q);send('pointerup',q);
+      assert(Math.abs(view()[1]-150)<1e-6&&view()[2]===800&&view()[3]===400,'Assessed pan changes only view origin and exposes lower intersection');
+      assert(state()===prior&&tool('point').getAttribute('aria-pressed')==='false','Panning creates no marks and suspends drawing');
+      const yGrid=[...svg.querySelectorAll('[data-ag-grid]')].filter(n=>n.getAttribute('y1')===n.getAttribute('y2')).map(n=>Number(n.getAttribute('y1')));assert(yGrid.every(y=>Math.abs((y-22)/40-Math.round((y-22)/40))<1e-8),'Panned grid remains anchored to the mathematical sheet');
+      const p2=screen([400,300]),q2=screen([400,250]);send('pointerdown',p2);send('pointermove',q2);send('pointercancel',q2);assert(Math.abs(view()[1]-150)<1e-6&&state()===prior,'Cancelled pan restores view and preserves marks');
+      tool('pan').click();assert(tool('point').getAttribute('aria-pressed')==='true','Pan resumes previously selected instrument');tap(lower);
+      assert(cap().lab.points.some(p=>Math.hypot(p[0]-lower[0],p[1]-lower[1])<1e-6),'Previously clipped intersection is reachable and snaps exactly');
+      tool('segment').click();tap(upper);tap(lower);assert(model.labCheck(cap().lab,cap().task).correct,'Perpendicular bisector constructed across original view edge is correctly assessed');
+      const finished=state();tool('reset-view').click();assert(view().join(' ')==='0 0 800 400'&&state()===finished&&model.labCheck(cap().lab,cap().task).correct,'Reset view preserves geometry and assessment');
+      tool('undo').click();assert(!model.labCheck(cap().lab,cap().task).correct,'Undo removes construction action, not camera movement');
+      if(!enrichmentWasEnabled){doc.querySelector('#ag-enrich').click();await tick()}
+    }
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
     const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     const freeSvg=doc.querySelector('.gd-ag-lab-canvas');
