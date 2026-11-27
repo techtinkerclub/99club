@@ -710,7 +710,7 @@ function generate(s={},rng=Math.random){
   line:{label:'Draw straight line',refs:['Point A','Point B'],object:true},
   circle:{label:'Draw circle',refs:['Centre','Radius point'],object:true}
  };
- function customBounds(st){let x=0,y=0,right=800,bottom=440;const include=(p,r=0)=>{if(!p||!p.every(Number.isFinite))return;x=Math.min(x,p[0]-r-24);y=Math.min(y,p[1]-r-24);right=Math.max(right,p[0]+r+24);bottom=Math.max(bottom,p[1]+r+24)};const {points}=customResolve(st);Object.values(points).forEach(p=>include(p));for(const o of st.objects||[])if(o.op==='circle'){const [a,b]=o.refs.map(n=>points[n]);if(a&&b)include(a,labDist(a,b))}for(const trail of Object.values(st.traces||{}))for(const p of trail)include(p);return [x,y,right-x,bottom-y]}
+ function customBounds(st,pad=24){let x=0,y=0,right=800,bottom=440;const include=(p,r=0)=>{if(!p||!p.every(Number.isFinite))return;x=Math.min(x,p[0]-r-pad);y=Math.min(y,p[1]-r-pad);right=Math.max(right,p[0]+r+pad);bottom=Math.max(bottom,p[1]+r+pad)};const {points}=customResolve(st);Object.values(points).forEach(p=>include(p));for(const o of st.objects||[])if(o.op==='circle'){const [a,b]=o.refs.map(n=>points[n]);if(a&&b)include(a,labDist(a,b))}for(const trail of Object.values(st.traces||{}))for(const p of trail)include(p);return [x,y,right-x,bottom-y]}
  function fitGeometryBounds(bounds,width,height){const [x,y,w,h]=bounds,ratio=Math.max(1,width)/Math.max(1,height),nw=Math.max(w,h*ratio),nh=Math.max(h,w/ratio);return [x-(nw-w)/2,y-(nh-h)/2,nw,nh]}
  function customInitial(){return {kind:'custom',nodes:[],objects:[],nextId:0,traceNames:[],traces:{},grid:true}}
  function customName(i){let s='';for(i++;i>0;i=Math.floor((i-1)/26))s=String.fromCharCode(65+(i-1)%26)+s;return s}
@@ -883,7 +883,7 @@ function diagram(d,teacher=false,options={}){
 
  if(mode==='loci'&&d.locusState?.kind==='custom'){
    const st=d.locusState,{points}=customResolve(st),attrs={'data-ag-custom-object':'1'};
-   const bounds=options.dynamicBounds||customBounds(st);if(st.grid&&!options.paper){const [x,y,w,h]=bounds,defs=add('defs',{}),pattern=add('pattern',{id:'ag-custom-grid',width:40,height:40,patternUnits:'userSpaceOnUse'},null,defs);add('path',{d:'M40 0H0V40',fill:'none',stroke:'#e3ebe8','stroke-width':1},null,pattern);add('rect',{x,y,width:w,height:h,fill:'url(#ag-custom-grid)','data-ag-custom-grid':'1'})}
+   const bounds=options.dynamicBounds||customBounds(st,options.paper?48:24);if(st.grid&&!options.paper){const [x,y,w,h]=bounds,defs=add('defs',{}),pattern=add('pattern',{id:'ag-custom-grid',width:40,height:40,patternUnits:'userSpaceOnUse'},null,defs);add('path',{d:'M40 0H0V40',fill:'none',stroke:'#e3ebe8','stroke-width':1},null,pattern);add('rect',{x,y,width:w,height:h,fill:'url(#ag-custom-grid)','data-ag-custom-grid':'1'})}
    for(const object of st.objects||[]){const [a,b]=object.refs.map(id=>points[id]);if(!a||!b||labDist(a,b)<1e-8)continue;
      if(object.op==='circle')add('circle',{cx:a[0],cy:a[1],r:labDist(a,b),fill:'none',stroke:teal,'stroke-width':2,...attrs});
      else if(object.op==='line'){const v=labSub(b,a),u=v.map(n=>n/Math.hypot(...v));line(labAt(a,u,-2000),labAt(a,u,2000),teal,2,attrs)}
@@ -905,6 +905,22 @@ function diagram(d,teacher=false,options={}){
    for(const [a,b] of preset.equalEdges||[]){const p=points[a],q=points[b],m=labAt(p,labSub(q,p),.5),angle=labAngle(p,q)+90;line(polar(...m,7,angle),polar(...m,7,angle+180),teal,2,{'data-ag-constraint-equal-side':'1'})}
    const namePoint=(p,name,movable=false)=>{if(st.traceNames?.includes(name)&&!options.paper)add('circle',{cx:p[0],cy:p[1],r:11,fill:'none',stroke:name==='P'?orange:'#5385c5','stroke-width':2});add('circle',{cx:p[0],cy:p[1],r:movable?6:4,fill:movable?teal:ink,'data-ag-locus-point':name});const neighbours=preset.links.filter(l=>l.includes(name)).map(l=>points[l.find(n=>n!==name)]),q=vertexLabel(p,neighbours[0],neighbours[1],18);text(q[0],q[1]+4,name,16,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})};
    for(const name of Object.keys(points))if((name!=='M'||showM)&&(!preset.hiddenPoints?.includes(name)||st.traceNames?.includes(name)))namePoint(points[name],name,name==='P');
+   if(options.paper){
+     // Derive the printable extent from actual rendered geometry, including
+     // dependent endpoints, guides and traces. The captions live below it.
+     let left=65,top=10,right=735,bottom=420;
+     const include=(p,rx=0,ry=rx)=>{if(!p||!p.every(Number.isFinite))return;left=Math.min(left,p[0]-rx-40);right=Math.max(right,p[0]+rx+40);top=Math.min(top,p[1]-ry-40);bottom=Math.max(bottom,p[1]+ry+40)};
+     Object.values(points).forEach(p=>include(p));
+     for(const trail of Object.values(st.traces||{}))for(const p of trail)include(p);
+     for(const g of [...(st.showLocus?preset.guides:[]),...(preset.objects?.(P)||[])]){
+       if(g.circle)include(g.circle.slice(0,2),g.circle[2]);
+       else if(g.ellipse)include(g.ellipse.slice(0,2),g.ellipse[2],g.ellipse[3]);
+       else for(const p of g.polyline||g.line||[])include(p);
+     }
+     let y=bottom+32;const width=right-left,caption=value=>{for(const row of G.exportTools.wrapPaperText(value,width-40,29,400)){text((left+right)/2,y,row,29,{'data-ag-locus-caption':'1'});y+=38}};
+     caption(preset.summary(P));caption(preset.rule);if(showM)caption('M is the midpoint of '+Object.keys(preset.anchors)[0]+'P.');
+     return frame(left,top,width,y-top+12);
+   }
    if(!options.dynamicBounds){text(400,435,preset.summary(P),17);text(400,462,preset.rule,16);if(showM)text(400,484,'M is the midpoint of '+Object.keys(preset.anchors)[0]+'P.',15)}
    return frame(...(options.dynamicBounds||[65,10,670,490]))
  }
