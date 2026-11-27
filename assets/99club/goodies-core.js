@@ -66,7 +66,26 @@ function protractorInstrument(parent,{x=0,y=0,radius:r=247,start=0,direction=1,f
  line(polar(r,start),polar(r,start+180),1.5);instrumentEl(g,'circle',{cx:x,cy:y,r:4,fill:'#668d86'});
  return g;
 }
-const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument};
+// Physical set square: a transparent triangular body with an open centre,
+ // calibrated graduations on both legs. Vertices are supplied in drawing units.
+function setSquareInstrument(parent,{points,angles,unitsPerCm=40,kind='square45'}={}){
+ const g=instrumentEl(parent,'g',{'data-geometry-instrument':kind});
+ const centre=points.reduce((a,p)=>[a[0]+p[0]/3,a[1]+p[1]/3],[0,0]),inner=points.map(p=>[centre[0]+(p[0]-centre[0])*.48,centre[1]+(p[1]-centre[1])*.48]);
+ const ring=p=>'M '+p.map(q=>q.join(' ')).join(' L ')+' Z';
+ instrumentEl(g,'path',{d:ring(points)+' '+ring(inner),'fill-rule':'evenodd',fill:'#dceee9','fill-opacity':.68,stroke:'#82a69e','stroke-width':1.4,'data-me-square-body':'1'});
+ const right=angles.indexOf(90),origin=points[right],ends=points.filter((_,i)=>i!==right);
+ for(const [edge,end] of ends.entries()){
+  const v=[end[0]-origin[0],end[1]-origin[1]],length=Math.hypot(...v),u=v.map(x=>x/length),normal=[-u[1],u[0]],dot=(centre[0]-origin[0])*normal[0]+(centre[1]-origin[1])*normal[1];if(dot<0){normal[0]*=-1;normal[1]*=-1}
+  const step=unitsPerCm/10,at=(d,h)=>[origin[0]+u[0]*d+normal[0]*h,origin[1]+u[1]*d+normal[1]*h];
+  for(let i=0;i<=Math.floor((length+1e-7)/step);i++){
+   const a=at(i*step,0),b=at(i*step,i%10===0?12:i%5===0?8:4);
+   instrumentEl(g,'line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'#344b52','stroke-width':.85,'data-me-square-edge':edge,'data-me-square-mm':i});
+   if(i>0&&i%10===0&&i*step<length-8){const p=at(i*step,18);instrumentEl(g,'text',{x:p[0],y:p[1],'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':10,fill:'#285f57'},i/10)}
+  }
+ }
+ return g;
+}
+const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument};
 
 global.TT99Goodies={instruments,root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels,lessonState};
 })(window);

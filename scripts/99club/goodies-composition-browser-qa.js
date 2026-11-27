@@ -1338,6 +1338,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(work.viewBox.baseVal.width===840&&work.viewBox.baseVal.height===592,'A5 format can shrink the empty sheet below the old minimum');
     const previewPointer=(type,p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:47,button:0,clientX:v.x,clientY:v.y}))};
     const checkRuler=(cm,endpoint)=>{doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);previewPointer('pointermove',endpoint);const ruler=work.querySelector('[data-geometry-instrument="ruler"]'),ticks=ruler.querySelectorAll('[data-me-division]');assert(ticks.length===cm*10+1&&Number(ticks[10].getAttribute('x1'))===40&&Number(ticks[1].getAttribute('x1'))===4&&Number(ticks[ticks.length-1].getAttribute('x1'))===cm*40,'Ruler has correct millimetre and centimetre graduations for '+cm+' cm');doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.points.length===0,'Ruler preview cleanup preserves empty sheet')};
+    {
+      const N='http://www.w3.org/2000/svg',sample=doc.createElementNS(N,'svg');
+      for(const [kind,pts,angles] of [['square45',[[0,0],[200,0],[0,200]],[90,45,45]],['square30',[[0,0],[200,0],[0,200*Math.sqrt(3)]],[90,60,30]]]){
+        const g=G.instruments.setSquare(sample,{points:pts,angles,unitsPerCm:40,kind});
+        assert(g.querySelector('[data-me-square-body]').getAttribute('fill-rule')==='evenodd','Set square has an open centre');
+        for(let edge=0;edge<2;edge++){const ticks=[...g.querySelectorAll('[data-me-square-edge="'+edge+'"]')];
+          assert(ticks.length>10,'Set square contains millimetre graduations on both legs');
+          const xy=n=>[Number(n.getAttribute('x1')),Number(n.getAttribute('y1'))];
+          assert(Math.abs(Math.hypot(xy(ticks[1])[0]-xy(ticks[0])[0],xy(ticks[1])[1]-xy(ticks[0])[1])-4)<1e-6,'Set square tick spacing is exactly one millimetre');
+        }
+      }
+    }
     const verifyInstruments=label=>{
       const tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),reset=()=>doc.querySelector('[aria-label="Reset construction"]').click();
       const c=[200,200],edge=[320,200],other=[500,200];
