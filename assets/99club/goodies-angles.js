@@ -1126,10 +1126,10 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  // Local controls stay readable in screen pixels and do not rotate with the utensil.
  function localInstrumentActions(svg,anchor,label,actions,group){
    const N='http://www.w3.org/2000/svg',m=svg.getScreenCTM();if(!m)return;
-   const scale=Math.hypot(m.a,m.b)||1,v=svg.viewBox.baseVal,unit=1/scale,w=Math.min(v.width-8*unit,(Math.max(84,label.length*7)+actions.length*38+12)*unit),h=40*unit;
-   const x=Math.max(v.x+4*unit,Math.min(v.x+v.width-w-4*unit,anchor[0]-w/2)),y=Math.max(v.y+4*unit,Math.min(v.y+v.height-h-4*unit,anchor[1]+26*unit));
+   const scale=Math.hypot(m.a,m.b)||1,v=svg.viewBox.baseVal,unit=1/scale,buttonSize=46,rows=v.width*scale<Math.max(84,label.length*7)+actions.length*(buttonSize+4)+16?2:1,w=Math.min(v.width-8*unit,(Math.max(84,label.length*7)+actions.length*(buttonSize+4)+16)*unit),h=(rows===1?54:108)*unit;
+   const x=Math.max(v.x+4*unit,Math.min(v.x+v.width-w-4*unit,anchor[0]-w/2)),y=Math.max(v.y+4*unit,Math.min(v.y+v.height-h-4*unit,anchor[1]+34*unit));
    const fo=document.createElementNS(N,'foreignObject');for(const [k,val] of Object.entries({x,y,width:w,height:h,'data-ag-local-instrument':'1'}))fo.setAttribute(k,val);
-   const bar=document.createElement('div');bar.className='gd-ag-local-instrument';bar.style.width=w*scale+'px';bar.style.height='40px';bar.style.transformOrigin='top left';
+   const bar=document.createElement('div');bar.className='gd-ag-local-instrument';bar.style.width=w*scale+'px';bar.style.height=(h*scale)+'px';bar.style.flexWrap=rows===2?'wrap':'nowrap';bar.style.transformOrigin='top left';
    // foreignObject content is in SVG units: compensate for zoom.
    bar.style.transform='scale('+unit+')';const name=document.createElement('span');name.textContent=label;bar.append(name);
    for(const [id,desc,glyph,fn,pressed] of actions){const b=document.createElement('button');b.type='button';b.dataset[group]=id;b.title=desc;b.setAttribute('aria-label',desc);if(pressed!==undefined)b.setAttribute('aria-pressed',String(pressed));b.append(icon(glyph));b.onclick=e=>{e.stopPropagation();fn()};bar.append(b)}
@@ -1140,20 +1140,49 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  // Snap in screen-pixel tolerances, with exact world coordinates.
  // Translation and rotation are independent; snapping never changes size.
  function utensilAlignment(st,t,mode,scale){
-   const p=[t.x,t.y],tol=12/Math.max(.001,scale),lines=[...st.segments.filter(o=>labVisible(st,'segments',o)).map(o=>({a:st.points[o[0]],b:st.points[o[1]],ray:false})),...st.rays.filter(o=>labVisible(st,'rays',o)).map(o=>({a:st.points[o.i],b:[st.points[o.i][0]+100*Math.cos(labRayAngle(st,o)*D),st.points[o.i][1]-100*Math.sin(labRayAngle(st,o)*D)],ray:true}))];
+   const p=[t.x,t.y],tol=12/Math.max(.001,scale),diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),lines=[...st.segments.filter(o=>labVisible(st,'segments',o)).map(o=>({a:st.points[o[0]],b:st.points[o[1]],ray:false})),...st.rays.filter(o=>labVisible(st,'rays',o)).map(o=>({a:st.points[o.i],b:[st.points[o.i][0]+100*Math.cos(labRayAngle(st,o)*D),st.points[o.i][1]-100*Math.sin(labRayAngle(st,o)*D)],ray:true}))];
    if(st.given!==false&&st.points.length>=2)lines.push({a:st.points[0],b:st.points[1],ray:false});
    const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b)}]}).sort((a,b)=>a.d-b.d);
    if(mode==='move'){
+     // Match finite measuring edges, not merely the utensil's origin.
+     // Candidate geometry is computed from the unsnapped pose on every move.
+     const edges=t.kind==='protractor'?[[0,t.size||170]]:t.kind==='ruler'?[[0,t.size||400]]:t.kind.startsWith('square')?[[0,t.size||200],[90,(t.size||200)*(t.kind==='square30'?Math.sqrt(3):1)]]:[];
+     const vector=(a,d)=>[Math.cos(a*D)*d,-Math.sin(a*D)*d],matches=[];
      const vertex=st.points.map(q=>({q,d:labDist(p,q)})).sort((a,b)=>a.d-b.d)[0];
-     const hit=vertex?.d<=tol?{...vertex,kind:'Point'}:nearest[0]?.d<=tol?{...nearest[0],kind:'Edge'}:null;
-     return hit?{x:hit.q[0],y:hit.q[1],kind:hit.kind}:null;
+     for(const [offset,len] of edges){
+       const direction=t.angle+offset;
+       // For a protractor its centre is the only translation anchor.
+       const fractions=t.kind==='protractor'?[0]:[0,.5,1];
+       for(const l of lines){
+         const v=labSub(l.b,l.a),ll=labDot(v,v);if(ll<1e-8)continue;
+         for(const reverse of [0,180]){
+           const angle=mod(labAngle(l.a,l.b)+reverse-offset),da=diff(angle,t.angle);if(da>5)continue;
+           for(const fraction of fractions){
+             const a=vector(direction,len*fraction),sample=[p[0]+a[0],p[1]+a[1]],u=labDot(labSub(sample,l.a),v)/ll;
+             if(u<0||(!l.ray&&u>1))continue;
+             const q=labAt(l.a,v,u),distance=labDist(sample,q);if(distance>tol)continue;
+             const b=vector(angle+offset,len*fraction),origin=[q[0]-b[0],q[1]-b[1]];
+             // Do not shift the origin far away just to align a distant tip.
+             const shift=labDist(origin,p);if(shift>tol)continue;
+             matches.push({x:origin[0],y:origin[1],angle,kind:'Aligned edge',score:shift+da*.8});
+             if(vertex?.d<=tol){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if(k>=-1e-7&&(l.ray||k<=1+1e-7)&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol})}
+           }
+         }
+       }
+       // A ruler or set-square tip can also snap to a point without rotating.
+       if(t.kind!=='protractor'){const a=vector(direction,len),tip=[p[0]+a[0],p[1]+a[1]],end=st.points.map(q=>({q,d:labDist(q,tip)})).sort((a,b)=>a.d-b.d)[0];if(end?.d<=tol)matches.push({x:end.q[0]-a[0],y:end.q[1]-a[1],kind:'Endpoint',score:end.d+tol})}
+     }
+     if(vertex?.d<=tol){const aligned=matches.filter(m=>m.kind==='Aligned vertex').sort((a,b)=>a.score-b.score)[0];return aligned?{x:aligned.x,y:aligned.y,angle:aligned.angle,kind:aligned.kind}:{x:vertex.q[0],y:vertex.q[1],kind:'Point'}}
+     const match=matches.sort((a,b)=>a.score-b.score)[0];if(match){const {score,...result}=match;return result}
+     const hit=nearest[0]?.d<=tol?nearest[0]:null;
+     return hit?{x:hit.q[0],y:hit.q[1],kind:'Edge'}:null;
    }
    if(mode==='rotate'){
-     const diff=(a,b)=>Math.min(mod(a-b),mod(b-a)),offsets=t.kind.startsWith('square')?[0,90]:[0],choices=[];
+     const offsets=t.kind.startsWith('square')?[0,90]:[0],choices=[];
      for(const l of nearest.filter(l=>l.d<=tol*2))for(const offset of offsets)for(const reverse of [0,180])choices.push({angle:mod(l.angle+offset+reverse),kind:'Edge'});
      choices.push({angle:mod(Math.round(t.angle/15)*15),kind:'Angle'});
-     choices.sort((a,b)=>diff(a.angle,t.angle)-diff(b.angle,t.angle));
-     return choices[0]&&diff(choices[0].angle,t.angle)<=3?choices[0]:null;
+     choices.sort((a,b)=>(a.kind==='Edge'?0:1)-(b.kind==='Edge'?0:1)||diff(a.angle,t.angle)-diff(b.angle,t.angle));
+     return choices.find(c=>diff(c.angle,t.angle)<=3)||null;
    }
    return null;
  }
@@ -1192,7 +1221,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
        else if(t.kind==='protractor')G.instruments.protractor(g,{radius:t.size,direction:t.hand});
        else G.instruments.setSquare(g,{points:[[0,0],[t.size,0],[0,-(t.kind==='square45'?t.size:t.size*Math.sqrt(3))]],angles:t.kind==='square45'?[90,45,45]:[90,60,30],kind:t.kind,unitsPerCm:LAB_UNIT});
        if(t.id===selected){
-         const scale=Math.hypot(svg.getScreenCTM()?.a||1,svg.getScreenCTM()?.b||0),r=Math.max(6,Math.min(400,13/scale)),arm=t.size+3*r,resize=t.kind==='protractor'?[0,-t.size*t.hand]:[t.size,0];
+         const scale=Math.hypot(svg.getScreenCTM()?.a||1,svg.getScreenCTM()?.b||0),r=Math.max(6,Math.min(400,18/scale)),arm=t.size+3*r,resize=t.kind==='protractor'?[0,-t.size*t.hand]:[t.size,0];
          node(g,'line',{x1:t.size,y1:0,x2:arm,y2:0,stroke:'#b45309','stroke-width':1.5,'stroke-dasharray':'4 4','pointer-events':'none'});
          node(g,'circle',{cx:0,cy:0,r:r*.45,fill:'#b45309','pointer-events':'none'});
          node(g,'circle',{cx:arm,cy:0,r,fill:'#fff',stroke:'#b45309','stroke-width':2,'data-ag-utensil-handle':'rotate',cursor:'grab','aria-label':'Rotate utensil'});
