@@ -3267,7 +3267,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
       const rotationPack=P.createDocument();rotationPack.addCurrent(id,cap());const rotationPrint=P.renderItem(rotationPack.list()[0],false);
       assert(rotationPrint.querySelector('[data-ag-rotation-graphic]'),'Rotational symmetry graphic printed');
-      assert(rotationPrint.getAttribute('viewBox').trim().split(/\s+/).every(v=>Number.isFinite(Number(v)))&&!rotationPrint.outerHTML.includes('NaN'),'Teaching publication has finite SVG geometry');
+      const printedView=rotationPrint.viewBox.baseVal;assert([printedView.x,printedView.y,printedView.width,printedView.height].every(Number.isFinite)&&printedView.width>0&&printedView.height>0&&!rotationPrint.outerHTML.includes('NaN'),'Teaching publication has finite SVG geometry: '+rotationPrint.getAttribute('viewBox'));
 
 
 
