@@ -3579,7 +3579,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(n.getAttribute('dominant-baseline')==='central','Circle labels have centred vertical alignment');
         if(name==='O')assert(Math.hypot(x-cx,y-cy)>=size(n),'Centre label clears centre dot and diameter');
         if(name==='D')assert(y-cy>=size(n)*.75,'Diameter symbol clears horizontal diameter');
-        if(name==='D'||name==='r'){const transform=n.getAttribute('transform'),angle=Number(transform?.slice(7).split(' ')[0]);assert(transform?.startsWith('rotate(')&&Number.isFinite(angle)&&Math.abs(Math.sin((angle-(name==='D'?0:-55))*Math.PI/180))<1e-8,'Circle dimension follows its measurement line')}
+        if(name==='D'||name==='r'){const transform=n.getAttribute('transform'),angle=Number(transform?.slice(7).split(' ')[0]);let expected=0;if(name==='r'){const edge=out.querySelector('[data-ag-circle-radius-line]');assert(edge,'Radius line present');const dx=Number(edge.getAttribute('x2'))-Number(edge.getAttribute('x1')),dy=Number(edge.getAttribute('y2'))-Number(edge.getAttribute('y1'));expected=Math.atan2(dy,dx)*180/Math.PI;assert(Math.abs(Math.hypot(dx,dy)-r)<1e-8,'Radius endpoint lies exactly on circumference')}assert(transform?.startsWith('rotate(')&&Number.isFinite(angle)&&Math.abs(angle)<=90&&Math.abs(Math.sin((angle-expected)*Math.PI/180))<1e-8,'Circle dimension follows its measurement line: '+name+' '+angle+' vs '+expected)}
 
         if(n.hasAttribute('data-ag-point-label')&&name!=='O')assert(Math.hypot(x-cx,y-cy)-r>=size(n),'Boundary point label clears circumference');
         if(name==='r'){const a=55*Math.PI/180;assert(Math.abs((x-cx)*Math.sin(a)+(y-cy)*Math.cos(a))>=size(n)*.75,'Radius symbol clears sloping radius')}
