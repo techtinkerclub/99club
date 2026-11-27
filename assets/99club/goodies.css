@@ -2474,3 +2474,8 @@ html.gd-ag-full-page.gd-embed-page #gd-stage.gd-ag-full-stage>:not(.gd-ag-full-b
 #tt99-goodies-root .gd-ag-dynamic-controls .gd-ag-inspect-btn:focus-visible{outline:2px solid #16796e;outline-offset:2px}
 #tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-dynamic-controls .gd-ag-inspect-btn{min-height:34px!important}
 @media(pointer:coarse){#tt99-goodies-root .gd-ag-dynamic-controls .gd-ag-inspect-btn,#tt99-goodies-root .gd-ag-dynamic-controls .gd-select,#tt99-goodies-root .gd-ag-full-panel[data-ag-dynamic-panel] .gd-ag-dynamic-controls .gd-ag-inspect-btn{min-height:44px!important;height:auto!important}}
+
+/* Keep full-board camera controls together, below the dynamic tools. */
+#tt99-goodies-root .gd-ag-dynamic-navigation{display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:4px;padding:4px 3px 2px;border-top:1px solid #dce8e4}
+#tt99-goodies-root .gd-ag-dynamic-navigation .gd-ag-lab-button{min-width:40px;min-height:34px!important;margin:0!important}
+@media(pointer:coarse){#tt99-goodies-root .gd-ag-dynamic-navigation .gd-ag-lab-button{min-height:44px!important;min-width:44px}}

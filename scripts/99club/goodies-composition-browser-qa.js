@@ -1531,6 +1531,14 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(primary.getBoundingClientRect().left>oldLeft+20&&Number(primary.style.zIndex)>Number(secondary.style.zIndex),'Dynamic palette moves by touch and rises above other panels');
       const dock=doc.querySelector('[data-ag-full-panels]');dock.click();assert(dynamicPalettes.every(p=>p.hidden)&&dock.getAttribute('aria-expanded')==='false','Dynamic palettes can be hidden');dock.click();assert(dock.getAttribute('aria-expanded')==='true'&&!primary.hidden,'Dynamic palettes can be restored');
 
+      const nav=id=>doc.querySelector('[data-ag-nav="'+id+'"]'),cameraView=()=>{const v=surface.querySelector('svg').viewBox.baseVal;return [v.x,v.y,v.width,v.height]},beforeNav=cameraView(),stateBeforeNav=JSON.stringify(cap().demo.locusState);
+      nav('zoom-out').click();assert(cameraView()[2]>beforeNav[2],'Preset board zooms out');
+      nav('zoom-in').click();assert(Math.abs(cameraView()[2]-beforeNav[2])<.02,'Preset zoom in restores scale');
+      nav('pan').click();const r=surface.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+      for(const [type,x,y] of [['pointerdown',cx,cy],['pointermove',cx+r.width*.4,cy+r.height*.4],['pointerup',cx+r.width*.4,cy+r.height*.4]])surface.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:59,button:0,clientX:x,clientY:y}));
+      assert(cameraView()[0]<beforeNav[0]&&cameraView()[1]<beforeNav[1]&&JSON.stringify(cap().demo.locusState)===stateBeforeNav,'Panning preset geometry changes the view only, preserving constraint and traces');
+      nav('fit').click();const fitView=cameraView(),fitBounds=M.locusFitBounds(cap().demo.locusState);
+      assert(fitView[0]<=fitBounds[0]+.02&&fitView[1]<=fitBounds[1]+.02&&fitView[0]+fitView[2]>=fitBounds[0]+fitBounds[2]-.02&&fitView[1]+fitView[3]>=fitBounds[1]+fitBounds[3]-.02,'Preset Fit includes finite geometry and traces');
       const choose=doc.querySelector('[data-ag-locus-preset]');choose.value='custom';choose.dispatchEvent(new win.Event('change',{bubbles:true}));await tick(150);
       surface=doc.querySelector('[data-ag-dynamic-workspace]');assert(surface.dataset.agFullActive==='true'&&frame.classList.contains('is-geometry-board'),'Switching to custom geometry retains full-board mode');checkDynamicControls();
       const customSvg=surface.querySelector('svg'),{x,y,width:w,height:h}=customSvg.viewBox.baseVal,p=[x+w-25,y+h-25],v=new win.DOMPoint(...p).matrixTransform(customSvg.getScreenCTM());
@@ -1538,6 +1546,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       surface.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch',pointerId:45,button:0,clientX:v.x,clientY:v.y}));
       const saved=cap().demo.locusState;assert(saved.nodes.length===1&&Math.hypot(saved.nodes[0].at[0]-p[0],saved.nodes[0].at[1]-p[1])<2,'Custom points can be placed near full-board edge');
       const [bx,by,bw,bh]=M.customBounds(saved);assert(p[0]>=bx&&p[0]<=bx+bw&&p[1]>=by&&p[1]<=by+bh,'Saved custom geometry bounds retain edge point');
+      nav('zoom-out').click();const wide=cameraView();nav('fit').click();const fitted=cameraView();
+      assert(fitted[2]<wide[2]&&p[0]>=fitted[0]&&p[0]<=fitted[0]+fitted[2]&&p[1]>=fitted[1]&&p[1]<=fitted[1]+fitted[3]&&JSON.stringify(cap().demo.locusState)===JSON.stringify(saved),'Custom Fit focuses on actual construction rather than default paper');
+      const lineModel=M.customInitial(),a=M.customAppend(lineModel,'free',[],{at:[-500,-300]}),b=M.customAppend(lineModel,'free',[],{at:[-300,-300]});
+      const finite=M.customBounds(lineModel,40,true);M.customAppend(lineModel,'line',[a,b],{});
+      assert(JSON.stringify(M.customBounds(lineModel,40,true))===JSON.stringify(finite),'Infinite custom lines do not expand finite Fit bounds');
       restore.click();await tick(150);assert(!frame.classList.contains('is-geometry-board')&&!doc.querySelector('[data-ag-dynamic-panel]')&&JSON.stringify(cap().demo.locusState)===JSON.stringify(saved),'Restoring custom geometry retains drawing and removes floating chrome');
       G.lessonState.restore(id,{...G.lessonState.capture(id),model:{...cap(),locusState:JSON.parse(initial),demo:{...cap().demo,locusState:JSON.parse(initial)}}});await tick(100);
     }
