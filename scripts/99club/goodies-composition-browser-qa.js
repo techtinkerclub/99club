@@ -3010,6 +3010,26 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},6,'triangle-inequality');
       for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item);assert(pupil.querySelectorAll('[data-ag-inequality-given]').length===3&&!pupil.querySelector('[data-ag-inequality-result]'),'Pupil worksheet displays side lengths without the answer');assert(key.querySelector('[data-ag-inequality-equation]')&&key.querySelector('[data-ag-inequality-result]').getAttribute('data-ag-inequality-result')===M.triangleInequality(item.data.inequalityLengths).kind,'Teacher annex shows matching case and mathematical explanation')}
     }
+    {
+      const M=win.TT99Goodies.angles,sub=(a,b)=>[a[0]-b[0],a[1]-b[1]],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
+      for(const [a,b] of [[60,60],[40,65],[30,40],[30,60],[20,65]])for(const rotation of [0,47,155])for(const scale of [.5,2]){
+        const angle=rotation*Math.PI/180,pts=M.trianglePoints(a,b).map(([x,y])=>[100+scale*(x*Math.cos(angle)-y*Math.sin(angle)),80+scale*(x*Math.sin(angle)+y*Math.cos(angle))]),m=M.eulerLineModel(pts);
+        assert(m&&m.coincident===(a===60&&b===60),'Euler line distinguishes the equilateral coincidence');
+        assert(Math.abs(cross(sub(m.G,m.O),sub(m.H,m.O)))<1e-6&&Math.abs(m.GH-2*m.OG)<1e-7&&Math.abs(m.OH-3*m.OG)<1e-7,'Euler centres collinear with exact distance ratios');
+      }
+      assert(M.eulerLineModel([[0,0],[10,0],[20,0]])===null,'Degenerate triangle has no Euler line');
+      const change=(id,value)=>{const n=doc.querySelector('#'+id);n.value=value;n.dispatchEvent(new win.Event('change',{bubbles:true}))},svg=()=>doc.querySelector('.gd-ag-visual svg');
+      change('ag-shape-view','equilateral');await tick();change('ag-triangle-centre','euler');await tick();assert(svg().querySelector('[data-ag-euler-coincident]')&&!svg().querySelector('[data-ag-euler-line]')&&svg().textContent.includes('no unique Euler line'),'Equilateral teaching diagram avoids arbitrary Euler line');
+      change('ag-shape-view','free-triangle');await tick();assert(svg().querySelector('[data-ag-euler-line]')&&svg().querySelectorAll('[data-ag-euler-centre]').length===3,'Free triangle displays all three Euler centres');
+      const draft=P.createDocument();draft.addCurrent(id,cap());assert(P.renderItem(draft.list()[0],false).querySelector('[data-ag-euler-line]'),'Euler teaching overlay publishes');
+      const p=svg().querySelector('[data-ag-triangle-vertex="2"]'),surface=svg().parentElement,start=new win.DOMPoint(Number(p.getAttribute('cx')),Number(p.getAttribute('cy'))).matrixTransform(svg().getScreenCTM()),finish=new win.DOMPoint(170,95).matrixTransform(svg().getScreenCTM()),emit=(node,type,q)=>node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:183,pointerType:'touch',button:0,clientX:q.x,clientY:q.y}));
+      emit(p,'pointerdown',start);emit(surface,'pointerup',finish);assert(svg().querySelector('[data-ag-euler-line]')&&svg().textContent.includes('Right-angled'),'Euler overlay follows actual vertex movement');
+      change('ag-triangle-centre','none');await tick();
+      const weights={OG:1,GH:2,OH:3};
+      for(let i=0;i<40;i++){const t=M.generate({type:'euler-ratio',enrichment:true});assert(t.eulerGiven!==t.eulerUnknown&&Number(t.answer)===t.eulerLength*weights[t.eulerUnknown]/weights[t.eulerGiven],'Euler ratio challenge answer agrees with exact theorem')}
+      const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},6,'euler-ratio');
+      for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item),unknown='[data-ag-euler-distance="'+item.data.eulerUnknown+'"]';assert(pupil.querySelector(unknown).textContent.endsWith('x')&&!pupil.querySelector('[data-ag-euler-rule]'),'Pupil Euler diagram withholds answer and rule');assert(key.querySelector(unknown).textContent.includes(item.data.answer+' cm')&&key.querySelector('[data-ag-euler-rule]'),'Euler teacher annex displays computed distance and rule')}
+    }
     const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
