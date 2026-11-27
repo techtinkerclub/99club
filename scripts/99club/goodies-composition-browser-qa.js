@@ -1828,6 +1828,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(labels()==='37.43°'&&Math.abs(M.labProtractorDirection(scene,base,angle,1,true)-base-angle)<1e-9,'Hundredth-degree display leaves construction angle unrounded');
       assert(Math.abs(M.labProtractorDirection(scene,base,angle,-1,true)-((base-angle+360)%360))<1e-9,'Mirrored protractor preserves unrounded angle');
       assert(Math.abs(M.labProtractorDirection(scene,base,angle,1,false)-base-37)<1e-9,'Guided whole-degree challenge keeps original increment');
+      for(const step of [0,.01,.1,1])for(const hand of [1,-1])for(const v of [0,37.426781,89.9951,179.998,181,359]){
+        const bounded=v<=180?v:v<270?180:0,expected=step?Math.min(180,Math.round(bounded/step)*step):bounded;
+        assert(Math.abs(M.labProtractorDirection(scene,base,v,hand,true,step)-((base+hand*expected+360)%360))<1e-8,'Chosen angular graduations clamp correctly in either orientation');
+      }
       assert(JSON.stringify([scene.points,scene.rays,scene.segments])===ink,'Changing display precision leaves existing mathematical geometry unchanged');
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),precision=doc.querySelector('[data-ag-option="precision"]');
       reset();precision.value='2';precision.dispatchEvent(new win.Event('change',{bubbles:true}));tool('protractor').click();
@@ -1945,6 +1949,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       select('compass');set(.1);tap([150,150]);tap(actual);assert(Math.abs(capture().circles[0].r-200.53)<1e-7,'Compass preserves exact picked geometry instead of rounding its radius');
       reset();select('segment');set(0);select('select');
     };
+    const verifyAngularGraduations=label=>{
+      const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),capture=()=>cap().demo.labDrawing,precision=doc.querySelector('[data-ag-option="precision"]'),set=(input,value)=>{input.value=String(value);input.dispatchEvent(new win.Event('change',{bubbles:true}))};
+      const select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
+      const o=[300,300],base=23.173456,relative=37.426781,at=(a,r=200)=>[o[0]+r*Math.cos(a*Math.PI/180),o[1]-r*Math.sin(a*Math.PI/180)];
+      const old=precision.value;set(precision,2);
+      for(const [step,wanted] of [[1,37],[.1,37.4],[.01,37.43],[0,relative]]){
+        reset();select('protractor');set(doc.querySelector('[data-ag-option="angle-graduation"]'),step);
+        tap(o);tap(at(base));tap(at(base+relative));const d=capture();
+        assert(d.rays.length===1&&Math.abs(d.rays[0].relativeAngle-wanted)<1e-8,'Selected angular graduation preserves relative orientation: '+label);
+        assert(work.querySelector('[data-ag-angle-value]')?.textContent===wanted.toFixed(2)+'°','Live mark uses selected display precision');
+        const paper=P.createDocument();paper.addCurrent(id,cap());assert(P.renderItem(paper.list()[0],false).querySelector('[data-ag-angle-value]')?.textContent===wanted.toFixed(2)+'°','Printed mark uses same precision');
+      }
+      reset();select('point');tap(o);tap(at(base));tap(at(base+relative));select('protractor');set(doc.querySelector('[data-ag-option="angle-graduation"]'),1);tap(o);tap(at(base));tap(at(base+relative));let d=capture();
+      assert(Math.abs(d.rays[0].relativeAngle-relative)<1e-8,'Exact existing point wins over selected degree graduation');
+      reset();select('protractor');set(doc.querySelector('[data-ag-option="angle-graduation"]'),0);set(precision,old);select('select');
+    };
+    verifyAngularGraduations('A5 normal');
     verifyGraduations('A5 normal');
     verifyDrawingSnap('A5 normal');
     verifyBisectors('A5 normal');
@@ -1981,12 +2002,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.labSnap(m,[440,200],.5).kind==='On line','Other invisible arc continuation is not a line intersection');
     }
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
-    checkRuler();verifyInstruments('A4 normal');verifyBisectors('A4 normal');verifyDrawingSnap('A4 normal');verifyGraduations('A4 normal');
+    checkRuler();verifyInstruments('A4 normal');verifyBisectors('A4 normal');verifyDrawingSnap('A4 normal');verifyGraduations('A4 normal');verifyAngularGraduations('A4 normal');
     {
       const frame=fixture.frame,max=frame.querySelector('[data-board-maximise]');
       api.select(fixture.record.id);max.click();await tick(150);
       assert(frame.classList.contains('is-geometry-board'),'Full board entered for instrument scale checks');
-      checkRuler();verifyInstruments('A4 full board');verifyBisectors('A4 full board');verifyDrawingSnap('A4 full board');verifyGraduations('A4 full board');
+      checkRuler();verifyInstruments('A4 full board');verifyBisectors('A4 full board');verifyDrawingSnap('A4 full board');verifyGraduations('A4 full board');verifyAngularGraduations('A4 full board');
       doc.querySelector('[data-ag-tool="zoom-in"]').click();verifyBisectors('A4 full board zoomed in');doc.querySelector('[data-ag-tool="zoom-out"]').click();
       const original=JSON.stringify(cap().demo.labDrawing),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),add=kind=>doc.querySelector('[data-ag-utensil-add="'+kind+'"]').click(),action=id=>doc.querySelector('[data-ag-utensil-action="'+id+'"]'),utensil=kind=>work.querySelector('[data-ag-utensil-kind="'+kind+'"]');
       tool('measuring-tools').click();
