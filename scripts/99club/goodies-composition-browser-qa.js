@@ -1379,7 +1379,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const docDraft=P.createDocument();docDraft.addCurrent(id,cap());assert(P.renderItem(docDraft.list()[0],false).querySelector('[data-ag-compass-arc]'),'Partial arc survives vector publication');
       tool('compass-opening').click();tool('arc-direction').click();tap([500,200]);tap([550,200]);tap([500,320]);
       const transferred=cap().demo.labDrawing.circles[1];assert(M.isLabArc(transferred)&&Math.abs(transferred.r-120)<.001&&Math.abs(transferred.sweep+90)<.001,'Retained opening produces equal-radius clockwise arc');
-      tool('reset').click();tool('compass-arc').click();
+      doc.querySelector('[aria-label="Reset construction"]').click();tool('compass-arc').click();
       const m=M.labEmpty(true);m.points=[[200,200],[320,200]];m.circles=[{i:0,r:120,start:0,sweep:120},{i:1,r:120,start:60,sweep:120}];
       const upper=[260,200-60*Math.sqrt(3)],lower=[260,200+60*Math.sqrt(3)];
       assert(M.labSnap(m,upper,.5).kind==='Intersection'&&M.labSnap(m,lower,.5).kind==='','Arc intersections snap only on visible sweeps');
