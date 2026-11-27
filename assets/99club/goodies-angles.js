@@ -2515,8 +2515,14 @@ function basicAreaGraphic(m,show=true){
  const lines=[...segments(outline),...(m.kind==='Kite'?[[pt(0,m.b),pt(m.w,m.b)],[pt(m.a,0),pt(m.a,m.h)],...(show?segments(rectangle):[])]:[])];
  const dims=teachingDimensions(add,{bounds:[4,4,W-4,246],size:14,lines});
  if(m.kind==='Kite'){
-   dims(pt(0,m.b),pt(m.w,m.b),'d₁ = '+fmt(m.w)+' cm',{outside:pt(m.w/2,m.b-.2)});
-   dims(pt(m.a,0),pt(m.a,m.h),'d₂ = '+fmt(m.h)+' cm',{outside:pt(m.a-.2,m.h/2)});
+   const horizontal='d₁ = '+fmt(m.w)+' cm',vertical='d₂ = '+fmt(m.h)+' cm';
+   const left=pt(0,m.b),right=pt(m.w,m.b),top=pt(m.a,0),bottom=pt(m.a,m.h);
+   // If the matching triangles fill the rectangle, use its outer margins
+   // rather than hide a dimension or print it across a diagonal.
+   if(!dims(left,right,horizontal,{outside:pt(m.w/2,m.b-.2)}))
+     dims(left,right,horizontal,{outside:[250,y-18],offset:m.b*s+18,size:12});
+   if(!dims(top,bottom,vertical,{outside:pt(m.a-.2,m.h/2)}))
+     dims(top,bottom,vertical,{outside:[x-18,130],offset:m.a*s+18,size:12});
  }else{
    dims(pt(0,m.h),pt(m.w,m.h),(m.kind==='Square'?'s':'l')+' = '+fmt(m.w)+' cm',{outside:pt(m.w/2,m.h+1)});
    dims(pt(0,0),pt(0,m.h),(m.kind==='Square'?'s':'w')+' = '+fmt(m.h)+' cm',{outside:pt(-1,m.h/2)});
