@@ -1511,6 +1511,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(!M.labApplyMeasurement(angleScene,at),'Stale measurement cannot be reapplied after its source segment is replaced');
       const square=M.utensilAlignment(exact,{kind:'square45',x:100,y:106,angle:92,size:200},'move',1);
       assert(square.kind==='Aligned vertex'&&square.angle===90,'Set square can align perpendicular leg to existing edge');
+      // Real local control and drag path for a reference comparison.
+      {
+        const host=doc.createElement('div'),svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('viewBox','0 0 500 400');svg.style.cssText='width:500px;height:400px';host.append(svg);doc.body.append(host);
+        const model={...M.labEmpty(true),points:[[160,208],[260,208],[160,300],[260,300]],names:['A','B','C','D'],segments:[[0,1],[2,3]]};
+        let controller;const paint=()=>{svg.replaceChildren();controller.paint(svg)};
+        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['square45'],align:(t,mode,scale)=>M.utensilAlignment(model,t,mode,scale),annotation:{target:(t,scale)=>M.labMeasurementTarget(model,t,scale),squareComparison:(t,scale)=>M.labSquareComparison(model,t,scale),apply:()=>{throw Error('Comparison must not annotate automatically')}}});
+        controller.add('square45');
+        const reference=()=>svg.querySelector('[data-ag-utensil-action="square-reference"]');
+        assert(reference()?.getAttribute('aria-label')==='Set reference','Aligned square exposes local reference action');
+        reference().click();assert(svg.querySelector('[data-ag-square-reference="locked"]'),'Locked reference is highlighted');
+        const gesture=(node,type,p)=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());node.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:783,pointerType:'mouse',button:0,clientX:q.x,clientY:q.y}))};
+        gesture(svg.querySelector('[data-ag-utensil]'),'pointerdown',[180,188]);gesture(svg,'pointermove',[180,280]);gesture(svg,'pointerup',[180,280]);
+        assert(svg.querySelector('[data-ag-square-reference="candidate"]')&&svg.querySelector('[data-ag-local-instrument]').textContent.includes('Parallel'),'Dragging to a second segment reports parallel geometry');
+        reference().click();assert(!svg.querySelector('[data-ag-square-reference="locked"]'),'Local clear removes saved reference');
+        host.remove();
+      }
       // Reference comparison uses actual segment geometry, not the set square's pose.
       {
         const model={...M.labEmpty(true),points:[[100,100],[200,100],[100,220],[200,220],[330,100],[330,200]],names:['A','B','C','D','E','F'],segments:[[0,1],[2,3],[4,5]]};
