@@ -155,6 +155,7 @@ const INSTRUMENT_ICONS={
     point:'<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/>',
     segment:'<rect x="2.5" y="7.5" width="19" height="9" rx="1.5"/><path d="M6 8v4m4-4v2.5m4-2.5v4m4-4v2.5"/>',
     ray:'<path d="M5 19L20 4M13 4h7v7"/><circle cx="4" cy="20" r="1.6" fill="currentColor" stroke="none"/>',
+    line:'<path d="M4 20L20 4M4 13v7h7M13 4h7v7"/>',
     protractor:'<path d="M2 17a10 10 0 0 1 20 0Z M12 7v4M5 10l2.5 3M19 10l-2.5 3M3 14l3 1M21 14l-3 1"/><circle cx="12" cy="17" r="1.2" fill="currentColor" stroke="none"/>',
     square45:'<path d="M3 3v18h18Z M7 12v5h5Z M3 17h4v4"/>',
     square30:'<path d="M2 20h20L2 8Z M6 14v3h5Z M2 16h4v4"/>',
@@ -253,7 +254,7 @@ const INSTRUMENT_ICONS={
 // No widget-specific model, challenge target or answer is consulted.
  function instrumentAlignment({points,lines},t,mode,scale){
    const p=[t.x,t.y],tol=12/Math.max(.001,scale),diff=(a,b)=>Math.min(mod(a-b),mod(b-a));
-   const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b)}]}).sort((a,b)=>a.d-b.d);
+   const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,l.infinite?u:Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b)}]}).sort((a,b)=>a.d-b.d);
    if(mode==='move'){
      // Match finite measuring edges, not merely the utensil's origin.
      // Candidate geometry is computed from the unsnapped pose on every move.
@@ -270,13 +271,13 @@ const INSTRUMENT_ICONS={
            const angle=mod(labAngle(l.a,l.b)+reverse-offset),da=diff(angle,t.angle);if(da>5)continue;
            for(const fraction of fractions){
              const a=vector(direction,len*fraction),sample=[p[0]+a[0],p[1]+a[1]],u=labDot(labSub(sample,l.a),v)/ll;
-             if(u<0||(!l.ray&&u>1))continue;
+             if(!l.infinite&&(u<0||(!l.ray&&u>1)))continue;
              const q=labAt(l.a,v,u),distance=labDist(sample,q);if(distance>tol)continue;
              const b=vector(angle+offset,len*fraction),origin=[q[0]-b[0],q[1]-b[1]];
              // Do not shift the origin far away just to align a distant tip.
              const shift=labDist(origin,p);if(shift>tol)continue;
              matches.push({x:origin[0],y:origin[1],angle,kind:'Aligned edge',score:shift+da*.8});
-             if(vertex?.d<=tol){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if(k>=-1e-7&&(l.ray||k<=1+1e-7)&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol})}
+             if(vertex?.d<=tol){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if((l.infinite||k>=-1e-7&&(l.ray||k<=1+1e-7))&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol})}
            }
          }
        }
@@ -303,7 +304,7 @@ const INSTRUMENT_ICONS={
    const hand=t.hand===-1?-1:1,origin=[t.x,t.y],relative=a=>mod(hand*(a-t.angle)),wanted=Math.max(0,Math.min(180,raw)),tol=12/Math.max(.001,scale),candidates=[];
    const fallback={reading:Math.round(wanted*10)/10,kind:''};if(!t.snap)return fallback;
    const base=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],cross=(a,b)=>a[0]*b[1]-a[1]*b[0];
-   for(const {a,b,ray} of lines){
+   for(const {a,b,ray,infinite} of lines){
      const v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)continue;
      const u=v.map(n=>n/len),delta=labSub(a,origin),den=cross(base,u);
      // Exact intersection with the baseline: only allow a small translation
@@ -315,8 +316,8 @@ const INSTRUMENT_ICONS={
        q=labAt(origin,base,shift);
      }
      const k=labDot(labSub(q,a),u);
-     if(k< -1e-7||(!ray&&k>len+1e-7))continue;
-     const directions=[...(ray||k<len-1e-7?[labAngle(a,b)]:[]),...(!ray&&k>1e-7?[labAngle(b,a)]:[])];
+     if(!infinite&&(k< -1e-7||(!ray&&k>len+1e-7)))continue;
+     const directions=[...(ray||k<len-1e-7?[labAngle(a,b)]:[]),...(infinite||k>1e-7?[labAngle(b,a)]:[])];
      for(const dir of directions){let reading=relative(dir);if(reading>360-1e-7)reading=0;if(reading>180+1e-7)continue;reading=Math.min(180,reading);const error=Math.abs(reading-wanted);if(error<=3)candidates.push({reading,x:q[0],y:q[1],kind:'Edge',error,shift:labDist(q,origin)})}
    }
    candidates.sort((a,b)=>a.error-b.error||a.shift-b.shift);if(!candidates.length)return fallback;
