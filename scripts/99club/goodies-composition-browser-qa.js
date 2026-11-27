@@ -3367,6 +3367,26 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       move('A',112.345678);assert(Math.abs(M.circleInvestigation(cap().demo).start-112.345678)<1e-6,'Tangent contact follows pointer at full precision');
       doc.querySelector('[data-ag-action="circle-reset"]').click();await tick();assert(M.circleInvestigation(cap().demo).span===110,'Reset restores initial geometry');
       select('overview');await tick();assert(circleSvg().textContent.includes('Diameter = 2 × radius'),'Existing overview remains available');
+      for(const view of ['centre-angle','semicircle','same-segment','cyclic-quad'])for(const span of [45,90,120,180,225,285])for(const c of [.09,.25,.4]){
+        const m=M.circleTheoremModel({circleView:view,theoremSpan:span,theoremC:c,theoremD:.7});
+        assert(Math.abs(m.Cangle*2-m.span)<1e-8,'Centre and circumference angles agree: '+view);
+        if(view==='semicircle')assert(Math.abs(m.Cangle-90)<1e-8,'Diameter gives right angle');
+        if(view==='same-segment')assert(Math.abs(m.Cangle-m.Dangle)<1e-8,'Same segment angles equal');
+        if(view==='cyclic-quad')assert(Math.abs(m.Cangle+m.Dangle-180)<1e-8,'Cyclic quadrilateral opposite angles supplementary');
+        for(const name of ['A','B','C','D'])assert(Math.abs(Math.hypot(m[name][0]-m.O[0],m[name][1]-m.O[1])-m.R)<1e-8,'Theorem vertices lie on circle');
+      }
+      select('centre-angle');await tick();assert(circleSvg().querySelector('[data-ag-circle-theorem="centre-angle"]')&&circleSvg().querySelectorAll('[data-ag-circle-handle]').length===1,'Centre angle investigation accessible');
+      const dragTheorem=(which,fraction,cancel=false)=>{const svg=circleSvg(),node=svg.querySelector('[data-ag-circle-handle="'+which+'"]'),surface=svg.parentElement,m=M.circleTheoremModel(cap().demo),matrix=svg.getScreenCTM(),a=(m.ranges[which].start+fraction*m.ranges[which].span)*Math.PI/180,start=new win.DOMPoint(...m[which]).matrixTransform(matrix),end=new win.DOMPoint(m.O[0]+m.R*Math.cos(a),m.O[1]-m.R*Math.sin(a)).matrixTransform(matrix),emit=(target,type,p)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:187,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}));emit(node,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end)};
+      dragTheorem('C',.36123456);let theorem=M.circleTheoremModel(cap().demo);assert(Math.abs(theorem.c-.36123456)<1e-7,'Theorem point moves at full precision');
+      dragTheorem('C',.7,true);assert(Math.abs(M.circleTheoremModel(cap().demo).c-theorem.c)<1e-8,'Theorem drag cancellation restores point');
+      doc.querySelector('[data-ag-action="theorem-span-up"]').click();await tick();assert(M.circleTheoremModel(cap().demo).span===theorem.span+15,'Theorem arc is adjustable');
+      for(const view of ['semicircle','same-segment','cyclic-quad']){
+        select(view);await tick();assert(circleSvg().querySelector('[data-ag-circle-theorem="'+view+'"]'),'Theorem view available: '+view);
+        const proof=P.createDocument();proof.addCurrent(id,cap());const printed=P.renderItem(proof.list()[0],false);assert(printed.querySelector('[data-ag-circle-theorem="'+view+'"]')&&!printed.querySelector('[data-ag-circle-handle]'),'Theorem publication excludes handles');
+      }
+      select('same-segment');await tick();dragTheorem('D',.8123456);assert(Math.abs(M.circleTheoremModel(cap().demo).f-.8123456)<1e-7,'Second inscribed angle is independently draggable');
+      select('overview');await tick();
+
     }
     for(const type of ['regularity','triangle-type','quad-type','circle-diameter','circle-radius','circle-part']){
       const pack=P.createDocument();pack.generate(id,P.defaultSettings(id),1,type);const item=pack.list()[0];
