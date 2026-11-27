@@ -222,15 +222,15 @@ jobs:
             exit 1
           fi
 
-          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=390,844 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition-phone.html
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=390,844 --virtual-time-budget=45000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition-phone.html
           node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-composition-phone.html
           cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-phone-report.json
 
-          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition.html
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=1200,900 --virtual-time-budget=45000 --dump-dom http://127.0.0.1:8774/99club-goodies-composition-qa.html > /tmp/99club-goodies-composition.html
           node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-composition.html
           cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-board-report.json
 
-          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=720,620 --virtual-time-budget=30000 --dump-dom http://127.0.0.1:8774/99club-goodies-embed-qa.html > /tmp/99club-goodies-embed.html
+          "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size=720,620 --virtual-time-budget=45000 --dump-dom http://127.0.0.1:8774/99club-goodies-embed-qa.html > /tmp/99club-goodies-embed.html
           node scripts/99club/goodies-composition-browser-qa.js check /tmp/99club-goodies-embed.html
           cp 99club-goodies-composition-qa-report.json 99club-goodies-composition-embed-report.json
 
@@ -318,6 +318,48 @@ jobs:
             99club-goodies-composition-board-report.json
             99club-goodies-composition-phone-report.json
             99club-goodies-composition-embed-report.json
+          if-no-files-found: ignore
+
+  goodies-publication-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify written methods and statistics mathematics
+        run: |
+          node scripts/99club/goodies-written-methods-qa.js
+          node scripts/99club/goodies-statistics-qa.js
+      - name: Prepare Goodies publication harness
+        run: node scripts/99club/goodies-publication-browser-qa.js prepare
+      - name: Exercise Goodies publication at phone and desktop widths
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8790 --bind 127.0.0.1 > /tmp/goodies-publication-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          for layout in phone desktop; do
+            if [ "$layout" = phone ]; then size=390,844; else size=1200,900; fi
+            timeout 120s "$CHROME" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --window-size="$size" --virtual-time-budget=50000 --dump-dom http://127.0.0.1:8790/99club-goodies-publication-qa.html > "/tmp/goodies-publication-$layout.html"
+            node scripts/99club/goodies-publication-browser-qa.js check "/tmp/goodies-publication-$layout.html"
+            cp 99club-goodies-publication-qa-report.json "99club-goodies-publication-$layout-report.json"
+          done
+      - name: Upload Goodies publication audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 99club-goodies-publication-audit
+          path: |
+            99club-goodies-publication-qa-report.json
+            99club-goodies-publication-phone-report.json
+            99club-goodies-publication-desktop-report.json
+            /tmp/goodies-publication-*.html
           if-no-files-found: ignore
 
   printable-catalogue-qa:

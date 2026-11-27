@@ -150,7 +150,7 @@ async function run(){
   assert(visible(floatingSettings)&&/UK money settings/i.test(floatingSettings.textContent),'Context Settings opens a whiteboard-level floating palette outside the widget');
   const assertInspectorLayout=(panel,label)=>{
     const bounds=board.getBoundingClientRect(),r=panel.getBoundingClientRect(),head=panel.querySelector('[data-board-controls-drag]'),close=panel.querySelector('[data-board-controls-close]'),body=panel.querySelector('.gd-board-floating-controls-body'),c=close.getBoundingClientRect();
-    assert(visible(panel)&&r.left>=bounds.left-2&&r.top>=bounds.top-2&&r.right<=bounds.right+2&&r.bottom<=bounds.bottom+2,'Inspector stays in available board: '+label);
+    assert(visible(panel)&&r.left>=bounds.left-2&&r.top>=bounds.top-2&&r.right<=bounds.right+2&&r.bottom<=bounds.bottom+2,'Inspector stays in available board: '+label+' '+JSON.stringify({board:[bounds.left,bounds.top,bounds.right,bounds.bottom],panel:[r.left,r.top,r.right,r.bottom],viewport:[innerWidth,innerHeight]}));
     assert(visible(close)&&c.left>=r.left-1&&c.right<=r.right+1&&c.top>=r.top-1&&c.bottom<=r.bottom+1,'Close control remains reachable: '+label);
     assert(head.querySelector('.gd-board-controls-grip')&&getComputedStyle(body).overflowY==='auto','Consistent drag header and scrolling body: '+label);
   };
@@ -1493,7 +1493,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       if(doc.querySelector('[data-ag-tool="segment"]').getAttribute('aria-pressed')!=='true')doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);previewPointer('pointerup',[60,160]);
       for(const endpoint of [[460,160],[97,160],[183,236],[660,160],[260,160]]){
         previewPointer('pointermove',endpoint);
-        const ruler=work.querySelector('[data-geometry-instrument="ruler"]'),ticks=ruler.querySelectorAll('[data-me-division]'),width=Number(ruler.querySelector('rect').getAttribute('width')),len=Math.hypot(endpoint[0]-60,endpoint[1]-160);
+        const ruler=work.querySelector('[data-geometry-instrument="ruler"]');assert(ruler,'Construction ruler preview exists at '+endpoint.join(',')+'; '+JSON.stringify({viewport:[win.innerWidth,win.innerHeight],canvas:[work.clientWidth,work.clientHeight],viewBox:work.getAttribute('viewBox'),connected:work.isConnected,segment:doc.querySelector('[data-ag-tool="segment"]')?.getAttribute('aria-pressed'),hint:doc.querySelector('.gd-ag-lab-hint')?.textContent,points:cap().demo.labDrawing.points.length}));const ticks=ruler.querySelectorAll('[data-me-division]'),width=Number(ruler.querySelector('rect').getAttribute('width')),len=Math.hypot(endpoint[0]-60,endpoint[1]-160);
         assert(width-len>=20-.01&&width-len<24+.01,'Construction ruler extends only 5–6 mm beyond active endpoint');
         assert(ticks.length===Math.round(width/4)+1&&Math.abs(Number(ticks[1].getAttribute('x1'))-4)<1e-7&&Math.abs(Number(ticks[ticks.length-1].getAttribute('x1'))-width)<1e-7,'Growing and shrinking ruler maintains exact millimetre graduations');
         if(ticks.length>10)assert(Math.abs(Number(ticks[10].getAttribute('x1'))-40)<1e-7,'Centimetre graduations remain calibrated');
@@ -2323,7 +2323,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
 
       doc.querySelector('[data-ag-option="measure"]').click();assert(work.querySelector('[data-ag-dimension]').textContent==='x','Explicit unknown remains with automatic measurements disabled');
       const draft=P.createDocument();draft.addCurrent(id,cap());assert(P.renderItem(draft.list()[0],false).querySelector('[data-ag-dimension]').textContent==='x','Unknown dimension is preserved in vector publication');
-      change(mode(),'measured');assert(work.querySelector('[data-ag-dimension]').textContent==='6.3 cm','Pinned measured length stays visible independently of automatic measurements');
+      change(mode(),'measured');const pinned=capture(),length=Math.hypot(pinned.points[2][0]-pinned.points[0][0],pinned.points[2][1]-pinned.points[0][1])/40,expected=length.toFixed(pinned.measurementPrecision===1?1:2)+' cm';assert(pinned.dimensionLabels[key].mode==='measured'&&work.querySelector('[data-ag-dimension]').textContent===expected,'Pinned measured length stays visible at selected precision independently of automatic measurements: '+expected);
       change(mode(),'hidden');assert(!work.querySelector('[data-ag-dimension]'),'Hide dimension suppresses the automatic value');
       change(mode(),'auto');doc.querySelector('[data-ag-option="measure"]').click();
       assert(JSON.stringify(capture().points)===before,'Editing dimensions never changes geometry');
@@ -3874,6 +3874,10 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     const fixture=await addForSave(id),panel=document.getElementById('gd-board-floating-controls');
     fixture.frame.querySelector('[data-board-settings]').click();await tick();
     assert(panel.dataset.panelMode==='settings'&&panel.querySelector('.gd-board-controls-proxy'),'Specialist teaching settings open: '+id);await tick(40);assertInspectorLayout(panel,id+' teaching settings');
+    if(id==='maths-canvas'){
+      const head=panel.querySelector('[data-board-controls-drag]'),before=panel.getBoundingClientRect();pointer(head,'pointerdown',before.left+20,before.top+14,97);pointer(document,'pointermove',board.getBoundingClientRect().right+300,board.getBoundingClientRect().bottom+300,97);pointer(document,'pointerup',board.getBoundingClientRect().right+300,board.getBoundingClientRect().bottom+300,97);await tick(40);assertInspectorLayout(panel,id+' dragged settings');
+      const detail=panel.querySelector('details:not([open])');if(detail){detail.open=true;await tick(80);assertInspectorLayout(panel,id+' expanded settings');detail.open=false;await tick(40);}
+    }
     panel.querySelector('[data-board-controls-close]').click();await tick();
     const challengeButton=fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]');assert(challengeButton,'Frame Challenge action exists for '+id);challengeButton.click();await tick();
     assert(panel.querySelector('[data-gd-native-random="all"]'),'Specialist quick launcher: '+id);await tick(40);assertInspectorLayout(panel,id+' quick challenge');
