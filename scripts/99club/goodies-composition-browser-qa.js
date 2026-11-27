@@ -3229,7 +3229,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rect=ref('rectangle'),pts=rect.points;assert(Math.abs(rect.area-300*180/1600)<1e-9&&Math.abs(rect.perimeter-2*(300+180)/40)<1e-9,'Rectangle model dimensions agree with numerical area/perimeter');
       assert(!ref('free-polygon',{n:4,polygonPoints:[[0,0],[80,80],[0,80],[80,0]]}).valid,'Invalid polygon does not claim valid properties');
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Rectangle reference accessible directly');await tick();
-      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section:not([data-ag-rotation-reference]):not([data-ag-area-proof])').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
+      const panel=doc.querySelector('.gd-ag-shape-reference');assert(panel?.open&&panel.querySelectorAll('section:not([data-ag-rotation-reference]):not([data-ag-reflection-reference]):not([data-ag-area-proof])').length===3&&panel.querySelector('[data-ag-rotation-reference]')&&panel.textContent.includes('A = lw'),'Reference visible without opening settings');
       const pack=P.createDocument();pack.addCurrent(id,cap());const printed=P.renderItem(pack.list()[0],false);
       assert(printed.querySelectorAll('[data-ag-shape-reference-group]').length===3&&printed.textContent.includes('A = lw'),'Published teaching diagram includes reference');
       assert(panel.querySelectorAll('[data-ag-reference-graphic]').length===3,'Reference contains three dedicated visual explanations');
@@ -3268,6 +3268,27 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rotationPack=P.createDocument();rotationPack.addCurrent(id,cap());const rotationPrint=P.renderItem(rotationPack.list()[0],false);
       assert(rotationPrint.querySelector('[data-ag-rotation-graphic]'),'Rotational symmetry graphic printed');
       const printedView=rotationPrint.viewBox.baseVal;assert([printedView.x,printedView.y,printedView.width,printedView.height].every(Number.isFinite)&&printedView.width>0&&printedView.height>0&&!rotationPrint.outerHTML.includes('NaN'),'Teaching publication has finite SVG geometry: '+rotationPrint.getAttribute('viewBox'));
+      for(const [shape,axes] of [['square',4],['rectangle',2],['equilateral',3],['scalene',0],['rhombus',2],['kite',1]]){
+        const m=ref(shape),initial=M.reflectionInvestigation(m);
+        assert(initial.axes.length===axes,'Reflection investigation finds exact axes: '+shape);
+        for(const angle of initial.axes){
+          assert(M.reflectionInvestigation(m,angle).matches,'Known axis reflects onto original: '+shape);
+          assert(!M.reflectionInvestigation(m,angle,1).matches,'Offset axis cannot match: '+shape);
+          assert(!M.reflectionInvestigation(m,Math.min(180,angle+.001)).matches,'Near-axis remains nonmatching: '+shape);
+        }
+        const v=M.reflectionInvestigation(m,31,12);
+        for(let i=0;i<m.n;i++){
+          const p=m.points[i],q=v.reflected[i],f=v.feet[i],x=p[0]-q[0],y=p[1]-q[1];
+          assert(Math.hypot((p[0]+q[0])/2-f[0],(p[1]+q[1])/2-f[1])<1e-7&&Math.abs(x*v.u[0]+y*v.u[1])<1e-7,'Mirror line perpendicularly bisects corresponding points');
+        }
+      }
+      const reflectionPanel=doc.querySelector('[data-ag-reflection-reference]'),mirrorAngle=reflectionPanel.querySelector('[data-ag-mirror-angle]'),mirrorOffset=reflectionPanel.querySelector('[data-ag-mirror-offset]');
+      mirrorAngle.value=20;mirrorAngle.dispatchEvent(new win.Event('input',{bubbles:true}));assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='false','Non-axis visibly fails matching');
+      reflectionPanel.querySelector('[data-ag-mirror-next-axis]').click();assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='true','Next exact reflection axis matches');
+      mirrorOffset.value=10;mirrorOffset.dispatchEvent(new win.Event('input',{bubbles:true}));assert(reflectionPanel.querySelector('[data-ag-reflection-graphic]').dataset.agReflectionMatch==='false','Moving mirror line away from centre changes match');
+      reflectionPanel.querySelector('[data-ag-mirror-reset]').click();assert(Number(mirrorOffset.value)===0&&Number(mirrorAngle.value)===0,'Mirror investigation resets');
+      assert(rotationPrint.querySelector('[data-ag-reflection-graphic]'),'Reflection illustration included in publication');
+
 
 
 

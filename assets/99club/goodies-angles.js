@@ -1208,6 +1208,15 @@ function generate(s={},rng=Math.random){
  }
  // Exact area-preserving demonstrations on the current shape.
  // Compare the transformed vertices, not rounded displayed angles.
+ // A reflection is an isometry about an infinite mirror line.
+ function reflectionInvestigation(m,degrees=0,offsetPercent=0){
+   if(!m?.valid)return null;
+   const pts=m.points,centre=m.symmetry.centre,n=pts.length,angle=Math.max(0,Math.min(180,Number(degrees)||0)),q=angle*D,u=[Math.cos(q),-Math.sin(q)],normal=[-u[1],u[0]],radius=Math.max(...pts.map(p=>labDist(p,centre))),offset=Math.max(-25,Math.min(25,Number(offsetPercent)||0)),origin=labAt(centre,normal,radius*offset/100),eps=radius*1e-8;
+   const feet=pts.map(p=>labAt(origin,u,labDot(labSub(p,origin),u))),reflected=pts.map((p,i)=>[2*feet[i][0]-p[0],2*feet[i][1]-p[1]]);
+   const match=pts.some((p,i)=>reflected.every((v,k)=>labDist(v,pts[(i-k+n)%n])<=eps));
+   const axes=m.symmetry.axes.map(v=>((Math.atan2(-v[1],v[0])/D%180)+180)%180).map(x=>x>180-1e-9||x<1e-9?0:x).sort((a,b)=>a-b);
+   return {angle,offset,origin,u,normal,centre,radius,feet,reflected,matches:match,axes};
+ }
  function rotationInvestigation(m,degrees=0){
    if(!m?.valid)return null;
    const pts=m.points,centre=m.symmetry.centre,n=pts.length,angle=Math.max(0,Math.min(360,Number(degrees)||0)),q=angle*D,co=Math.cos(q),si=Math.sin(q),scale=Math.max(...pts.map(p=>labDist(p,centre))),eps=scale*1e-8;
@@ -1488,7 +1497,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={reflectionInvestigation,rotationInvestigation,shapeAreaProof,shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -2118,6 +2127,39 @@ function mountRotationReference(container,m,demo){
  section.querySelector('[data-ag-rotation-next-match]').onclick=()=>{const step=360/m.symmetry.rotation;angle=angle>=360-1e-8?step:Math.min(360,(Math.floor((angle+1e-8)/step)+1)*step);show()};
  container.appendChild(section);show();
 }
+function reflectionReferenceGraphic(m,degrees,offset){
+ const v=reflectionInvestigation(m,degrees,offset),ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),W=420,H=310,s=78/v.radius,map=p=>[210+(p[0]-v.centre[0])*s,137+(p[1]-v.centre[1])*s];
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,x] of Object.entries(attrs))el.setAttribute(k,x);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const poly=(pts,attrs)=>add('polygon',{points:pts.map(p=>map(p).join(',')).join(' '),...attrs});
+ const line=(p,q,attrs)=>{const a=map(p),b=map(q);return add('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],...attrs})};
+ const label=(x,y,value,attrs={})=>add('text',{x,y,'font-family':'Arial,sans-serif','font-size':14,'text-anchor':'middle',fill:'#264a49',...attrs},value);
+ const dot=(p,fill)=>{const q=map(p);add('circle',{cx:q[0],cy:q[1],r:4,fill,stroke:'#fff','stroke-width':1})};
+ svg.setAttribute('viewBox','0 0 '+W+' '+H);svg.setAttribute('role','img');svg.dataset.agReflectionGraphic='1';svg.dataset.agReflectionMatch=String(v.matches);
+ svg.setAttribute('aria-label','Reflection across a line at '+Number(v.angle.toFixed(2))+' degrees. '+(v.matches?'Matches original shape.':'Does not match original shape.'));
+ add('rect',{width:W,height:H,fill:'#fff'});
+ poly(m.points,{fill:'#d9eee6',stroke:'#277b70','stroke-width':2.2,'data-ag-reflection-original':'1'});
+ poly(v.reflected,{fill:'#f3d9a8','fill-opacity':.35,stroke:'#b56d2c','stroke-width':2.2,'stroke-dasharray':'6 4','data-ag-reflection-image':'1'});
+ const ends=[labAt(v.origin,v.u,-v.radius*1.55),labAt(v.origin,v.u,v.radius*1.55)];
+ line(...ends,{stroke:'#476e9f','stroke-width':2.5,'stroke-dasharray':'8 4','data-ag-reflection-mirror':'1'});
+ const i=m.points.reduce((best,p,k)=>labDist(p,v.feet[k])>labDist(m.points[best],v.feet[best])?k:best,0);
+ const p=m.points[i],q=v.reflected[i],f=v.feet[i];line(p,q,{stroke:'#476e9f','stroke-width':1.5,'stroke-dasharray':'3 3','data-ag-reflection-perpendicular':'1'});
+ if(labDist(p,f)>v.radius*.02){const n=labSub(p,f).map(x=>x/labDist(p,f)),k=v.radius*.075,corner=[labAt(f,v.u,k),labAt(labAt(f,v.u,k),n,k),labAt(f,n,k)];add('polyline',{points:corner.map(x=>map(x).join(',')).join(' '),fill:'none',stroke:'#476e9f','stroke-width':1.4,'data-ag-reflection-right-angle':'1'})}
+ dot(p,'#277b70');dot(q,'#b56d2c');dot(f,'#476e9f');
+ label(210,278,v.matches?'The mirror line is an axis of symmetry':'The mirror line is not an axis of symmetry',{'font-weight':700,fill:v.matches?'#175e55':'#85551f','data-ag-reflection-result':'1'});
+ label(210,300,v.axes.length+' reflection '+(v.axes.length===1?'axis':'axes')+' · corresponding points are equidistant');
+ return svg;
+}
+function mountReflectionReference(container,m,demo){
+ let angle=Math.max(0,Math.min(180,Number(demo.symmetryReflectionAngle)||0)),offset=Math.max(-25,Math.min(25,Number(demo.symmetryReflectionOffset)||0));
+ const section=document.createElement('section');section.className='gd-ag-reflection-reference';section.dataset.agReflectionReference='1';
+ section.innerHTML='<h4>Investigate reflection symmetry</h4><p>Change the mirror line. Does the reflected outline coincide with the original?</p><div data-ag-reflection-picture></div><label>Mirror direction <output data-ag-mirror-angle-value></output><input type="range" min="0" max="180" step="any" data-ag-mirror-angle aria-label="Mirror line direction in degrees"></label><label>Mirror position <output data-ag-mirror-offset-value></output><input type="range" min="-25" max="25" step="1" data-ag-mirror-offset aria-label="Mirror line displacement"></label><div class="gd-row"><button type="button" class="gd-btn" data-ag-mirror-reset>Reset</button><button type="button" class="gd-btn" data-ag-mirror-next-axis>Next symmetry axis</button></div>';
+ const direction=section.querySelector('[data-ag-mirror-angle]'),position=section.querySelector('[data-ag-mirror-offset]'),axes=reflectionInvestigation(m).axes,show=()=>{demo.symmetryReflectionAngle=angle;demo.symmetryReflectionOffset=offset;direction.value=angle;position.value=offset;section.querySelector('[data-ag-mirror-angle-value]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-mirror-offset-value]').textContent=offset===0?'Through centre':Math.abs(offset)+'% of radius '+(offset>0?'(+ side)':'(− side)');section.querySelector('[data-ag-reflection-picture]').replaceChildren(reflectionReferenceGraphic(m,angle,offset))};
+ direction.oninput=()=>{angle=Number(direction.value);show()};position.oninput=()=>{offset=Number(position.value);show()};
+ section.querySelector('[data-ag-mirror-reset]').onclick=()=>{angle=0;offset=0;show()};
+ const next=section.querySelector('[data-ag-mirror-next-axis]');next.disabled=!axes.length;if(!axes.length)next.textContent='No symmetry axes';
+ next.onclick=()=>{if(!axes.length)return;angle=offset!==0&&axes.some(v=>Math.abs(v-angle)<1e-8)?angle:axes.find(v=>v>angle+1e-8)??axes[0];offset=0;show()};
+ container.appendChild(section);show();
+}
 function appendShapeReference(svg,d){
  const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
  const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').trim().split(/\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
@@ -2134,6 +2176,7 @@ function appendShapeReference(svg,d){
    at+=12;
  }
  const rotation=rotationReferenceGraphic(m,360/m.symmetry.rotation),rw=Math.min(w-40,420),rh=rw*280/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Rotational symmetry');at+=size+12;rotation.setAttribute('x',x+(w-rw)/2);rotation.setAttribute('y',at);rotation.setAttribute('width',rw);rotation.setAttribute('height',rh);svg.append(rotation);at+=rh+16;
+ const mirror=reflectionReferenceGraphic(m,reflectionInvestigation(m).axes[0]??0,0),mw=Math.min(w-40,420),mh=mw*310/420;add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Reflection symmetry');at+=size+12;mirror.setAttribute('x',x+(w-mw)/2);mirror.setAttribute('y',at);mirror.setAttribute('width',mw);mirror.setAttribute('height',mh);svg.append(mirror);at+=mh+16;
  const proof=shapeAreaProof(m);if(proof){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55'},'Why the area formula works');at+=size+12;for(let i=0;i<proof.steps.length;i++){const g=areaProofGraphic(proof,i),gw=Math.min(w-40,480),gh=gw*230/480;g.setAttribute('x',x+(w-gw)/2);g.setAttribute('y',at);g.setAttribute('width',gw);g.setAttribute('height',gh);svg.append(g);at+=gh+6;for(const line of G.exportTools.wrapPaperText(proof.steps[i].note,w-2*margin,size,400)){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}at+=12}}
  bg.setAttribute('height',at-y-h+10);svg.setAttribute('viewBox',[x,y,w,at-y+10].join(' '));return svg;
 }
@@ -3016,7 +3059,7 @@ G.anglesTool=function(){
    },
    set(value){
      const row=topicRows.find(t=>t.value===value);if(!row||task)return false;
-     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.mode=cfg.mode=row.mode;
+     workflow='build';demo.areaProofStep=0;demo.symmetryRotation=0;demo.symmetryReflectionAngle=0;demo.symmetryReflectionOffset=0;demo.mode=cfg.mode=row.mode;
      if(row.mode==='construct')demo.freeLab=true;
      if(row.mode==='polygon'&&!value.startsWith('centre:')){demo.showMedians=false;demo.triangleCentre='none'}
      Object.assign(demo,row.extra);render();return true;
@@ -3076,6 +3119,7 @@ G.anglesTool=function(){
     body.innerHTML=m.groups.map(g=>'<section><h4>'+esc(g.title)+'</h4><dl>'+g.rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('')+'</dl></section>').join('');
     [...body.querySelectorAll('section')].forEach((section,i)=>section.insertBefore(shapeReferenceGraphic(m,['symmetry','diagonals','area'][i]),section.querySelector('dl')));
     mountRotationReference(body,m,demo);
+    mountReflectionReference(body,m,demo);
     const proof=shapeAreaProof(m);if(proof)mountAreaProof(body,proof,demo);
   }
   // Capture on the persistent wrapper: the SVG may be replaced on every
