@@ -2650,7 +2650,29 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const customPreset=doc.querySelector('[data-ag-locus-preset]');customPreset.value='circle';customPreset.dispatchEvent(new win.Event('change',{bubbles:true}));assert(doc.querySelector('[data-ag-locus-point="P"]'),'Return to predefined investigations');
     }
     const polygonMode=doc.getElementById('ag-mode');polygonMode.value='polygon';polygonMode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
-    const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='rectangle';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    const chooseShape=doc.getElementById('ag-shape-view');chooseShape.value='equilateral';chooseShape.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
+    {
+      const M=win.TT99Goodies.angles,svg=()=>doc.querySelector('.gd-ag-visual svg');
+      assert(svg().querySelector('[data-ag-triangle-classification]').textContent==='Equilateral · Acute'&&svg().querySelector('[data-ag-triangle-family]'),'Teaching explorer distinguishes side and angle classification and inclusive family');
+      doc.querySelector('#ag-properties').click();await tick();assert(!svg().querySelector('[data-ag-triangle-classification]'),'Teacher can hide classification to ask pupils to predict');
+      doc.querySelector('#ag-properties').click();await tick();doc.querySelector('#ag-medians').click();await tick();
+      assert(svg().querySelectorAll('[data-ag-triangle-median]').length===3&&svg().querySelector('[data-ag-centroid]'),'Teaching triangle reveals medians and centroid');
+      const d=P.createDocument();d.addCurrent(id,cap());const out=P.renderItem(d.list()[0],false);assert(out.querySelectorAll('[data-ag-triangle-median]').length===3&&out.querySelector('[data-ag-centroid-rule]'),'Teaching diagram publishes revealed median relationships');
+      const distances=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+      for(const shapeView of ['equilateral','isosceles','scalene','right-triangle'])for(const shapeBaseAngle of [20,25,40,60,75]){
+        const points=M.shapeGeometry({shapeView,shapeBaseAngle}),p=M.triangleProperties(points);assert(p&&Math.abs(p.angles.reduce((a,b)=>a+b,0)-180)<1e-8,'Exact triangle angle sum');
+        assert(p.midpoints.every((m,i)=>Math.abs(distances(points[i],p.centroid)-2*distances(p.centroid,m))<1e-7),'Centroid divides all three medians 2:1');
+      }
+      assert(M.triangleProperties(M.shapeGeometry({shapeView:'isosceles',shapeBaseAngle:60})).sides==='Equilateral','Actual geometry determines classification, not preset name');
+      for(const [a,kind] of [[20,'Obtuse'],[25,'Right-angled'],[40,'Acute']])assert(M.triangleProperties(M.shapeGeometry({shapeView:'scalene',shapeBaseAngle:a})).kind===kind,'Scalene family supports three angle classes');
+      assert(M.triangleProperties([[0,0],[10,0],[20,0]])===null,'Degenerate triangles have no valid classification');
+      for(const type of ['triangle-angle-type','triangle-centroid-ratio']){
+        for(let i=0;i<40;i++){const t=M.generate({type,enrichment:true});if(type==='triangle-angle-type')assert(M.triangleProperties(M.trianglePoints(t.angles[0],t.angles[1])).kind===t.answer,'Generated classification matches mathematical geometry');else assert(Number(t.answer)===t.median*(t.fromVertex?2:1)/3,'Generated centroid ratio answer matches given median')}
+        const pack=P.createDocument();pack.generate(id,{...P.defaultSettings(id),enrichment:true},2,type);
+        for(const item of pack.list()){const pupil=P.renderItem(item,false),key=P.answerGraphic(item),selector=type==='triangle-angle-type'?'[data-ag-triangle-classification]':'[data-ag-centroid-rule]';assert(!pupil.querySelector(selector)&&key.querySelector(selector),'New triangle family has separate pupil and teacher vector graphics: '+type)}
+      }
+    }
+    const shapeSelect=doc.getElementById('ag-shape-view');shapeSelect.value='rectangle';shapeSelect.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
     doc.querySelector('[data-ag-action="diagonal"]').click();await tick();
     assert(cap().demo.showDiagonals&&doc.querySelector('.gd-ag-visual svg').textContent.includes('Equal diagonals'),'Rectangle explorer displays its diagonal relationship');
     const shapeHeightBefore=cap().demo.shapeHeight||180;
