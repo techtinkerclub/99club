@@ -1456,6 +1456,35 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const question=P.record(id,'challenge',M.generate({type:'build-square',enrichment:true})),mixed=P.pages([frozenItem,question],{teacher:true}),annex=mixed.filter(page=>page.getAttribute('data-worksheet-answer')==='annex'),numbers=annex.flatMap(page=>[...page.querySelectorAll('[data-pub-answer-number]')].map(n=>n.getAttribute('data-pub-answer-number')));
       assert(numbers.join(',')==='2'&&annex.some(page=>page.querySelector('[data-pub-answer-graphic="2"]')),'Mixed free construction and challenge retain correct answer numbering');
     }
+    {
+      const frame=fixture.frame,restore=frame.querySelector('[data-board-maximise]'),before=JSON.stringify(cap().demo.labDrawing);
+      api.select(fixture.record.id);restore.click();await tick(150);
+      const button=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),view=()=>{const v=work.viewBox.baseVal;return [v.x,v.y,v.width,v.height]};
+      const beforeView=view(),beforeScale=Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b);
+      button('zoom-out').click();assert(view()[2]>beforeView[2]&&Math.hypot(work.getScreenCTM().a,work.getScreenCTM().b)<beforeScale,'Zoom out changes the camera scale only');
+      button('zoom-in').click();assert(Math.abs(view()[2]-beforeView[2])<.01,'Zoom in reverses zoom out');
+      button('pan').click();const rect=work.getBoundingClientRect(),startX=rect.left+20,startY=rect.top+20;
+      for(const [type,x,y] of [['pointerdown',startX,startY],['pointermove',startX+rect.width*.7,startY+rect.height*.7],['pointerup',startX+rect.width*.7,startY+rect.height*.7]])work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:56,button:0,clientX:x,clientY:y}));
+      assert(view()[0]<0&&view()[1]<0&&JSON.stringify(cap().demo.labDrawing)===before,'Panning into negative coordinates does not change the drawing or paper');
+      const [x,y,w,h]=view(),centre=[x+w*.2,y+h*.2],r=Math.min(100,w*.12,h*.12),point=[centre[0]+r,centre[1]];
+      button('compass').click();const normal=doc.querySelector('[data-ag-style="false"]'),construction=doc.querySelector('[data-ag-style="true"]');
+      assert(!normal.closest('.gd-ag-lab-helpers').hidden,'New circle style is accessible before drawing');normal.click();
+      const tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)};tap(centre);tap(point);
+      const drawing=cap().demo.labDrawing,circle=drawing.circles.at(-1),actual=drawing.points[circle.i];
+      assert(circle.construction===false&&Math.abs(circle.r-r)<2&&actual[0]<0&&actual[1]<0,'Normal circle can be drawn outside the original sheet');
+      button('fit').click();const v=view(),bounds=M.labContentBounds(drawing);
+      assert(v[0]<bounds[0]&&v[1]<bounds[1]&&v[0]+v[2]>bounds[2]&&v[1]+v[3]>bounds[3],'Fit includes the entire circle and all finite geometry');
+      assert(JSON.stringify(cap().demo.labDrawing)===JSON.stringify(drawing),'Fit changes no drawing coordinates or styles');
+      const rayModel=JSON.parse(JSON.stringify(drawing));rayModel.rays.push({i:circle.i,angle:45});assert(JSON.stringify(M.labContentBounds(rayModel))===JSON.stringify(bounds),'Infinite ray length has no influence on finite fit bounds');
+      button('select').click();tapWork([actual[0]-circle.r,actual[1]]);construction.click();
+      assert(cap().demo.labDrawing.circles.at(-1).construction===true,'Existing normal circle can become a construction circle');
+      normal.click();assert(cap().demo.labDrawing.circles.at(-1).construction===false,'Existing construction circle can become a normal circle');
+      const signed=P.createDocument();signed.addCurrent(id,cap());const printed=P.renderItem(signed.list()[0],false),pv=printed.viewBox.baseVal;
+      assert(pv.x<=actual[0]-circle.r&&pv.y<=actual[1]-circle.r&&pv.x+pv.width>=actual[0]+circle.r&&pv.y+pv.height>=actual[1]+circle.r,'Published expanded board includes negative circle extent');
+      for(let i=0;i<4;i++)button('undo').click();
+      restore.click();await tick(150);
+      assert(JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(JSON.parse(before).points),'Undo and restore return to original geometry after camera navigation');
+    }
     const modePicker=doc.getElementById('ag-mode');
     assert(modePicker.querySelectorAll('optgroup').length===2&&modePicker.querySelector('optgroup[label="Geometry workspaces"]').children.length===2,'Geometry workspaces are unified construction and constrained loci');
     const setGeometryMode=value=>{const el=doc.getElementById('ag-mode');el.value=value;el.dispatchEvent(new win.Event('change',{bubbles:true}))};
