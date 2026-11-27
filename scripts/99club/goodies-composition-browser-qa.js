@@ -1717,8 +1717,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const edited=work.querySelector('[data-ag-annotation-value]');assert(Math.hypot(Number(edited.getAttribute('x'))-205,Number(edited.getAttribute('y'))-200)<.01,'Angle label can be positioned independently');
       const revised=P.createDocument();revised.addCurrent(id,cap());const print=P.renderItem(revised.list()[0],false).querySelector('[data-ag-annotation-value]');assert(print.textContent==='x'&&Math.abs(Number(print.getAttribute('x'))-205)<.01,'Edited annotation position and unknown preserved in publication');
       assert(JSON.stringify(capture().points)===before,'Editing angles never changes coordinates');
-      for(let i=0;i<9;i++)doc.querySelector('[data-ag-tool="undo"]').click();
-      assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation and temporary baseline fixture');
+      for(let i=0;i<8;i++)doc.querySelector('[data-ag-tool="undo"]').click();
+      assert(!work.querySelector('[data-ag-annotation-value]')&&capture().segments.length===1,'Undo removes angle annotation and temporary baseline but preserves original diagonal');
     }
     // Point display names and positions are independent of stable geometry IDs.
     {
