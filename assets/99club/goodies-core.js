@@ -1,7 +1,6 @@
 (function(global){
 'use strict';
-const root=document.getElementById('tt99-goodies-root');
-if(!root)return;
+const root=typeof document==='undefined'?null:document.getElementById('tt99-goodies-root');
 const CATS={number:'Number',fractions:'Fractions',operations:'Operations',measure:'Measure',geometry:'Geometry',random:'Classroom',canvas:'Canvas'};
 function q(s,ctx=root){return ctx.querySelector(s)}function qa(s,ctx=root){return [...ctx.querySelectorAll(s)]}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -243,7 +242,68 @@ const INSTRUMENT_ICONS={
    return {bar,paint,nearMeasuringEdge,add,clear:()=>{items=[];selected=null;drag=null;onPaint()},toggle:()=>{opened=!opened;if(!opened)selected=null;onPaint()},isOpen:()=>opened};
  }
 
-const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue,beginGesture:instrumentBegin,moveGesture:instrumentMove,finishGesture:instrumentFinish,movable:measuringUtensils,icon,button:instrumentButton,localActions:localInstrumentActions};
+// Shared magnetic alignment accepts only visible points and straight edges.
+// No widget-specific model, challenge target or answer is consulted.
+ function instrumentAlignment({points,lines},t,mode,scale){
+   const p=[t.x,t.y],tol=12/Math.max(.001,scale),diff=(a,b)=>Math.min(mod(a-b),mod(b-a));
+   const nearest=lines.flatMap(l=>{const v=labSub(l.b,l.a),d=labDot(v,v);if(d<1e-8)return [];const u=labDot(labSub(p,l.a),v)/d,q=labAt(l.a,v,Math.max(0,l.ray?u:Math.min(1,u)));return [{q,d:labDist(p,q),angle:labAngle(l.a,l.b)}]}).sort((a,b)=>a.d-b.d);
+   if(mode==='move'){
+     // Match finite measuring edges, not merely the utensil's origin.
+     // Candidate geometry is computed from the unsnapped pose on every move.
+     const edges=t.kind==='protractor'?[[0,t.size||170]]:t.kind==='ruler'?[[0,t.size||400]]:t.kind.startsWith('square')?[[0,t.size||200],[90,(t.size||200)*(t.kind==='square30'?Math.sqrt(3):1)]]:[];
+     const vector=(a,d)=>[Math.cos(a*D)*d,-Math.sin(a*D)*d],matches=[];
+     const vertex=points.map(q=>({q,d:labDist(p,q)})).sort((a,b)=>a.d-b.d)[0];
+     for(const [offset,len] of edges){
+       const direction=t.angle+offset;
+       // For a protractor its centre is the only translation anchor.
+       const fractions=t.kind==='protractor'?[0]:[0,.5,1];
+       for(const l of lines){
+         const v=labSub(l.b,l.a),ll=labDot(v,v);if(ll<1e-8)continue;
+         for(const reverse of [0,180]){
+           const angle=mod(labAngle(l.a,l.b)+reverse-offset),da=diff(angle,t.angle);if(da>5)continue;
+           for(const fraction of fractions){
+             const a=vector(direction,len*fraction),sample=[p[0]+a[0],p[1]+a[1]],u=labDot(labSub(sample,l.a),v)/ll;
+             if(u<0||(!l.ray&&u>1))continue;
+             const q=labAt(l.a,v,u),distance=labDist(sample,q);if(distance>tol)continue;
+             const b=vector(angle+offset,len*fraction),origin=[q[0]-b[0],q[1]-b[1]];
+             // Do not shift the origin far away just to align a distant tip.
+             const shift=labDist(origin,p);if(shift>tol)continue;
+             matches.push({x:origin[0],y:origin[1],angle,kind:'Aligned edge',score:shift+da*.8});
+             if(vertex?.d<=tol){const vtx=vertex.q,k=labDot(labSub(vtx,l.a),v)/ll,project=labAt(l.a,v,k);if(k>=-1e-7&&(l.ray||k<=1+1e-7)&&labDist(vtx,project)<1e-6)matches.push({x:vtx[0],y:vtx[1],angle,kind:'Aligned vertex',score:vertex.d+da*.8-2*tol})}
+           }
+         }
+       }
+       // A ruler or set-square tip can also snap to a point without rotating.
+       if(t.kind!=='protractor'){const a=vector(direction,len),tip=[p[0]+a[0],p[1]+a[1]],end=points.map(q=>({q,d:labDist(q,tip)})).sort((a,b)=>a.d-b.d)[0];if(end?.d<=tol)matches.push({x:end.q[0]-a[0],y:end.q[1]-a[1],kind:'Endpoint',score:end.d+tol})}
+     }
+     if(vertex?.d<=tol){const aligned=matches.filter(m=>m.kind==='Aligned vertex').sort((a,b)=>a.score-b.score)[0];return aligned?{x:aligned.x,y:aligned.y,angle:aligned.angle,kind:aligned.kind}:{x:vertex.q[0],y:vertex.q[1],kind:'Point'}}
+     const match=matches.sort((a,b)=>a.score-b.score)[0];if(match){const {score,...result}=match;return result}
+     const hit=nearest[0]?.d<=tol?nearest[0]:null;
+     return hit?{x:hit.q[0],y:hit.q[1],kind:'Edge'}:null;
+   }
+   if(mode==='rotate'){
+     const offsets=t.kind.startsWith('square')?[0,90]:[0],choices=[];
+     for(const l of nearest.filter(l=>l.d<=tol*2))for(const offset of offsets)for(const reverse of [0,180])choices.push({angle:mod(l.angle+offset+reverse),kind:'Edge'});
+     choices.push({angle:mod(Math.round(t.angle/15)*15),kind:'Angle'});
+     choices.sort((a,b)=>(a.kind==='Edge'?0:1)-(b.kind==='Edge'?0:1)||diff(a.angle,t.angle)-diff(b.angle,t.angle));
+     return choices.find(c=>diff(c.angle,t.angle)<=3)||null;
+   }
+   return null;
+ }
+ // A reading is relative to the zero edge, not the global canvas axes.
+ // Preserve exact snapped geometry internally; round only the displayed result.
+ function instrumentReading({lines},t,raw,scale){
+   const hand=t.hand===-1?-1:1,origin=[t.x,t.y],relative=a=>mod(hand*(a-t.angle)),wanted=Math.max(0,Math.min(180,raw)),tol=12/Math.max(.001,scale),rays=[];
+   const add=(a,b,both=false)=>{const v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)return;const u=labDot(labSub(origin,a),v)/(len*len),q=labAt(a,v,Math.max(0,both?Math.min(1,u):u));if(labDist(q,origin)>tol)return;
+     if(both&&u>1e-7)rays.push(relative(labAngle(b,a)));if(!both||u<1-1e-7)rays.push(relative(labAngle(a,b)))};
+   for(const line of lines)add(line.a,line.b,!line.ray);
+   const candidates=rays.map(a=>a>360-1e-7?0:a).filter(a=>a<=180+1e-7).sort((a,b)=>Math.abs(a-wanted)-Math.abs(b-wanted));
+   const exact=candidates[0];return t.snap&&exact!==undefined&&Math.abs(exact-wanted)<=3?{reading:Math.min(180,exact),kind:'Edge'}:{reading:Math.round(wanted*10)/10,kind:''}
+ }
 
+const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue,beginGesture:instrumentBegin,moveGesture:instrumentMove,finishGesture:instrumentFinish,movable:measuringUtensils,icon,button:instrumentButton,localActions:localInstrumentActions,align:instrumentAlignment,readAngle:instrumentReading};
+
+if(typeof module==='object'&&module.exports){module.exports=instruments;return}
+if(!root)return;
 global.TT99Goodies={instruments,root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels,lessonState};
-})(window);
+})(typeof window==='undefined'?globalThis:window);
