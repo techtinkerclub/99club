@@ -1558,7 +1558,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tool('point').click();tap([100,100]);assert(tool('redo').disabled,'New committed action clears redo history');tool('undo').click();tool('cancel-tool').click();assert(geometry()===empty,'Standalone point remains its own undoable action');
     }
     // Construct a bisector using only the board's actual drawing and compass gestures.
-    {
+    const verifyBisectors=label=>{
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),model=()=>cap().demo.labDrawing;
       // Independent, unrounded mathematical oracle: production polar() rounds for graphics.
       const exactPolar=(x,y,r,a)=>[x+r*Math.cos(a*Math.PI/180),y-r*Math.sin(a*Math.PI/180)];
@@ -1588,8 +1588,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         const wrong=M.labIntersections(unequal).map(q=>q.p).sort((a,b)=>distance(a,I)-distance(b,I))[0];
         assert(Math.abs(delta(direction(origin,wrong),a)-delta(direction(origin,wrong),c))>.1,'Unequal compass radii produce a detectably inaccurate bisector');
       }
+      reset();select('segment');
+      // A classical perpendicular bisector must pass through the midpoint and be orthogonal.
+      const A=exactPolar(410,310,90,203),B=exactPolar(410,310,90,23);
+      tap(A);tap(B);const base=model(),edge=base.segments[0],[u,v]=edge.map(i=>base.points[i]),angle=direction(u,v),mid=[(u[0]+v[0])/2,(u[1]+v[1])/2];
+      select('compass');tap(u);tap(exactPolar(...u,130,angle+90));const r=model().circles[0].r;
+      tool('compass-opening').click();tap(v);
+      const d=model();assert(d.circles.length===2&&d.circles[1].r===r,'Perpendicular bisector retains opening: '+label);
+      const h=Math.sqrt(r*r-distance(u,v)**2/4),expected=[exactPolar(...mid,h,angle+90),exactPolar(...mid,h,angle-90)];
+      const cross=M.labIntersections(d).map(q=>q.p),pair=expected.map(p=>cross.slice().sort((a,b)=>distance(a,p)-distance(b,p))[0]);
+      assert(pair.every((p,i)=>distance(p,expected[i])<1e-6),'Both circle crossings are exact: '+label);
+      select('segment');tap(pair[0]);tap(pair[1]);const done=model(),[p,q]=done.segments.at(-1).map(i=>done.points[i]);
+      assert(Math.abs(delta(direction(p,q),angle)-90)<1e-6,'Constructed line perpendicular to baseline: '+label);
+      assert(distance([(p[0]+q[0])/2,(p[1]+q[1])/2],mid)<1e-6,'Constructed perpendicular passes through midpoint: '+label);
       reset();select('select');
-    }
+    };
+    verifyBisectors('A5 normal');
     verifyInstruments('A5 normal');
     {
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},centre=[200,200];
@@ -1609,12 +1623,13 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(M.labSnap(m,[440,200],.5).kind==='On line','Other invisible arc continuation is not a line intersection');
     }
     doc.querySelector('[data-ag-tool="expand"]').click();wsField('format').value='A4';wsField('apply').click();await tick();
-    checkRuler();verifyInstruments('A4 normal');
+    checkRuler();verifyInstruments('A4 normal');verifyBisectors('A4 normal');
     {
       const frame=fixture.frame,max=frame.querySelector('[data-board-maximise]');
       api.select(fixture.record.id);max.click();await tick(150);
       assert(frame.classList.contains('is-geometry-board'),'Full board entered for instrument scale checks');
-      checkRuler();verifyInstruments('A4 full board');
+      checkRuler();verifyInstruments('A4 full board');verifyBisectors('A4 full board');
+      doc.querySelector('[data-ag-tool="zoom-in"]').click();verifyBisectors('A4 full board zoomed in');doc.querySelector('[data-ag-tool="zoom-out"]').click();
       const original=JSON.stringify(cap().demo.labDrawing),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),add=kind=>doc.querySelector('[data-ag-utensil-add="'+kind+'"]').click(),action=id=>doc.querySelector('[data-ag-utensil-action="'+id+'"]'),utensil=kind=>work.querySelector('[data-ag-utensil-kind="'+kind+'"]');
       tool('measuring-tools').click();
       for(const kind of ['ruler','protractor','square45','square30']){
