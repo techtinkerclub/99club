@@ -2607,6 +2607,11 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(groups.find(g=>g.id==='properties').ids.includes(getTask().type),'Another preserves geometry random category');
     }
     if(id==='sequences'){const d=panel.querySelector('[data-seq-challenge-setting="difficulty"]');d.value='hard';d.dispatchEvent(new Event('change',{bubbles:true}));await tick();assert(fixture.doc.querySelector('[data-seq-challenge-setting="difficulty"]').value==='hard','Sequence difficulty forwards from full panel')}
+    if(id==='sequences'){
+      const source=fixture.doc.querySelector('#gd-controls'),probe=fixture.doc.createElement('details');probe.dataset.qaSection='disclosure';probe.innerHTML='<summary>Test settings <span>1</span></summary><p>Test content</p>';source.append(probe);await tick(100);
+      const get=()=>panel.querySelector('details[data-qa-section="disclosure"]');assert(get(),'Shared inspector includes additional native disclosure');get().open=true;probe.querySelector('span').textContent='2';await tick(100);assert(get()?.open&&get().querySelector('span').textContent==='2','Shared inspector preserves open disclosure across source refresh');
+      get().open=false;probe.querySelector('span').textContent='3';await tick(100);assert(get()&&!get().open,'Explicitly collapsed disclosure remains collapsed');probe.remove();await tick(100);
+    }
     panel.querySelector('[data-gd-native-random="all"]').click();await tick(100);
     assert(fixture.doc.querySelector('#gd-stage .gd-native-challenge,#gd-stage .gd-challenge-banner,#gd-stage .gd-ab-task'),'Specialist full settings Random generates: '+id);
     panel.querySelector('[data-board-launcher-back]').click();await tick();
