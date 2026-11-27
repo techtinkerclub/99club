@@ -3440,7 +3440,27 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       }
       const cases=[['base-height',8],['perimeter',2],['area',3]];
       for(const [kind,value] of cases){const [a,b]=M.areaComparison(kind,value).shapes;assert(kind==='perimeter'?a.area!==b.area:Math.abs(a.perimeter-b.perimeter)>1e-6,'Concrete counterexamples change the non-invariant quantity')}
+      for(const m of [...Array.from({length:10},(_,i)=>ref('regular',{n:i+3})),...M.polygonInvestigationExamples().map(e=>ref('free-polygon',{n:e.points.length,polygonPoints:e.points}))]){
+        const measures=M.shapeMeasureModel(m);
+        assert(measures.triangles.length===m.n-2&&measures.edges.length===m.n,'Current polygon has exact decomposition and boundary');
+        assert(Math.abs(measures.area-m.area)<1e-8&&Math.abs(measures.perimeter-m.perimeter)<1e-8,'Current shape totals agree with independent geometry model');
+        assert(measures.triangles.every(t=>t.area>0)&&measures.edges.every(e=>e.length>0),'Nondegenerate triangle areas and boundary lengths');
+      }
+      assert(win.TT99Goodies.modeControl.set('polygon'),'General polygon teaching available');await tick();
+      const currentReference=M.shapeTeachingReference(cap().demo),measures=M.shapeMeasureModel(currentReference);
+      doc.querySelector('[data-ag-teaching-tab="shape-measures"]').click();await tick();
+      const measurePanel=doc.querySelector('[data-ag-shape-measures]');
+      assert(!measurePanel.hidden&&!doc.querySelector('[data-ag-area-comparison]'),'General polygon area is contextual, with no unrelated triangle/rectangle comparison');
+      assert(measurePanel.querySelectorAll('[data-ag-measure-triangle]').length===measures.triangles.length,'Full current polygon area shown by default');
+      measurePanel.querySelector('[data-ag-shape-measure-restart]').click();assert(measurePanel.querySelectorAll('[data-ag-measure-triangle]').length===1,'Start with the first area piece');
+      measurePanel.querySelector('[data-ag-shape-measure-next]').click();assert(measurePanel.querySelectorAll('[data-ag-measure-triangle]').length===Math.min(2,measures.triangles.length),'Build the area one triangle at a time');
+      const piecePack=P.createDocument();piecePack.addCurrent(id,cap());const piecePaper=P.renderItem(piecePack.list()[0],false);
+      assert(piecePaper.querySelectorAll('[data-ag-measure-triangle]').length===Math.min(2,measures.triangles.length)&&!piecePaper.querySelector('[data-ag-area-comparison-graphic]'),'Selected area step printed without unrelated investigation');
+      measurePanel.querySelector('[data-ag-shape-measure-all]').click();assert(measurePanel.querySelectorAll('[data-ag-measure-triangle]').length===measures.triangles.length,'Show all triangles');
+      measurePanel.querySelector('[data-ag-shape-measure-mode="perimeter"]').click();assert(measurePanel.querySelector('[data-ag-measure-boundary]')&&!measurePanel.querySelector('[data-ag-measure-triangle]')&&measurePanel.querySelector('[data-ag-shape-measure-steps]').hidden,'Perimeter highlights only outside boundary');
+      const perimeterPack=P.createDocument();perimeterPack.addCurrent(id,cap());assert(P.renderItem(perimeterPack.list()[0],false).querySelector('[data-ag-measure-boundary]'),'Perimeter selection captured in publication');
       assert(win.TT99Goodies.modeControl.set('polygon:rectangle'),'Area comparison reachable');await tick();
+      assert(doc.querySelector('[data-ag-teaching-tab="shape-measures"]').textContent==='Area & perimeter'&&doc.querySelector('[data-ag-teaching-tab="area-comparison"]').textContent==='Compare areas','Rectangle measurements and comparison are separate activities');
       doc.querySelector('[data-ag-teaching-tab="area-comparison"]').click();await tick();
       const cmp=doc.querySelector('[data-ag-area-comparison]'),cs=cmp.querySelector('[data-ag-area-comparison-kind]'),cr=cmp.querySelector('[data-ag-area-comparison-value]'),revealCmp=cmp.querySelector('[data-ag-area-comparison-reveal]');
       assert(!cmp.hidden&&cmp.querySelectorAll('[data-ag-area-comparison-shape]').length===2,'Two shapes compared at common scale');
