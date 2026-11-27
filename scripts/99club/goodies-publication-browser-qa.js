@@ -101,7 +101,7 @@ if(process.argv[2]==='prepare'){
    assert(Number(geoAnnex.querySelector('[data-pub-answer-graphic]').getAttribute('height'))>340,'Dense Geoboard answer is no longer compressed to the former annex cap');
    const abacusResult=results.find(r=>r.tool==='abacus');
    assert(abacusResult.annexPages<=5,'Nine bead-abacus answers fit on at most five annex pages while maintaining legibility');
-   assert(warnings.length===0,'Default publication samples must retain the zero sub-7pt text baseline');
+   assert(warnings.length===0,'Default publication samples must retain the zero sub-7pt text baseline: '+JSON.stringify(warnings.slice(0,12)));
    assert(clipping.length===0,'No rendered text outside the page: '+JSON.stringify(clipping.slice(0,5)));
    for(const kind of ['reckoning','rods','napier','slide','pascaline']){
      const settings={kind},families=P.types('abacus',settings);
