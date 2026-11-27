@@ -1659,6 +1659,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tapWork([150,150]);change(doc.querySelector('[data-ag-angle-existing]'),'0');
       change(doc.querySelector('[data-ag-edit-angle-mode]'),'measured');doc.querySelector('[data-ag-edit-angle-action="apply"]').click();
       assert(work.querySelector('[data-ag-annotation-value]').textContent==='53.1°','Existing angle can switch from unknown to actual measurement');
+      // The contextual editor is a compact palette, not a sheet-wide strip.
+      const menu=doc.querySelector('[data-ag-selection-menu]'),header=menu.querySelector('[data-ag-selection-drag]'),fold=menu.querySelector('[data-ag-selection-fold]'),editor=menu.querySelector('[data-ag-edit-angle-action="apply"]');
+      assert(menu.offsetWidth<=320&&menu.offsetWidth>0&&header.offsetHeight>0,'Angle editor is capped at a compact width and exposes a drag header');
+      const old=menu.getBoundingClientRect(),viewport=menu.parentElement,frame=viewport.getBoundingClientRect(),cx=old.left+10,cy=old.top+12;
+      const tx=old.left-frame.left>40?cx-35:cx+35,ty=old.top-frame.top>40?cy-35:cy+35;
+      const dragEvent=(type,x,y)=>header.dispatchEvent(new win.PointerEvent(type,{bubbles:true,pointerId:71,pointerType:'mouse',button:0,buttons:type==='pointerup'?0:1,clientX:x,clientY:y}));
+      dragEvent('pointerdown',cx,cy);dragEvent('pointermove',tx,ty);dragEvent('pointerup',tx,ty);
+      const moved=menu.getBoundingClientRect();assert(Math.hypot(moved.left-old.left,moved.top-old.top)>10,'Drag header repositions the contextual editor');
+      editor.click();const repainted=menu.getBoundingClientRect();assert(Math.hypot(moved.left-repainted.left,moved.top-repainted.top)<1,'Contextual editor retains its position when applying changes');
+      fold.click();assert(fold.getAttribute('aria-expanded')==='false'&&editor.offsetWidth===0&&menu.offsetHeight<moved.height,'Collapse hides editor content but retains header');fold.click();assert(editor.offsetWidth>0&&fold.getAttribute('aria-expanded')==='true','Expand restores the selected angle editor');
+
       change(doc.querySelector('[data-ag-edit-angle-mode]'),'custom');doc.querySelector('[data-ag-edit-angle-text]').value='x';doc.querySelector('[data-ag-edit-angle-action="apply"]').click();
       assert(work.querySelector('[data-ag-annotation-value]').textContent==='x'&&capture().angleNotation.length===1,'Editing existing angle does not duplicate annotation');
       change(doc.querySelector('[data-ag-edit-angle-kind]'),'right');doc.querySelector('[data-ag-edit-angle-action="apply"]').click();assert(capture().angleNotation[0].kind==='angle1','Cannot falsely mark a non-right angle');
