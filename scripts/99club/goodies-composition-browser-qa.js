@@ -3260,7 +3260,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const proofPanel=doc.querySelector('[data-ag-area-proof]');assert(proofPanel?.querySelector('[data-ag-proof-next]'),'Area proof has visible step controls');
       doc.querySelector('[data-ag-teaching-tab="proof"]').click();await tick();
       assert(proofPanel.querySelector('[data-ag-proof-play]')&&proofPanel.querySelector('[data-ag-proof-manual]').open===false,'Replay and result are primary; manual steps optional');
-      proofPanel.querySelector('[data-ag-proof-play]').click();await tick(2800);
+      proofPanel.querySelector('[data-ag-proof-play]').click();for(let j=0;j<100&&!proofPanel.querySelector('[data-ag-proof-play]').textContent.includes('Replay');j++)await tick(50);
       assert(proofPanel.querySelector('[data-ag-proof-outline]')&&proofPanel.querySelector('[data-ag-proof-play]').textContent.includes('Replay'),'Area rearrangement completes at exact result');
       proofPanel.querySelector('[data-ag-proof-reset]').click();proofPanel.querySelector('[data-ag-proof-final]').click();
       assert(proofPanel.querySelector('[data-ag-proof-outline]'),'Static result available without animation');
@@ -3317,7 +3317,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(f.links.every(e=>!f.members.includes(e.child)||f.members.includes(e.parent)),'All hierarchy implications hold: '+shape);
       }
       const familyPanel=doc.querySelector('[data-ag-family-reference]'),familySelect=familyPanel.querySelector('[data-ag-family-select]');
-      assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===7,'Square belongs to all seven inclusive families');
+      assert(familyPanel.querySelectorAll('[data-ag-classification-right]').length===4&&familyPanel.querySelectorAll('[data-ag-classification-equal-side]').length===4&&!familyPanel.querySelector('[data-ag-family-more]').open,'Square shows sides and right angles before the hierarchy');assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===7,'Square belongs to all seven inclusive families');
       familySelect.value='Rectangle';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));
       assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===4&&familyPanel.querySelector('[data-ag-family-node="Square"]').dataset.agFamilyMember==='false','Rectangle example is not necessarily square');
       familySelect.value='Concave quadrilateral';familySelect.dispatchEvent(new win.Event('change',{bubbles:true}));assert(familyPanel.querySelectorAll('[data-ag-family-member="true"]').length===1,'Concave example belongs only to general quadrilateral family');
@@ -3334,7 +3334,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       }
       assert(win.TT99Goodies.modeControl.set('polygon:equilateral'),'Triangle classification investigation accessible');await tick();
       const trianglePanel=doc.querySelector('[data-ag-triangle-family-reference]'),triangleSelect=trianglePanel.querySelector('[data-ag-triangle-family-select]');
-      assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Equilateral|Acute"]').dataset.agFamilySelected==='true','Current equilateral example highlighted');
+      assert(trianglePanel.querySelectorAll('[data-ag-classification-angle]').length===3&&trianglePanel.querySelectorAll('[data-ag-classification-equal-side]').length===3&&!trianglePanel.querySelector('[data-ag-triangle-family-more]').open,'Triangle classification starts with actual marked sides and angles');assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Equilateral|Acute"]').dataset.agFamilySelected==='true','Current equilateral example highlighted');
       triangleSelect.value='Isosceles|Right-angled';triangleSelect.dispatchEvent(new win.Event('change',{bubbles:true}));
       assert(trianglePanel.querySelector('[data-ag-triangle-family-cell="Isosceles|Right-angled"]').dataset.agFamilySelected==='true'&&trianglePanel.textContent.includes('45°'),'Isosceles right triangle selection gives accurate example');
       assert(trianglePanel.querySelectorAll('[data-ag-family-possible="false"]').length===2,'Impossible equilateral right and obtuse cells explicitly shown');
