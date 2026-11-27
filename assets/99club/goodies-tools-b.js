@@ -1196,7 +1196,7 @@ function mountMeasureDrawing(host,c){
  const points=c.measurement.points;
  const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
  function node(name,attrs){const e=document.createElementNS(N,name);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,String(v)));layer.append(e);return e}
- function hit(e){const m=svg.getScreenCTM();if(!m)return null;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse()),v=[p.x,p.y],tol=Math.min(55,25/Math.hypot(m.a,m.b));let near=null,d=tol;for(const q of points){const n=distance(q,v);if(n<d){near=q;d=n}}return near||v}
+ function hit(e){const p=G.instruments.worldPoint(svg,e);if(!p)return null;return G.instruments.nearestPoint(points,p,Math.min(55,25/G.instruments.screenScale(svg)))||p}
  function paint(){
   layer.replaceChildren();const end=second||hover;
   hint.textContent=first===null?'Tap the point where the ruler should start.':second===null?'Tap the other endpoint to align the ruler.':'Read the graduation at the endpoint, then enter your answer. Tap a new starting point to measure again.';
@@ -1206,7 +1206,8 @@ function mountMeasureDrawing(host,c){
    const n=[Math.sin(a*Math.PI/180),Math.cos(a*Math.PI/180)];
    node('line',{x1:end[0],y1:end[1],x2:end[0]+n[0]*side*25,y2:end[1]+n[1]*side*25,stroke:'#b77b32','stroke-width':2.5});
   }
-  for(const p of [first,second||hover].filter(Boolean))node('circle',{cx:p[0],cy:p[1],r:6,fill:'#fff',stroke:'#287c70','stroke-width':2});
+  const direction=first&&end&&distance(first,end)>2?Math.atan2(first[1]-end[1],end[0]-first[0])*180/Math.PI:null;
+  for(const [i,p] of [first,end].entries())if(p){node('circle',{cx:p[0],cy:p[1],r:6,fill:'#fff',stroke:'#287c70','stroke-width':2});G.instruments.centreCue(svg,p,i===0?'start':'end',direction,{parent:layer})}
  }
  clear.onclick=()=>{first=second=hover=null;paint()};flip.onclick=()=>{side*=-1;paint()};
  if(c.revealed){bar.hidden=true;return}

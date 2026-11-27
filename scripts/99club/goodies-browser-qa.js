@@ -3739,7 +3739,7 @@ if(mode==='prepare'){
         assert(c.answer===String(expected/10)+' cm','Measurement answer agrees with geometric data: '+type);
       }
       const d=MM.generate(type,{precision:'tenth',maxCm:10}),card=MM.render(d,false);
-      assert(card.querySelector('[data-me-calibration="50"]')&&!card.querySelector('[data-geometry-instrument]'),'Paper measurement task provides calibration without a solved ruler');
+      assert(card.querySelector('[data-me-calibration="50"]')&&!card.querySelector('[data-geometry-instrument]')&&!card.querySelector('[data-me-point-centre]'),'Paper measurement task provides calibration without a solved ruler or temporary endpoint cues');
       assert(!card.textContent.includes('Answer: '+d.challenge.answer),'Paper measurement task hides the answer');
       const item=PP.record('measurement','challenge',d),pages=PP.pages([item],{teacher:false});
       const pg=pages[0],outer=pg.querySelector('[data-pub-item]'),inner=outer.querySelector('svg'),cal=inner.querySelector('[data-me-calibration]');
@@ -3754,8 +3754,12 @@ if(mode==='prepare'){
     assert(vertices.length===4&&!ms.querySelector('[data-geometry-instrument]'),'Measuring starts with a shape and no aligned ruler');
     for(const p of vertices.slice(0,2)){const v=new DOMPoint(Number(p.getAttribute('cx')),Number(p.getAttribute('cy'))).matrixTransform(ms.getScreenCTM());pointer(ms,'pointerdown',v.x,v.y,91);pointer(ms,'pointerup',v.x,v.y,91)}
     assert(ms.querySelector('[data-geometry-instrument="ruler"]'),'Two snapped taps align the shared graduated ruler');
+    const cues=[...ms.querySelectorAll('[data-me-point-centre]')];assert(cues.length===2,'Shared precise centre cues mark both measurement endpoints');
+    const xy=vertices.slice(0,2).map(p=>[Number(p.getAttribute('cx')),Number(p.getAttribute('cy'))]),dx=xy[1][0]-xy[0][0],dy=xy[1][1]-xy[0][1],length=Math.hypot(dx,dy);
+    for(let i=0;i<2;i++){const cue=cues[i],m=cue.transform.baseVal.getItem(0).matrix,rotation=cue.transform.baseVal.getItem(1).matrix;assert(Math.hypot(m.e-xy[i][0],m.f-xy[i][1])<.001,'Measurement cue uses exact vertex');assert(Math.abs((rotation.c*dx+rotation.d*dy)/length)<1e-5,'Measurement cue is perpendicular to measured line');assert(cue.getAttribute('pointer-events')==='none','Measurement cue does not intercept gestures')}
+    document.querySelector('[data-me-flip-ruler]').click();assert(ms.querySelectorAll('[data-me-point-centre]').length===2,'Flipping ruler retains exact endpoint cues');
     document.querySelector('[data-me-reset-ruler]').click();
-    assert(!ms.querySelector('[data-geometry-instrument]'),'Ruler reset removes the instrument without changing the task');
+    assert(!ms.querySelector('[data-geometry-instrument]')&&!ms.querySelector('[data-me-point-centre]'),'Ruler reset removes the instrument and temporary cues without changing the task');
 
   }
 

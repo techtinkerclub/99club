@@ -114,7 +114,18 @@ function adaptInstrumentMarkings(svg,pixelsPerUnit){
   }
  }
 }
-const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings};
+// Shared screen-space measurement helpers. The host supplies actual world
+// geometry; these functions never change the model or infer a target answer.
+function instrumentScreenScale(svg){const m=svg.getScreenCTM?.();return Math.max(.001,Math.hypot(m?.a||1,m?.b||0))}
+function instrumentWorldPoint(svg,event){const m=svg.getScreenCTM?.();if(!m)return null;const p=new DOMPoint(event.clientX,event.clientY).matrixTransform(m.inverse());return [p.x,p.y]}
+function instrumentNearestPoint(points,p,tolerance){let nearest=null,d=tolerance;for(const q of points){const n=Math.hypot(q[0]-p[0],q[1]-p[1]);if(n<d){nearest=q;d=n}}return nearest}
+function instrumentCentreCue(svg,p,name,angle=null,{parent=svg,span=8}={}){
+ const arm=span/2/instrumentScreenScale(svg),along=angle===null?arm:arm*.45;
+ const g=instrumentEl(parent,'g',{'data-ag-point-centre':name,'data-me-point-centre':name,'data-ag-centre-direction':angle===null?'neutral':String(angle),transform:'translate('+p[0]+' '+p[1]+') rotate('+(-(angle??0))+')','pointer-events':'none','aria-hidden':'true'});
+ for(const [stroke,width] of [['#fff',3],['#28413d',1.15]])instrumentEl(g,'path',{d:'M '+(-along)+' 0 H '+along+' M 0 '+(-arm)+' V '+arm,fill:'none',stroke,'stroke-width':width,'vector-effect':'non-scaling-stroke','stroke-linecap':'round'});
+ return g;
+}
+const instruments={rulerGraduations,ruler:rulerInstrument,protractor:protractorInstrument,setSquare:setSquareInstrument,adaptMarkings:adaptInstrumentMarkings,screenScale:instrumentScreenScale,worldPoint:instrumentWorldPoint,nearestPoint:instrumentNearestPoint,centreCue:instrumentCentreCue};
 
 global.TT99Goodies={instruments,root,CATS,q,qa,esc,clamp,num,gcd,money,field,btn,setPanels,lessonState};
 })(window);
