@@ -1741,6 +1741,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tool('ray').click();tap([100,100]);tool('compass').click();assert(geometry()===empty,'Switching tools cancels provisional endpoint');
       tap([100,100]);previewPointer('pointercancel',[100,100]);assert(geometry()===empty,'Pointer cancellation discards provisional centre');tool('cancel-tool').click();
       tool('point').click();tap([100,100]);assert(tool('redo').disabled,'New committed action clears redo history');tool('undo').click();tool('cancel-tool').click();assert(geometry()===empty,'Standalone point remains its own undoable action');
+      const pointer=(type,p,id)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:id,button:0,clientX:v.x,clientY:v.y}))};
+      tool('segment').click();tap([100,100]);pointer('pointerdown',[300,100],101);pointer('pointerdown',[450,250],102);pointer('pointermove',[450,250],102);pointer('pointercancel',[450,250],102);pointer('pointerup',[300,100],101);
+      assert(cap().demo.labDrawing.segments.length===1&&cap().demo.labDrawing.points.length===2&&Math.hypot(...cap().demo.labDrawing.points[1].map((v,i)=>v-[300,100][i]))<1e-6,'Second pointer cannot replace or cancel active endpoint');
+      tool('cancel-tool').click();const movement=doc.querySelector('[data-ag-option="movement"]');if(!movement.checked)movement.click();
+      const original=geometry();pointer('pointerdown',[100,100],103);pointer('pointermove',[150,160],103);assert(geometry()!==original,'Point drag updates geometry while moving');
+      pointer('pointerdown',[300,100],104);pointer('pointerup',[300,100],104);pointer('pointercancel',[150,160],103);assert(geometry()===original,'Cancelled point drag restores original geometry despite second pointer');
+      pointer('pointerdown',[100,100],105);pointer('pointerup',[150,160],105);assert(Math.hypot(...cap().demo.labDrawing.points[0].map((v,i)=>v-[150,160][i]))<1e-6,'Release-only movement commits final point location');
+      tool('undo').click();assert(geometry()===original,'Completed point gesture is one undoable action');tool('redo').click();assert(geometry()!==original,'Redo restores entire completed movement');
+      tool('undo').click();tool('undo').click();assert(geometry()===empty,'Cancelled gesture did not leave an undo entry');
+      if(movement.checked)movement.click();
+
     }
     // Construction marks and manually chosen protractor increments use the same precision.
     {
