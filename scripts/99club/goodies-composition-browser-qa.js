@@ -1701,6 +1701,27 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tap([100,100]);previewPointer('pointercancel',[100,100]);assert(geometry()===empty,'Pointer cancellation discards provisional centre');tool('cancel-tool').click();
       tool('point').click();tap([100,100]);assert(tool('redo').disabled,'New committed action clears redo history');tool('undo').click();tool('cancel-tool').click();assert(geometry()===empty,'Standalone point remains its own undoable action');
     }
+    // Construction marks and manually chosen protractor increments use the same precision.
+    {
+      const base=23.173456,angle=37.426781,origin=[200,200],end=a=>[origin[0]+200*Math.cos(a*Math.PI/180),origin[1]-200*Math.sin(a*Math.PI/180)];
+      const scene={...M.labEmpty(true),points:[origin,end(base)],names:['A','B'],segments:[[0,1]],rays:[{i:0,angle:base+angle,relativeTo:'B',relativeAngle:angle,mark:{base:'B',hand:1}}]};
+      const ink=JSON.stringify([scene.points,scene.rays,scene.segments]),labels=()=>{const v=[];M.labAngleGraphics(scene,(_,p,text)=>v.push(text));return v.join(',')};
+      assert(labels()==='37.4°','Automatic free construction mark uses tenth-degree precision');
+      assert(Math.abs(M.labProtractorDirection(scene,base,angle,1,true)-base-37.4)<1e-9,'Free construction uses tenth-degree increments relative to exact baseline');
+      scene.measurementPrecision=2;
+      assert(labels()==='37.43°'&&Math.abs(M.labProtractorDirection(scene,base,angle,1,true)-base-37.43)<1e-9,'Hundredth-degree display and construction increments agree');
+      assert(Math.abs(M.labProtractorDirection(scene,base,angle,-1,true)-((base-37.43+360)%360))<1e-9,'Mirrored protractor preserves fractional increments');
+      assert(Math.abs(M.labProtractorDirection(scene,base,angle,1,false)-base-37)<1e-9,'Guided whole-degree challenge keeps original increment');
+      assert(JSON.stringify([scene.points,scene.rays,scene.segments])===ink,'Changing display precision leaves existing mathematical geometry unchanged');
+      const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),precision=doc.querySelector('[data-ag-option="precision"]');
+      reset();precision.value='2';precision.dispatchEvent(new win.Event('change',{bubbles:true}));tool('protractor').click();
+      const o=[300,300],at=a=>[o[0]+160*Math.cos(a*Math.PI/180),o[1]-160*Math.sin(a*Math.PI/180)];
+      tap(o);tap(at(30));tap(at(67.43));
+      const drawing=cap().demo.labDrawing;assert(Math.abs(drawing.rays[0].relativeAngle-37.43)<1e-8&&work.querySelector('[data-ag-angle-value]')?.textContent==='37.43°','Actual free protractor gesture constructs a fractional angle and displays it consistently');
+      const paper=P.createDocument();paper.addCurrent(id,cap());assert(P.renderItem(paper.list()[0],false).querySelector('[data-ag-angle-value]')?.textContent==='37.43°','Fractional construction label matches publication');
+      precision.value='1';precision.dispatchEvent(new win.Event('change',{bubbles:true}));assert(work.querySelector('[data-ag-angle-value]')?.textContent==='37.4°'&&Math.abs(cap().demo.labDrawing.rays[0].relativeAngle-37.43)<1e-8,'Changing display precision does not modify committed angle');
+      reset();if(tool('select').getAttribute('aria-pressed')!=='true')tool('select').click();
+    }
     // Construct a bisector using only the board's actual drawing and compass gestures.
     const verifyBisectors=label=>{
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},reset=()=>doc.querySelector('[aria-label="Reset construction"]').click(),model=()=>cap().demo.labDrawing;
