@@ -1567,7 +1567,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
        if(menuPosition){menuPosition=positionMenu(menuPosition.x,menuPosition.y)}else if(anchor&&matrix){
          const p=new DOMPoint(...anchor).matrixTransform(matrix),x=p.x-v.left-viewport.clientLeft,y=p.y-v.top-viewport.clientTop,w=localStyle.offsetWidth,h=localStyle.offsetHeight;
          if(x<0||y<0||x>viewport.clientWidth||y>viewport.clientHeight)localStyle.style.display='none';
-         else{const right=x+18,left=x-w-18;if(right+w<=viewport.clientWidth-6)positionMenu(right,y-24);else if(left>=6)positionMenu(left,y-24);else positionMenu(x-w/2,y-h-14>=6?y-h-14:y+14)}
+         else{const clearance=anglePicking!==null?100:18,right=x+clearance,left=x-w-clearance;if(right+w<=viewport.clientWidth-6)positionMenu(right,y-24);else if(left>=6)positionMenu(left,y-24);else positionMenu(x-w/2,y-h-clearance>=6?y-h-clearance:y+clearance)}
        }else localStyle.style.display='none';
      }
    }
