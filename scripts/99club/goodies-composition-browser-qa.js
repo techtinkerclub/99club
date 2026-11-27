@@ -3431,9 +3431,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       rq('[data-ag-reasoning-reset]').click();assert(!cap().demo.reasoningReveal&&!cap().demo.reasoningPrediction,'Reasoning reset clears prediction');
       const generatedReasoning=new Set();
       for(let i=0;i<80;i++){
-        const t=M.generate({type:'geometry-reasoning'},()=> (i+.5)/80),m=M.geometryReasoning(t.reasoningId),item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),teacher=P.renderItem(item,true);
+        const t=M.generate({type:'geometry-reasoning'},()=> (i+.5)/80),m=M.geometryReasoning(t.reasoningId),item=P.record(id,'challenge',t),pupil=P.renderItem(item,false),teacher=P.answerGraphic(item);
         generatedReasoning.add(t.reasoningId);assert(t.answer===m.answer&&t.note===m.note,'Generated reasoning answer and explanation match catalogue');
-        assert(pupil.querySelector('[data-ag-reasoning-space]')&&!pupil.querySelector('[data-ag-reasoning-witness]')&&teacher.querySelector('[data-ag-reasoning-graphic]'),'Pupil workspace separate from worked examples');
+        assert(pupil.querySelector('[data-ag-reasoning-space]')&&!pupil.querySelector('[data-ag-reasoning-witness]')&&teacher.getAttribute('data-ag-reasoning-graphic')===m.id&&teacher.querySelectorAll('[data-ag-reasoning-witness]').length===m.examples.length,'Pupil workspace separate from worked examples');
       }
       assert(generatedReasoning.size===M.GEOMETRY_REASONING.length,'All new reasoning statements generated');
 
