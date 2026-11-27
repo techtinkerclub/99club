@@ -2666,3 +2666,37 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body] section>details[open] svg{max-height:clamp(130px,38vh,320px)}
   html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>.gd-ag-visual>svg{max-height:calc(100vh - 160px)!important}
 }
+
+
+/* Optional lessons replace the core screen instead of extending it vertically.
+   Keep the native disclosure and its saved/exported state intact. */
+#tt99-goodies-root [data-ag-lesson-detail] [data-ag-detail-back],
+#tt99-goodies-root [data-ag-lesson-detail][open] [data-ag-detail-label]{display:none}
+#tt99-goodies-root [data-ag-lesson-detail][open] [data-ag-detail-back]{display:inline}
+#tt99-goodies-root [data-ag-lesson-detail]>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;color:#175e55;font-weight:700}
+#tt99-goodies-root [data-ag-lesson-detail]>summary::marker{content:''}
+#tt99-goodies-root [data-ag-lesson-detail][open]{margin:0;padding:0;border:0}
+#tt99-goodies-root [data-ag-lesson-detail][open]>summary{margin-bottom:8px;border-bottom:1px solid #dbe7e3}
+#tt99-goodies-root [data-ag-shape-reference-body]:has(>section:not([hidden])>details[data-ag-lesson-detail][open]){grid-template-columns:minmax(0,1fr)}
+#tt99-goodies-root [data-ag-shape-reference-body]:has(>section:not([hidden])>details[data-ag-lesson-detail][open])>section:not(:has(>details[data-ag-lesson-detail][open])){display:none!important}
+#tt99-goodies-root [data-ag-shape-reference-body]>section:has(>details[data-ag-lesson-detail="page"][open]){display:block;grid-column:1/-1}
+#tt99-goodies-root [data-ag-shape-reference-body]>section:has(>details[data-ag-lesson-detail="page"][open])>:not(h4):not(details[open]){display:none!important}
+#tt99-goodies-root [data-ag-lesson-detail][open]>:not(summary){min-width:0}
+#tt99-goodies-root [data-ag-lesson-detail][open] p{margin:6px 0}
+#tt99-goodies-root [data-ag-lesson-detail][open] dl{margin:0}
+@media (min-width:800px) and (min-height:480px) and (orientation:landscape){
+  #tt99-goodies-root [data-ag-shape-reference-body]>section:has(>details[data-ag-lesson-detail="page"][open]){display:block}
+  #tt99-goodies-root [data-ag-lesson-detail="page"][open]>summary{grid-column:1/-1}
+  #tt99-goodies-root :is([data-ag-diagonal-enrichment],[data-ag-pythagoras-details],[data-ag-family-more],[data-ag-triangle-family-more])[open]{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:8px 18px;align-items:start;align-content:start}
+  #tt99-goodies-root :is([data-ag-diagonal-enrichment],[data-ag-pythagoras-details],[data-ag-family-more],[data-ag-triangle-family-more])[open]>:not(summary){grid-column:2}
+  #tt99-goodies-root [data-ag-lesson-detail][open]>:is([data-ag-polygon-proof-picture],[data-ag-pythagoras-picture],[data-ag-family-picture],[data-ag-triangle-family-picture]){grid-column:1;grid-row:2/span 5;align-self:center}
+  #tt99-goodies-root [data-ag-triangle-family-more][open]>[data-ag-triangle-family-picture]{grid-column:1/-1;grid-row:auto}
+  #tt99-goodies-root [data-ag-lesson-detail][open] svg{width:100%;max-height:clamp(180px,55vh,460px);object-fit:contain;margin:auto}
+  #tt99-goodies-root [data-ag-family-more][open] dl{font-size:clamp(12px,1.2vw,15px);line-height:1.2}
+  #tt99-goodies-root [data-ag-family-more][open] dt{margin:3px 0 0}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section:has(>details[open]){display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:6px 16px}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section:has(>details[open])>*{grid-column:2}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section:has(>details[open])>:is([data-ag-rotation-picture],[data-ag-reflection-picture]){grid-column:1;grid-row:1/span 4;align-self:center}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section:has(>details[open]) svg{max-height:clamp(170px,52vh,420px)}
+  #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"]>section:has(>details[open])>details[open]{grid-column:2}
+}
