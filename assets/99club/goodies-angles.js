@@ -277,7 +277,8 @@ function challengeGroups(s={}){
  return defs.map(([id,label,test])=>({id,label,ids:catalogue.filter(t=>(id==='ks3'||t.year!==7)&&test(t)).map(t=>t.id)})).filter(g=>g.ids.length);
 }
 
-const polar=(x,y,r,a)=>[round(x+r*Math.cos(a*D)),round(y-r*Math.sin(a*D))];
+const exactPolar=(x,y,r,a)=>[x+r*Math.cos(a*D),y-r*Math.sin(a*D)];
+const polar=(x,y,r,a)=>exactPolar(x,y,r,a).map(round);
 // Snap the movable ray to whole-degree graduations, relative to the fixed ray.
 // Outside a semicircle choose the nearer endpoint, not an arbitrary 180°.
 function snapAngle(raw,max=180,previous=0){
@@ -481,9 +482,9 @@ function generate(s={},rng=Math.random){
  // A partial compass mark is an exact circular arc (signed angular sweep).
  function isLabArc(c){return Number.isFinite(c.start)&&Number.isFinite(c.sweep)&&Math.abs(c.sweep)<360}
  function labArcContains(c,a){if(!isLabArc(c))return true;const d=mod((a-c.start)*Math.sign(c.sweep));return d<=Math.abs(c.sweep)+1e-6||d>=360-1e-6}
- function labArcPath(o,c){const p=polar(...o,c.r,c.start),q=polar(...o,c.r,c.start+c.sweep);return 'M '+p.join(' ')+' A '+c.r+' '+c.r+' 0 '+(Math.abs(c.sweep)>180?1:0)+' '+(c.sweep<0?1:0)+' '+q.join(' ')}
- function labCircleExtents(o,c){return isLabArc(c)?[c.start,c.start+c.sweep,...[0,90,180,270].filter(a=>labArcContains(c,a))].map(a=>polar(...o,c.r,a)):[[o[0]-c.r,o[1]-c.r],[o[0]+c.r,o[1]+c.r]]}
- function labCircleDistance(o,c,p){if(labArcContains(c,labAngle(o,p)))return Math.abs(labDist(o,p)-c.r);return Math.min(labDist(p,polar(...o,c.r,c.start)),labDist(p,polar(...o,c.r,c.start+c.sweep)))}
+ function labArcPath(o,c){const p=exactPolar(...o,c.r,c.start),q=exactPolar(...o,c.r,c.start+c.sweep);return 'M '+p.join(' ')+' A '+c.r+' '+c.r+' 0 '+(Math.abs(c.sweep)>180?1:0)+' '+(c.sweep<0?1:0)+' '+q.join(' ')}
+ function labCircleExtents(o,c){return isLabArc(c)?[c.start,c.start+c.sweep,...[0,90,180,270].filter(a=>labArcContains(c,a))].map(a=>exactPolar(...o,c.r,a)):[[o[0]-c.r,o[1]-c.r],[o[0]+c.r,o[1]+c.r]]}
+ function labCircleDistance(o,c,p){if(labArcContains(c,labAngle(o,p)))return Math.abs(labDist(o,p)-c.r);return Math.min(labDist(p,exactPolar(...o,c.r,c.start)),labDist(p,exactPolar(...o,c.r,c.start+c.sweep)))}
  // Finite content bounds: rays contribute their origins, never their infinite extent.
  function labContentBounds(st){
    let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;
@@ -709,7 +710,7 @@ function generate(s={},rng=Math.random){
   const precise=closest([...points,...intersections]);if(precise)return precise;
   const guides=[];
   for(const l of lines){const den=labDot(l.v,l.v);if(den<1e-8)continue;const t=labDot(labSub(p,l.a),l.v)/den;if(labWithin(l,t))guides.push({p:labAt(l.a,l.v,t),kind:'On line'})}
-  for(const c of circles){const len=labDist(p,c.o);if(len>1e-7&&labArcContains(c,labAngle(c.o,p)))guides.push({p:labAt(c.o,labSub(p,c.o),c.r/len),kind:isLabArc(c)?'On arc':'On circle'});if(isLabArc(c))for(const a of [c.start,c.start+c.sweep])guides.push({p:polar(...c.o,c.r,a),kind:'Arc endpoint'})}
+  for(const c of circles){const len=labDist(p,c.o);if(len>1e-7&&labArcContains(c,labAngle(c.o,p)))guides.push({p:labAt(c.o,labSub(p,c.o),c.r/len),kind:isLabArc(c)?'On arc':'On circle'});if(isLabArc(c))for(const a of [c.start,c.start+c.sweep])guides.push({p:exactPolar(...c.o,c.r,a),kind:'Arc endpoint'})}
   return closest(guides)||{p,kind:''};
  }
  const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square','build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus'];
@@ -1748,12 +1749,12 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    if(first===null){draft={state:clone(st),aperture};referenceDatum=false;first=point(p);paint();return}
    if(free&&['ray','line'].includes(tool)&&rayMode==='absolute'){paint();return}
    const o=st.points[first];if(labDist(o,p)<8)return;
-   if(angleTool()&&aligned===null){const target=magnetic(p).p;if(labDist(o,target)<1e-8)return;const arm=free&&snap?labReferenceArm(st,first,target,tolerance()):null;aligned=arm?arm.angle:labAngle(o,target);referenceDatum=false;reference=polar(...o,labDist(o,target),aligned);paint();return}
+   if(angleTool()&&aligned===null){const target=magnetic(p).p;if(labDist(o,target)<1e-8)return;const arm=free&&snap?labReferenceArm(st,first,target,tolerance()):null;aligned=arm?arm.angle:labAngle(o,target);referenceDatum=false;reference=exactPolar(...o,labDist(o,target),aligned);paint();return}
    if(tool==='compass'&&arcMode){if(arcStart===null){const q=magnetic(p).p,r=keepOpening&&aperture!==null?aperture:labDist(o,q);if(r<=0)return;aperture=r;arcStart=labAngle(o,q);hover=null;paint();return}const sweep=arcSweep(o,p);if(Math.abs(sweep)<.1||Math.abs(sweep)>359.9)return;commitDraft();const before=beforeGeometry();st.circles.push({i:first,r:aperture,start:arcStart,sweep,construction:free?newStyles.compass:true});first=null;arcStart=null;hover=null;finishGeometry(before);return}
    commitDraft();const before=beforeGeometry();
    if(tool==='segment'){const j=point(p,drawingHit(p));if(j!==first&&!st.segments.some(l=>l.includes(first)&&l.includes(j))){st.segments.push([first,j]);if(free&&newStyles.segment){st.segmentStyles||={};st.segmentStyles[labStyleKey(st,first,j)]=true}}}
    else if(tool==='compass'){const r=labDist(o,magnetic(p).p);if(r>0){aperture=r;st.circles.push({i:first,r,construction:free?newStyles.compass:true})}}
-   else if(tool==='line'||tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):null;if(angleTool()){if(free&&referenceDatum){st.rays.push(labAbsoluteRay(st,first,a,true));first=null;aligned=null;referenceDatum=false;hover=null;finishGeometry(before);return}const distance=reference?labDist(o,reference):120;const target=polar(...o,Math.max(8,distance),aligned),arm=free?labReferenceArm(st,first,target,1e-5):null;if(arm){st.rays.push(labRelativeRay(st,first,arm,a,hand));first=null;aligned=null;hover=null;finishGeometry(before);return}const j=point(target,{p:target,kind:''});if(j!==first){const base=labAngle(o,st.points[j]),relative=mod(a-base),given=st.given!==false&&[first,j].sort().join(':')==='0:1';if(!given&&!st.segments.some(l=>l.includes(first)&&l.includes(j))){st.segments.push([first,j]);st.segmentStyles||={};st.segmentStyles[labStyleKey(st,first,j)]=true}st.rays.push({i:first,angle:a,relativeTo:st.names[j],relativeAngle:relative,mark:{base:st.names[j],hand}})}else st.rays.push({i:first,angle:a})}else {const hit=drawingHit(p);if(labDist(o,hit.p)>1e-8){if(free){const j=point(p,hit);if(j!==first){const r=labDirectRay(st,first,{p:st.points[j],i:j},newStyles[tool]);if(tool==='line')r.infinite=true;st.rays.push(r)}}else st.rays.push(labDirectRay(st,first,hit,true))}}}
+   else if(tool==='line'||tool==='ray'||angleTool()){const a=angleTool()?selectedAngle(o,p):null;if(angleTool()){if(free&&referenceDatum){st.rays.push(labAbsoluteRay(st,first,a,true));first=null;aligned=null;referenceDatum=false;hover=null;finishGeometry(before);return}const distance=reference?labDist(o,reference):120;const target=exactPolar(...o,Math.max(8,distance),aligned),arm=free?labReferenceArm(st,first,target,1e-5):null;if(arm){st.rays.push(labRelativeRay(st,first,arm,a,hand));first=null;aligned=null;hover=null;finishGeometry(before);return}const j=point(target,{p:target,kind:''});if(j!==first){const base=labAngle(o,st.points[j]),relative=mod(a-base),given=st.given!==false&&[first,j].sort().join(':')==='0:1';if(!given&&!st.segments.some(l=>l.includes(first)&&l.includes(j))){st.segments.push([first,j]);st.segmentStyles||={};st.segmentStyles[labStyleKey(st,first,j)]=true}st.rays.push({i:first,angle:a,relativeTo:st.names[j],relativeAngle:relative,mark:{base:st.names[j],hand}})}else st.rays.push({i:first,angle:a})}else {const hit=drawingHit(p);if(labDist(o,hit.p)>1e-8){if(free){const j=point(p,hit);if(j!==first){const r=labDirectRay(st,first,{p:st.points[j],i:j},newStyles[tool]);if(tool==='line')r.infinite=true;st.rays.push(r)}}else st.rays.push(labDirectRay(st,first,hit,true))}}}
    first=null;aligned=null;hover=null;finishGeometry(before);
   }
   svg.addEventListener('pointermove',e=>{if((panMode||sheetPan?.id===e.pointerId)&&viewport){if(sheetPan?.id===e.pointerId){if(sheetPan.pending&&Math.hypot(sheetPan.x-e.clientX,sheetPan.y-e.clientY)<5)return;sheetPan.pending=false;if(fullBoard&&sheetPan.camera){const c=sheetPan.camera;camera={...c,x:c.x+(sheetPan.x-e.clientX)/c.scale,y:c.y+(sheetPan.y-e.clientY)/c.scale};sizeCanvas()}else{viewport.scrollLeft=sheetPan.left+sheetPan.x-e.clientX;viewport.scrollTop=sheetPan.top+sheetPan.y-e.clientY}}return}const z=coords(e);if(!z)return;hover=[z.x,z.y];if(motion&&moving?.id===e.pointerId){if(moving.pending){if(Math.hypot(moving.x-e.clientX,moving.y-e.clientY)<5)return;save();moving.pending=false}const p=fullBoard?[z.x,z.y]:[Math.max(viewX+5,Math.min(viewX+ww-5,z.x)),Math.max(viewY+5,Math.min(viewY+hh-5,z.y))],i=moving.i,name=st.names[i],old=st.points[i];traceAdd(st,name,p,old);st.points[i]=p;changed()}else paint()});
