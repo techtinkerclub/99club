@@ -1057,7 +1057,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labMeasurementTarget,labApplyMeasurement,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1400,7 +1400,23 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    return {points:st.points,lines};
  }
  function sharedInstrumentMath(){return typeof module==='object'&&module.exports?require('./goodies-core.js'):root.TT99Goodies.instruments}
- function utensilAlignment(st,t,mode,scale){if(['move','rotate'].includes(mode)&&t.kind.startsWith('square')){const matches=labSquareMatches(st,t,scale,true);if(matches.length===1){const {target,score,...pose}=matches[0];return pose}}return sharedInstrumentMath().align(instrumentScene(st),t,mode,scale)}
+ // Guided sliding may magnetically settle only along its permitted axis.
+ function labSquareSlideSnap(s,t,scale=1){
+   if(t.slideMode!=='across'||!['square45','square30'].includes(t.kind))return null;
+   const o=[t.x,t.y],u=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],n=[-u[1],u[0]],tol=12/Math.max(.001,scale),offsets=[];
+   for(const e of s.segments){
+     if(!labVisible(s,'segments',e))continue;
+     const [a,b]=e.map(i=>labSub(s.points[i],o)),v=labSub(b,a),len=Math.hypot(...v);
+     if(len<1e-8||Math.abs(labCross(u,v))/len>1e-9)continue;
+     const p=labDot(a,u),q=labDot(b,u),overlap=Math.min(t.size,Math.max(p,q))-Math.max(0,Math.min(p,q)),delta=labDot(a,n);
+     if(overlap<Math.min(len,t.size)*.1||Math.abs(delta)>tol)continue;
+     if(!offsets.some(x=>Math.abs(x-delta)<1e-7))offsets.push(delta);
+   }
+   offsets.sort((a,b)=>Math.abs(a)-Math.abs(b));
+   if(!offsets.length||offsets.length>1&&Math.abs(Math.abs(offsets[0])-Math.abs(offsets[1]))<1e-7)return null;
+   return {x:o[0]+n[0]*offsets[0],y:o[1]+n[1]*offsets[0],angle:t.angle,kind:'Guided parallel edge'};
+ }
+ function utensilAlignment(st,t,mode,scale){if(mode==='slide')return labSquareSlideSnap(st,t,scale);if(['move','rotate'].includes(mode)&&t.kind.startsWith('square')){const matches=labSquareMatches(st,t,scale,true);if(matches.length===1){const {target,score,...pose}=matches[0];return pose}}return sharedInstrumentMath().align(instrumentScene(st),t,mode,scale)}
  function protractorReading(st,t,raw,scale){return sharedInstrumentMath().readAngle(instrumentScene(st),t,raw,scale)}
  // A point is its exact mathematical centre, not the edge of its visual dot.
  // Draw a small screen-sized, non-interactive cue above transparent instruments.
