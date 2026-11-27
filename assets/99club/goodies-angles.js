@@ -1958,7 +1958,7 @@ function diagram(d,teacher=false,options={}){
    if(view==='chord'){
      for(const [p,q] of [[A,M],[M,B]]){const mid=labAt(p,labSub(q,p),.5),angle=labAngle(p,q);line(exactPolar(...mid,7,angle+90),exactPolar(...mid,7,angle-90),orange,2.7,{'data-ag-chord-equal-mark':'1'})}
      if(labDist(O,M)>1e-6){line(O,M,teal,2,{'stroke-dasharray':'5 4','data-ag-circle-chord-bisector':'1'});const a=labAngle(M,O),b=labAngle(M,A);let st=a;if(mod(b-a)>180)st=b;labelArc(...M,14,st,90,null)}
-     circle(M,4,ink);const midName=dimensionPlacement(O,M,'M',{size:paper?29:16,offset:22,lines:[[A,B],[O,A],[O,B]],bounds:[55,0,745,375]});const mp=midName?midName.p:[M[0]+25,M[1]+25];text(...mp,'M',16,{'data-ag-point-label':'M','paint-order':'stroke',stroke:'#fff','stroke-width':3});
+     circle(M,4,ink);const out=labSub(M,O),len=Math.hypot(...out),normal=len>1e-6?out.map(x=>x/len):[Math.sin(start*D),Math.cos(start*D)],mp=labAt(M,normal,paper?35:24);text(...mp,'M',16,{'data-ag-point-label':'M','paint-order':'stroke',stroke:'#fff','stroke-width':3});
    }
    if(tangentView){line(U,T,orange,3,{'data-ag-circle-tangent':'1'});labelArc(...A,17,mod(start+90),90,null);text(T[0]+12,T[1]+14,'t',18,{'paint-order':'stroke',stroke:'#fff','stroke-width':3})}
    else if(view==='sector'||view==='segment')labelArc(...O,Math.min(33,R*.35),start,span,span.toFixed(2)+'°',{labelSize:17});
@@ -1973,6 +1973,7 @@ function diagram(d,teacher=false,options={}){
    // coordinates: the pointer transform remains based on the same geometry.
    const twoLines=show&&(view==='sector'||view==='segment'),top=twoLines?-65:-35;
    text(400,top+24,show||view==='chord'||tangentView?heading[view]:view==='sector'?'Sector: a fraction of a circle':'Segment: between a chord and an arc',22,{'font-weight':700,'data-ag-circle-investigation-heading':view});
+   if(view==='chord')text(400,top+51,'Chord and perpendicular bisector',16,{'data-ag-circle-investigation-title':view});
    if(twoLines)text(400,top+50,view==='sector'?'Sector area = (θ ÷ 360°) × πr²':'Major segment = circle − minor segment',19,{'data-ag-circle-investigation-general-formula':view});
    const radiusLines=[[O,A],...(!tangentView?[[O,B]]:[]),...(chordView?[[A,B]]:[]),...(tangentView?[[U,T]]:[]),...(view==='chord'&&labDist(O,M)>1e-6?[[O,M]]:[])];
    const occupied=[labelBox([O[0]-13,O[1]+20],0,'O',paper?29:16),...(!tangentView?[['A',start],['B',start+span]]:[['A',start]]).map(([name,a])=>{const q=exactPolar(...O,R+24,a);return labelBox([q[0],q[1]+5],0,name,paper?29:19)}),...(view==='chord'?[labelBox([Number(svg.querySelector('[data-ag-point-label="M"]').getAttribute('x')),Number(svg.querySelector('[data-ag-point-label="M"]').getAttribute('y'))],0,'M',paper?29:16)]:[]),...(tangentView?[labelBox([T[0]+12,T[1]+14],0,'t',paper?29:18)]:[])];
