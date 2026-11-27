@@ -1413,6 +1413,22 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(tip.kind==='Endpoint'&&tip.x===100&&tip.y===100,'Ruler far endpoint can snap without changing length');
       const pro=M.utensilAlignment(exact,{kind:'protractor',x:105,y:105,angle:3,size:170},'move',1);
       assert(pro.kind==='Aligned vertex'&&pro.x===100&&pro.y===100&&pro.angle===0,'Protractor centre and baseline align in one gesture');
+      // Exercise the common instrument-local annotation action independently
+      // of the larger board's gesture fixtures.
+      {
+        const host=doc.createElement('div'),svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.setAttribute('viewBox','0 0 500 400');svg.style.cssText='width:500px;height:400px';host.append(svg);doc.body.append(host);
+        const model={...M.labEmpty(true),points:[[160,208],[360,208]],names:['A','B'],segments:[[0,1]]};
+        let controller,allowed=true,applied=0;
+        const paint=()=>{svg.replaceChildren();controller.paint(svg)};
+        controller=G.instruments.movable(host,()=>svg,paint,{kinds:['ruler'],annotation:{target:(t,scale)=>allowed?M.labMeasurementTarget(model,t,scale):null,apply:target=>{if(M.labApplyMeasurement(model,target))applied++;paint()}}});
+        controller.add('ruler');
+        const action=()=>svg.querySelector('[data-ag-utensil-action="annotate"]');
+        assert(action()?.getAttribute('aria-label')==='Add length AB'&&svg.querySelectorAll('[data-ag-measurement-reference]').length===2,'Aligned instrument offers local annotation with reference preview');
+        action().click();assert(applied===1&&M.labDimensionText(model,0,1,false)==='5.0 cm','Local instrument button persists the measured segment');
+        allowed=false;paint();assert(!action()&&!svg.querySelector('[data-ag-measurement-reference]'),'Host can disable measurement annotation and preview');
+        host.remove();
+      }
       // Instrument annotations resolve named, visible geometric references.
       const measured={...M.labEmpty(true),points:[[100,100],[500,100],[240,100]],names:['A','B','C'],segments:[[0,1]]};
       const rulerPose={kind:'ruler',x:80,y:100,angle:0,size:480};
