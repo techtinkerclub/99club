@@ -1708,7 +1708,7 @@ function diagram(d,teacher=false,options={}){
  const arrow=(x,y,r,a,color=ink)=>{const p=polar(x,y,r,a),l=polar(p[0],p[1],16,a+150),rr=polar(p[0],p[1],16,a-150);line([x,y],p,color,5);line(p,l,color,5);line(p,rr,color,5)};
  const background=add('rect',{width:W,height:H,fill:'#fff'});
  // Crop to the mathematical content, not a fixed landscape canvas. Keep the same coordinates for pointer mapping and paper export.
- function frame(x,y,w,h){svg.setAttribute('viewBox',[x,y,w,h].join(' '));Object.entries({x,y,width:w,height:h}).forEach(([k,v])=>background.setAttribute(k,v));return svg}
+ function frame(x,y,w,h){svg.setAttribute('viewBox',[x,y,w,h].join(' '));Object.entries({x,y,width:w,height:h}).forEach(([k,v])=>background.setAttribute(k,v));const outline=svg.querySelector('[data-ag-region-points]');if(outline){const saved=d.regionsByShape?.[polygonRegionKey(d)]||[];if(saved.some(r=>r.faceKey))paintPolygonFaces(svg,outline,saved)}return svg}
  const type=d.type,explore=type==='diagram',a=d.angle??60,rot=d.rotation??0,mode=d.mode||'angle';
  function protractor(x,y,r,start,full=false){G.instruments.protractor(svg,{x,y,radius:r,start,full});}
  function single(x,y,r,a,start,label,scale=false,blank=false,full=false){if(scale)protractor(x,y,r,start,full);ray(x,y,r+5,start);if(!blank){ray(x,y,r+5,start+a,teal);labelArc(x,y,Math.min(r*.27,48),start,a,label)}circle([x,y],4,ink)}
@@ -1793,7 +1793,7 @@ function diagram(d,teacher=false,options={}){
    const names=pointNames||points.map((_,i)=>pointName(i)),regionPoints=points.slice(),key=polygonRegionKey(d);
    if(explore&&d.showDiagonals&&points.length===4){const u=labSub(points[2],points[0]),v=labSub(points[3],points[1]),den=labCross(u,v);if(Math.abs(den)>1e-6){regionPoints.push(labAt(points[0],u,labCross(labSub(points[1],points[0]),v)/den));names.push('O')}}
    if(explore){
-     outline.setAttribute('data-ag-region-points',JSON.stringify(regionPoints));outline.setAttribute('data-ag-region-names',JSON.stringify(names));
+     outline.setAttribute('data-ag-region-boundary',JSON.stringify(points));outline.setAttribute('data-ag-region-points',JSON.stringify(regionPoints));outline.setAttribute('data-ag-region-names',JSON.stringify(names));
      for(const region of (d.regionsByShape?.[key]||[])){if(validRegion(regionPoints,region.ids))add('polygon',{points:region.ids.map(i=>regionPoints[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.28,stroke:'none','data-ag-region':'1'})}
    }
    points.forEach((p,i)=>{const pos=vertexLabel(p,points[(i+points.length-1)%points.length],points[(i+1)%points.length],22);circle(p,3,ink);text(pos[0],pos[1]+5,names[i],16,{'data-ag-point-label':names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
@@ -2219,11 +2219,11 @@ function diagram(d,teacher=false,options={}){
      return triangleCentreFrame(extent,centre,true,d.showProperties!==false?properties.sides+' · '+properties.kind:null,rule)
    }
    if(d.showCorners!==false)pts.forEach((p,i)=>{const u=pts[(i+1)%pts.length],v=pts[(i+pts.length-1)%pts.length],a=labAngle(p,u),b=labAngle(p,v),ang=Math.min(mod(a-b),mod(b-a));corner(pts,i,(freeTriangle?ang.toFixed(2):Math.round(ang))+'°')});
-   if(d.showDiagonals&&pts.length===4){line(pts[0],pts[2],teal,3,{'stroke-dasharray':'6 5'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'6 5'});const eq=Math.abs(labDist(pts[0],pts[2])-labDist(pts[1],pts[3]))<.1;const bisect=['square','rectangle','rhombus','parallelogram'].includes(shape),u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),perp=Math.abs(labDot(u,v))/(Math.hypot(...u)*Math.hypot(...v))<.001;const p=labAt(pts[0],u,labCross(labSub(pts[1],pts[0]),v)/labCross(u,v));if(perp){const a=polar(...p,13,labAngle(p,pts[0])),b=polar(...p,13,labAngle(p,pts[1]));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':1.6})}text(400,378,(eq?'Equal':'Unequal')+' diagonals'+(bisect?' · bisect each other':'')+(perp?' · perpendicular':''),16)}
+   if(d.showDiagonals&&pts.length===4){line(pts[0],pts[2],teal,3,{'stroke-dasharray':'6 5','data-ag-quad-diagonal':'AC'});line(pts[1],pts[3],orange,3,{'stroke-dasharray':'6 5','data-ag-quad-diagonal':'BD'});const eq=Math.abs(labDist(pts[0],pts[2])-labDist(pts[1],pts[3]))<.1;const bisect=['square','rectangle','rhombus','parallelogram'].includes(shape),u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),perp=Math.abs(labDot(u,v))/(Math.hypot(...u)*Math.hypot(...v))<.001;const p=labAt(pts[0],u,labCross(labSub(pts[1],pts[0]),v)/labCross(u,v));if(perp){const a=polar(...p,13,labAngle(p,pts[0])),b=polar(...p,13,labAngle(p,pts[1]));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':1.6})}text(400,378,(eq?'Equal':'Unequal')+' diagonals'+(bisect?' · bisect each other':'')+(perp?' · perpendicular':''),16)}
    if(d.showSides!==false){const lengths=pts.map((p,i)=>labDist(p,pts[(i+1)%pts.length]));const groups=[],equal=(a,b)=>Math.abs(a-b)<(freeTriangle?Math.max(...lengths)*1e-9:.05);lengths.forEach(l=>{if(!groups.some(v=>equal(v,l)))groups.push(l)});lengths.forEach((l,i)=>{if(lengths.filter(v=>equal(v,l)).length<2)return;const p=pts[i],q=pts[(i+1)%pts.length],a=Math.atan2(q[1]-p[1],q[0]-p[0]),m=[(p[0]+q[0])/2,(p[1]+q[1])/2],count=1+groups.findIndex(v=>equal(v,l));for(let k=0;k<count;k++){const t=(k-(count-1)/2)*8,x=m[0]+t*Math.cos(a),y=m[1]+t*Math.sin(a);line([x-8*Math.sin(a),y+8*Math.cos(a)],[x+8*Math.sin(a),y-8*Math.cos(a)],teal,3)}})}
    if(d.showParallel&&pts.length===4){const pairs=shape==='kite'?[]:shape==='trapezium'?[0]:[0,1];for(const i of pairs)for(const j of [i,i+2]){const p=pts[j],q=pts[(j+1)%4],a=labAngle(p,q),m=[(p[0]+q[0])/2,(p[1]+q[1])/2];for(let k=0;k<=i;k++){const c=polar(...m,(k+1)*17,a);line(polar(...c,8,a+145),c,orange,2);line(polar(...c,8,a-145),c,orange,2)}}}
    const notes={square:'Four equal sides · four right angles',rectangle:'Opposite sides equal · four right angles',rhombus:'Four equal sides · opposite angles equal',parallelogram:'Opposite sides and angles equal',trapezium:'One pair of parallel sides',kite:'Two pairs of adjacent equal sides','right-triangle':'One right angle · other angles sum to 90°',equilateral:'Three equal sides · three 60° angles',isosceles:'Two equal sides · equal base angles',scalene:'No equal sides · no equal angles'};
-   if(d.showHeight&&pts.length===3){const a=pts[0],b=pts[1],c=pts[2],v=labSub(b,a),p=labAt(a,v,labDot(labSub(c,a),v)/labDot(v,v));line(c,p,orange,2,{'stroke-dasharray':'5 4'});if(labDist(c,p)>1)dimension(c,p,'h',{size:15,lines:pts.map((p,i)=>[p,pts[(i+1)%3]])});text(400,378,'Area = ½ × base × perpendicular height',17)}
+   if(d.showHeight&&pts.length===3){const a=pts[0],b=pts[1],c=pts[2],v=labSub(b,a),p=labAt(a,v,labDot(labSub(c,a),v)/labDot(v,v));line(c,p,orange,2,{'stroke-dasharray':'5 4','data-ag-region-divider':'height'});if(labDist(c,p)>1)dimension(c,p,'h',{size:15,lines:pts.map((p,i)=>[p,pts[(i+1)%3]])});text(400,378,'Area = ½ × base × perpendicular height',17)}
    if(properties&&d.showMedians){for(let i=0;i<3;i++){line(pts[i],properties.midpoints[i],orange,2,{'stroke-dasharray':'6 4','data-ag-triangle-median':i});circle(properties.midpoints[i],3,orange)}circle(properties.centroid,5,teal);text(properties.centroid[0]+16,properties.centroid[1]-12,'G',17,{'data-ag-centroid':'1','paint-order':'stroke',stroke:'white','stroke-width':3})}
    if(properties){
      if(d.showProperties!==false){text(400,410,properties.sides+' · '+properties.kind,22,{'data-ag-triangle-classification':'1'});if(properties.alsoIsosceles)text(400,444,'Also isosceles: at least two equal sides',17,{'data-ag-triangle-family':'1'})}
@@ -2250,7 +2250,7 @@ function diagram(d,teacher=false,options={}){
    if(type==='triangle-centroid-ratio'){const pts=fit(trianglePoints(d.angles[0],d.angles[1])),p=triangleProperties(pts),a=pts[0],m=p.midpoints[0],g=p.centroid;polygon(pts,['A','B','C']);line(a,m,teal,3,{'data-ag-triangle-median':'0'});circle(m,4,ink);circle(g,4,teal);text(m[0]+16,m[1]+20,'D',18);text(g[0]+17,g[1]-12,'G',18);if(teacher){text(400,410,'AG : GD = 2 : 1',22,{'data-ag-centroid-rule':'1'});return frame(65,0,670,440)}return polygonFrame([...pts,m,g],90)}
    if(type==='triangle'||type==='triangle-type'||type==='triangle-angle-type'){const v=d.angles,ar=rot*D,raw=trianglePoints(v[0],v[1]),points=fit(type==='triangle-angle-type'?raw.map(([x,y])=>[x*Math.cos(ar)-y*Math.sin(ar),x*Math.sin(ar)+y*Math.cos(ar)]):raw);polygon(points);if(type==='triangle'||teacher)points.forEach((p,i)=>corner(points,i,type==='triangle'&&i===2&&!teacher?'x':v[i]+'°'));if(type==='triangle-angle-type'&&teacher){text(400,410,triangleProperties(points).kind,22,{'data-ag-triangle-classification':'1'});return frame(65,0,670,440)}return polygonFrame(points)}
    const n=d.n||5,regular=d.regular!==false,pts=Array.from({length:n},(_,i)=>exactPolar(400,218,!regular&&i===1?155*(1-(1-Math.cos(360/n*D))*.65):155,90+rot+i*360/n));polygon(pts);
-   if(type==='polygon-sum'||explore&&d.triangulate!==false){for(let i=2;i<n-1;i++)line(pts[0],pts[i],'#89aaa1',2,{'stroke-dasharray':'5 5'});if(teacher||explore)text(400,410,(n-2)+' × 180° = '+180*(n-2)+'°',24)}
+   if(type==='polygon-sum'||explore&&d.triangulate!==false){for(let i=2;i<n-1;i++)line(pts[0],pts[i],'#89aaa1',2,{'stroke-dasharray':'5 5','data-ag-polygon-diagonal':'0:'+i});if(teacher||explore)text(400,410,(n-2)+' × 180° = '+180*(n-2)+'°',24)}
    if(explore&&d.showCorners!==false&&regular)corner(pts,0,round(polyInterior(n))+'°');
    if(type==='regular')corner(pts,0,teacher?polyInterior(n)+'°':'x');
    if(type==='exterior'){const p=pts[0],prev=pts.at(-1),next=pts[1],start=mod(Math.atan2(prev[1]-p[1],p[0]-prev[0])/D),end=mod(Math.atan2(p[1]-next[1],next[0]-p[0])/D),delta=mod(end-start);ray(...p,68,end);labelArc(...p,34,delta<=180?start:end,Math.min(delta,360-delta),teacher?polyExterior(n)+'°':'x')}
@@ -3438,10 +3438,26 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  }
 
 
+ // Use the construction engine's planar faces, from the actual visible boundary
+ // and marked geometric dividers only (never angle ticks, labels or dimension guides).
+ function polygonVisibleFaces(svg,outline){
+   const boundary=JSON.parse(outline.getAttribute('data-ag-region-boundary')||'[]');
+   if(!validRegion(boundary,boundary.map((_,i)=>i)))return {boundary,faces:[]};
+   const st=labEmpty(true);st.points=boundary.map(p=>p.slice());st.names=boundary.map((_,i)=>pointName(i));st.segments=boundary.map((_,i)=>[i,(i+1)%boundary.length]);
+   const node=(p,name)=>{const i=st.points.findIndex(q=>labDist(p,q)<1e-6);if(i>=0)return i;st.points.push(p);st.names.push(name);return st.points.length-1};
+   for(const [i,line] of [...svg.querySelectorAll('line[data-ag-quad-diagonal],line[data-ag-polygon-diagonal],line[data-ag-region-divider],line[data-ag-triangle-median]')].entries()){
+     const a=[+line.getAttribute('x1'),+line.getAttribute('y1')],b=[+line.getAttribute('x2'),+line.getAttribute('y2')];if(![...a,...b].every(Number.isFinite)||labDist(a,b)<1e-6)continue;st.segments.push([node(a,'divider'+i+'a'),node(b,'divider'+i+'b')]);
+   }
+   return {boundary,faces:labFaces(st)};
+ }
+ function paintPolygonFaces(svg,outline,regions,geometry=polygonVisibleFaces(svg,outline)){
+   svg.querySelectorAll('[data-ag-region-face]').forEach(n=>n.remove());
+   let previous=outline;for(const region of regions){if(!region.faceKey)continue;const face=geometry.faces.find(f=>f.key===region.faceKey);if(!face)continue;const node=document.createElementNS('http://www.w3.org/2000/svg','path');for(const [k,v] of Object.entries({d:face.path,fill:REGION_COLOURS[region.colour]||REGION_COLOURS[0],'fill-opacity':.28,'fill-rule':'evenodd',stroke:'none','pointer-events':'none','data-ag-region':'1','data-ag-region-face':face.key}))node.setAttribute(k,v);previous.after(node);previous=node}
+ }
  function mountPolygonRegions(box,svg,d,onChange){
    const outline=svg.querySelector('[data-ag-region-points]');if(!outline)return;
    const points=JSON.parse(outline.getAttribute('data-ag-region-points')),names=JSON.parse(outline.getAttribute('data-ag-region-names')),key=polygonRegionKey(d),N='http://www.w3.org/2000/svg';
-   let active=false,selected=[],colour=0,regions=(d.regionsByShape?.[key]||[]).slice();
+   const geometry=polygonVisibleFaces(svg,outline);let active=false,method='inside',selected=[],colour=0,regions=(d.regionsByShape?.[key]||[]).slice();
    const bar=document.createElement('div');bar.className='gd-ag-inspect-tools';
    const toggle=document.createElement('button');toggle.type='button';toggle.className='gd-btn';toggle.textContent='Shade regions';toggle.dataset.agPolygonShade='1';bar.append(toggle);
    const actions=document.createElement('div');actions.className='gd-ag-lab-helpers';bar.append(actions);
@@ -3449,6 +3465,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    const layer=document.createElementNS(N,'g');layer.setAttribute('pointer-events','none');svg.append(layer);
    const colours=REGION_COLOURS.map((c,i)=>{const b=document.createElement('button');b.type='button';b.className='gd-btn';b.style.cssText='width:32px;min-height:34px;background:'+c+';border:2px solid white';b.setAttribute('aria-label',['Green','Blue','Gold','Purple','Coral'][i]+' region');b.onclick=()=>{colour=i;paint()};actions.append(b);return b});
    function action(label,fn){const b=document.createElement('button');b.type='button';b.className='gd-btn';b.textContent=label;b.onclick=fn;actions.append(b);return b}
+   const chooseInside=action('Click inside',()=>{method='inside';selected=[];paint()});chooseInside.dataset.agShadeMethod='inside';const chooseVertices=action('Choose vertices',()=>{method='vertices';selected=[];paint()});chooseVertices.dataset.agShadeMethod='vertices';
    const apply=action('Shade selected',()=>{if(!validRegion(points,selected))return;regions.push({ids:selected.slice(),colour});selected=[];commit()});
    const undo=action('Remove last',()=>{regions.pop();commit()});
    action('Clear regions',()=>{regions=[];selected=[];commit()});
@@ -3457,17 +3474,17 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
      d.regionsByShape={...(d.regionsByShape||{}),[key]:regions.slice()};onChange(d.regionsByShape);
      svg.querySelectorAll('[data-ag-region]').forEach(e=>e.remove());let previous=outline;
      for(const region of regions){if(!validRegion(points,region.ids))continue;const node=el('polygon',{points:region.ids.map(i=>points[i].join(',')).join(' '),fill:REGION_COLOURS[region.colour],'fill-opacity':.28,stroke:'none','data-ag-region':'1'});previous.after(node);previous=node}
-     paint()
+     paintPolygonFaces(svg,outline,regions,geometry);paint()
    }
    function paint(){
-     layer.replaceChildren();toggle.setAttribute('aria-pressed',String(active));toggle.classList.toggle('gd-btn--primary',active);actions.style.display=active?'flex':'none';status.textContent=!active?'':selected.length>=3&&!validRegion(points,selected)?'Invalid region. Choose vertices in perimeter order.':'Tap vertices in perimeter order: '+selected.map(i=>names[i]).join(' → ');
+     layer.replaceChildren();toggle.setAttribute('aria-pressed',String(active));toggle.classList.toggle('gd-btn--primary',active);actions.hidden=!active;actions.style.display=active?'flex':'none';status.hidden=!active;status.textContent=!active?'':method==='inside'?'Tap inside a closed region to shade or unshade it.':selected.length>=3&&!validRegion(points,selected)?'Invalid region. Choose vertices in perimeter order.':'Tap vertices in perimeter order: '+selected.map(i=>names[i]).join(' → ');for(const b of [chooseInside,chooseVertices]){const on=b.dataset.agShadeMethod===method;b.setAttribute('aria-pressed',String(on));b.classList.toggle('gd-btn--primary',on)}apply.hidden=method!=='vertices';
      colours.forEach((b,i)=>{b.style.outline=i===colour?'2px solid #263e43':'none';b.setAttribute('aria-pressed',String(i===colour))});apply.disabled=!validRegion(points,selected);undo.disabled=!regions.length;svg.style.touchAction=active?'none':'auto';
-     if(!active)return;
+     if(!active||method!=='vertices')return;
      if(selected.length>=2)el('polygon',{points:selected.map(i=>points[i].join(',')).join(' '),fill:'none',stroke:REGION_COLOURS[colour],'stroke-width':2,'stroke-dasharray':'5 4'});
      points.forEach((p,i)=>{el('circle',{cx:p[0],cy:p[1],r:selected.includes(i)?10:6,fill:selected.includes(i)?REGION_COLOURS[colour]:'white','fill-opacity':.8,stroke:REGION_COLOURS[colour],'stroke-width':2})})
    }
    toggle.onclick=()=>{active=!active;selected=[];paint()};
-   svg.addEventListener('pointerdown',e=>{if(!active||e.button!==0)return;const m=svg.getScreenCTM();if(!m)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());let nearest=-1,dist=Math.min(45,25/Math.hypot(m.a,m.b));points.forEach((q,i)=>{const l=labDist(q,[p.x,p.y]);if(l<dist){nearest=i;dist=l}});if(nearest<0)return;e.preventDefault();selected=selected.includes(nearest)?selected.filter(i=>i!==nearest):[...selected,nearest];paint()});
+   svg.addEventListener('pointerdown',e=>{if(!active||e.button!==0)return;const m=svg.getScreenCTM();if(!m)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m.inverse());if(method==='inside'){const point=[p.x,p.y];if(!labContains(geometry.boundary,point))return;const face=geometry.faces.filter(f=>labInFace(f,point)).sort((a,b)=>a.area-b.area)[0];if(!face)return;e.preventDefault();const index=regions.findIndex(r=>r.faceKey===face.key);if(index>=0)regions.splice(index,1);else regions.push({faceKey:face.key,colour});commit();return}let nearest=-1,dist=Math.min(45,25/Math.hypot(m.a,m.b));points.forEach((q,i)=>{const l=labDist(q,[p.x,p.y]);if(l<dist){nearest=i;dist=l}});if(nearest<0)return;e.preventDefault();selected=selected.includes(nearest)?selected.filter(i=>i!==nearest):[...selected,nearest];paint()});
    paint();
  }
 
@@ -3766,7 +3783,7 @@ G.anglesTool=function(){
   }
   if(freeShape){
     const vertexMove=e=>{if(!triangleDrag||triangleDrag.id!==e.pointerId)return;const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(triangleDrag.inverse),pts=shapePoints(d);pts[triangleDrag.index]=[Math.max(65,Math.min(735,p.x+triangleDrag.offset[0])),Math.max(45,Math.min(345,p.y+triangleDrag.offset[1]))];d[shapeKey]=demo[shapeKey]=pts;drawSvg()};
-    box.addEventListener('pointerdown',e=>{if(triangleDrag||e.button!==0||q('[data-ag-polygon-shade][aria-pressed="true"]',box))return;const node=e.target.closest(freePoly?'[data-ag-poly-vertex]':freeQuad?'[data-ag-quad-vertex]':'[data-ag-triangle-vertex]'),m=q('svg',box)?.getScreenCTM();if(!node||!m)return;const index=Number(freePoly?node.dataset.agPolyVertex:freeQuad?node.dataset.agQuadVertex:node.dataset.agTriangleVertex),inverse=m.inverse(),p=new DOMPoint(e.clientX,e.clientY).matrixTransform(inverse),prior=shapePoints(d);triangleDrag={id:e.pointerId,index,inverse,prior,offset:[prior[index][0]-p.x,prior[index][1]-p.y]};e.preventDefault();try{box.setPointerCapture(e.pointerId)}catch(_){}});
+    box.addEventListener('pointerdown',e=>{if(triangleDrag||e.button!==0||q('[data-ag-polygon-shade][aria-pressed="true"]',host))return;const node=e.target.closest(freePoly?'[data-ag-poly-vertex]':freeQuad?'[data-ag-quad-vertex]':'[data-ag-triangle-vertex]'),m=q('svg',box)?.getScreenCTM();if(!node||!m)return;const index=Number(freePoly?node.dataset.agPolyVertex:freeQuad?node.dataset.agQuadVertex:node.dataset.agTriangleVertex),inverse=m.inverse(),p=new DOMPoint(e.clientX,e.clientY).matrixTransform(inverse),prior=shapePoints(d);triangleDrag={id:e.pointerId,index,inverse,prior,offset:[prior[index][0]-p.x,prior[index][1]-p.y]};e.preventDefault();try{box.setPointerCapture(e.pointerId)}catch(_){}});
     box.addEventListener('pointermove',e=>{if(triangleDrag?.id===e.pointerId){e.preventDefault();vertexMove(e)}});
     for(const type of ['pointerup','pointercancel','lostpointercapture'])box.addEventListener(type,e=>{if(triangleDrag?.id!==e.pointerId)return;const gesture=triangleDrag;if(type==='pointerup')vertexMove(e);else d[shapeKey]=demo[shapeKey]=gesture.prior;triangleDrag=null;drawSvg()});
   }
