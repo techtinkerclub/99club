@@ -600,6 +600,32 @@ function generate(s={},rng=Math.random){
    }
    return out.sort((a,b)=>a.score-b.score);
  }
+ // A reference is a visible finite segment, identified by its stable point names.
+ function labSquareBaseReferences(s,t,scale=1){
+   if(!['square45','square30'].includes(t.kind)||!(t.size>0))return [];
+   const o=[t.x,t.y],u=[Math.cos(t.angle*D),-Math.sin(t.angle*D)],tol=Math.min(2,4/Math.max(.001,scale)),out=[];
+   for(const e of s.segments){
+     if(!labVisible(s,'segments',e))continue;
+     const [a,b]=e.map(i=>s.points[i]),v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)continue;
+     const angle=Math.asin(Math.min(1,Math.abs(labCross(u,v))/len))/D;if(angle>.25)continue;
+     const [p,q]=[a,b].map(x=>labSub(x,o)),lo=Math.max(0,Math.min(labDot(p,u),labDot(q,u))),hi=Math.min(t.size,Math.max(labDot(p,u),labDot(q,u)));
+     if(hi-lo<Math.min(len,t.size)*.1||Math.max(Math.abs(labCross(p,u)),Math.abs(labCross(q,u)))>tol)continue;
+     out.push({key:labStyleKey(s,...e),names:e.map(i=>labPointText(s,i)),points:[a,b]});
+   }
+   return out;
+ }
+ function labSquareComparison(s,t,scale=1){
+   const matches=labSquareBaseReferences(s,t,scale),ref=s.segments.find(e=>labStyleKey(s,...e)===t.squareReference&&labVisible(s,'segments',e));
+   if(!t.squareReference)return {candidate:matches.length===1?matches[0]:null};
+   if(!ref)return {missing:true};
+   const [a,b]=ref.map(i=>s.points[i]),v=labSub(b,a),len=Math.hypot(...v);if(len<1e-8)return {missing:true};
+   const reference={key:t.squareReference,names:ref.map(i=>labPointText(s,i)),points:[a,b]},others=matches.filter(m=>m.key!==reference.key);
+   if(others.length!==1)return {reference};
+   const candidate=others[0],w=labSub(candidate.points[1],candidate.points[0]),wl=Math.hypot(...w),angle=Math.atan2(Math.abs(labCross(v,w)),Math.abs(labDot(v,w)))/D;
+   const collinear=angle<=.01&&candidate.points.every(p=>Math.abs(labCross(v,labSub(p,a)))/len<1e-7);
+   const relation=collinear?'Collinear':angle<=.01?'Parallel':90-angle<=.01?'Perpendicular':'Neither';
+   return {reference,candidate,angle,relation};
+ }
  function labMeasurementTarget(s,t,scale=1){
    if(['square45','square30'].includes(t.kind)){const matches=labSquareMatches(s,t,scale);return matches.length===1?matches[0].target:null}
 
@@ -1011,7 +1037,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labMeasurementTarget,labApplyMeasurement,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labMeasurementTarget,labApplyMeasurement,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1358,7 +1384,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
  function protractorReading(st,t,raw,scale){return sharedInstrumentMath().readAngle(instrumentScene(st),t,raw,scale)}
  // A point is its exact mathematical centre, not the edge of its visual dot.
  // Draw a small screen-sized, non-interactive cue above transparent instruments.
- function measuringUtensils(parent,getSvg,onPaint,getDrawing,onAnnotation,onAdd){return G.instruments.movable(parent,getSvg,onPaint,{unitsPerCm:LAB_UNIT,onAdd,precision:()=>labMeasurementDigits(getDrawing()),align:(t,mode,scale)=>utensilAlignment(getDrawing(),t,mode,scale),read:(t,a,scale)=>protractorReading(getDrawing(),t,a,scale),annotation:onAnnotation?{target:(t,scale)=>labMeasurementTarget(getDrawing(),t,scale),candidates:(t,scale)=>t.kind==='ruler'?labRulerTargets(getDrawing(),t,scale):[],apply:onAnnotation}:null})}
+ function measuringUtensils(parent,getSvg,onPaint,getDrawing,onAnnotation,onAdd){return G.instruments.movable(parent,getSvg,onPaint,{unitsPerCm:LAB_UNIT,onAdd,precision:()=>labMeasurementDigits(getDrawing()),align:(t,mode,scale)=>utensilAlignment(getDrawing(),t,mode,scale),read:(t,a,scale)=>protractorReading(getDrawing(),t,a,scale),annotation:onAnnotation?{target:(t,scale)=>labMeasurementTarget(getDrawing(),t,scale),candidates:(t,scale)=>t.kind==='ruler'?labRulerTargets(getDrawing(),t,scale):[],squareComparison:(t,scale)=>labSquareComparison(getDrawing(),t,scale),apply:onAnnotation}:null})}
  function mountLab(box,initial,onChange,{free=false,motion=false,task=null,publishMethod=null}={}){
   let st=labNames(initial||labEmpty(free)),ws=workspaceState(st),ww=free?ws.w:800,hh=free?ws.h:400,corner=0,hand=1,selection=null,tool=free?'select':'segment',first=null,aligned=null,reference=null,referenceDatum=false,hover=null,history=[],snap=true,measure=free&&st.showMeasurements!==false,grid=free?ws.gridMm>0:true,moving=null,sheetPan=null,panMode=false,aperture=null,keepOpening=false,arcMode=false,arcStart=null,arcClockwise=false,guideOpen=false,guideStep=0,regionPick=[],regionColour=0,regionStatus='',shadeMode='region',notationMode='',notationPick=[],notationVertex=null,pointEditor=null,labelPlacement=null,angleEditor=null,anglePicking=null,manualAngle=false,angleArmMode=false,pickedArms=[];
   motion=free&&(st.allowMovement??motion);if(free){st.allowMovement=motion;st.showMeasurements=measure;}
