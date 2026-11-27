@@ -374,11 +374,14 @@ function compactChallengeControls(clone,obj){
     const category=picker.querySelector('[data-gd-random-scope]:not([data-gd-random-scope="all"])');
     const chips=picker.querySelector('.gd-challenge-chips'),cards=picker.querySelector('.gd-challenge-cards');
     addButton(all,'gd-launch-all');
-    wrap.appendChild(label('Choose a category'));
-    if(chips)wrap.appendChild(chips);
-    if(category){category.textContent='Random · '+(chips?.querySelector('.is-active')?.textContent.trim()||'this category');addButton(category,'gd-launch-category-random')}
-    wrap.appendChild(label('Or choose a question'));
-    if(cards){
+    if(chips?.querySelector('.gd-challenge-chip')){
+      wrap.appendChild(label('Choose a category'));
+      chips.querySelectorAll('.gd-challenge-chip').forEach(chip=>chip.setAttribute('aria-pressed',String(chip.classList.contains('is-active')||chip.getAttribute('aria-selected')==='true')));
+      wrap.appendChild(chips);
+    }
+    if(category){category.textContent='Random · '+(chips?.querySelector('.is-active,[aria-pressed="true"]')?.textContent.trim()||'this category');addButton(category,'gd-launch-category-random')}
+    if(cards?.querySelector('.gd-challenge-card')){
+      wrap.appendChild(label('Or choose a question'));
       cards.querySelectorAll('.gd-challenge-card').forEach(card=>{
         const desc=card.querySelector('span');if(desc){card.title=desc.textContent;desc.remove()}
         card.removeAttribute('aria-selected');card.classList.remove('is-selected');

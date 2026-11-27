@@ -2693,6 +2693,15 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(panel.dataset.panelMode==='challenge','Back to quick challenge for '+id);
     panel.querySelector('[data-gd-random-scope="all"]').click();await tick(70);
     assert(!visible(panel)&&fixture.doc.querySelector('#gd-stage .gd-challenge-banner'),'Quick Random generates and closes for '+id);
+    const reopen=async()=>{fixture.frame.querySelector('[data-board-quick-actions] button[aria-label="Choose a challenge"]').click();await tick(70)};
+    await reopen();
+    const chip=panel.querySelector('.gd-challenge-chip:not(.is-active):not(:disabled)');
+    if(chip){const category=chip.textContent.trim();chip.click();await tick(70);assert(panel.querySelector('.gd-challenge-chip.is-active')?.getAttribute('aria-pressed')==='true'&&panel.querySelector('.gd-launch-category-random')?.textContent==='Random · '+category,'Standard category selection and matching scoped random action: '+id)}
+    const scoped=panel.querySelector('.gd-launch-category-random:not(:disabled)');assert(scoped,'Scoped random available: '+id);scoped.click();await tick(100);
+    assert(!visible(panel)&&fixture.doc.querySelector('#gd-stage .gd-challenge-banner'),'Scoped random generates and closes: '+id);
+    await reopen();
+    const specific=panel.querySelector('.gd-challenge-card:not(:disabled)');assert(specific,'Specific question available: '+id);specific.click();await tick(100);
+    assert(!visible(panel)&&fixture.doc.querySelector('#gd-stage .gd-challenge-banner'),'Specific question generates and closes: '+id);
     api.remove(fixture.record.id);
   }
   const qaGeo=await addForSave('geoboard'),geoDoc=qaGeo.doc;
