@@ -2,6 +2,24 @@
 
 Updated 26 November 2026. Scope: England primary maths, with opt-in KS3 enrichment; suggested levels are not statutory year-by-year prescriptions for KS3.
 
+## Current delivery gate — 27 November 2026
+
+This section is the active execution order; earlier sections retain design history and candidate ideas, not competing queues. Geometry is one workstream within Studio's wider manipulative, curriculum and worksheet programme.
+
+**Verified release baseline:** #317 improved actual ray-arm angle selection and compact contextual navigation; #318 added a persistent Cartesian datum, hidden by default, independent display and snapping settings; #319 unified Mark angle, supports arbitrary pairs and both angular regions, and removes unwanted help panels. Main QA and Pages succeeded at 04bd2dc. #320 independent equal-length, parallel and symmetry markings and three arc/tick/arrow groups passed PR QA and merged at 4029280; check main QA and Pages before claiming deployment. These are annotations, not geometric constraints. Physical whiteboard acceptance remains open.
+
+| Order | Deliverable | Exit criterion |
+|---|---|---|
+| G1 | Finish current annotation/interaction fixes | Arbitrary arm pairs, persistent selection, Back/close, independent notation, labels, unknown values, live/print parity; no redundant menus. Verify #320 deployment. |
+| G2 | Formal mathematical primitives | Stable segment, ray and infinite-line identities; distinguish point+direction, two points, and point+reference+relative angle. Existing drawings migrate without movement. Datum fixed under paper/view changes; axes hidden by default. Explicit absolute directions and exact input in appropriate modes; no accidental reference segments. |
+| G3 | Shared instruments and Measures & Angles | Use the existing calibrated rulers/protractor/set squares/compass. Local controls, exact snaps to actual geometry and optional datum directions; consistent gesture, measurement and annotation behaviour across hosts. No hidden answer snapping. |
+| G4 | Complete practical annotation and publication | Free text, positions, multiple relationship groups, multi-object selection where valuable, teacher-only actual measurement/unknown answer separation, vector print and mixed worksheets. Verify author intent and avoid falsely presenting notation as constraints. |
+| G5 | Teaching explorers and construction library | Reuse existing guided methods and challenge families; improve visual replay, explanations, alternative solutions and assessed tool permissions. Prioritise primary scope; optional enrichment. |
+| G6 | Dynamic constraints and loci | Explicit dependencies, robust intersections and degeneracy handling, constraint-preserving drag tests and sampled vs exact loci. Only in exploration, never automatic solutions to classical assessed constructions. |
+| G7 | Integrated geometry acceptance and return to catalogue | Representative normal/full-board, narrow/large-screen and touch QA, print/annex, saved scenes and no answer leakage. Record unresolved classroom/physical print acceptance; return to statistics, written-method gaps, curriculum coverage and whole-catalogue QA. |
+
+Do not open new parallel feature streams simply because an idea arises. Record it under the appropriate gate and finish the current gate first, except for genuine blocking regressions. No timed worksheet presets or automatic selection by duration. Preserve the three existing geometry modes; coordinate visibility is a display setting, not a fourth mode. No claim of full general constraint solving, infinite-line support, or actual classroom verification until delivered and tested.
+
 ## Research basis
 
 - DfE national curriculum: https://www.gov.uk/government/publications/national-curriculum-in-england-mathematics-programmes-of-study/national-curriculum-in-england-mathematics-programmes-of-study
