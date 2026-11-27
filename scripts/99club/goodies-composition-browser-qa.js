@@ -1338,7 +1338,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
     assert(work.viewBox.baseVal.width===840&&work.viewBox.baseVal.height===592,'A5 format can shrink the empty sheet below the old minimum');
     const previewPointer=(type,p)=>{const v=new win.DOMPoint(...p).matrixTransform(work.getScreenCTM());work.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:47,button:0,clientX:v.x,clientY:v.y}))};
     const checkRuler=()=>{
-      doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);
+      if(doc.querySelector('[data-ag-tool="segment"]').getAttribute('aria-pressed')!=='true')doc.querySelector('[data-ag-tool="segment"]').click();previewPointer('pointerdown',[60,160]);
       for(const endpoint of [[460,160],[97,160],[183,236],[660,160],[260,160]]){
         previewPointer('pointermove',endpoint);
         const ruler=work.querySelector('[data-geometry-instrument="ruler"]'),ticks=ruler.querySelectorAll('[data-me-division]'),width=Number(ruler.querySelector('rect').getAttribute('width')),len=Math.hypot(endpoint[0]-60,endpoint[1]-160);
@@ -1537,7 +1537,27 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       reset();tool('protractor').click();tap(origin);const datumX=work.querySelector('[data-ag-guided-action="datum-x"]');assert(datumX,'Guided instrument exposes explicit datum reference locally: '+label);datumX.dispatchEvent(new win.MouseEvent('click',{bubbles:true}));tap(aim);const absolute=cap().demo.labDrawing;assert(absolute.points.length===1&&absolute.segments.length===0&&absolute.rays.length===1&&M.labRayDefinition(absolute,absolute.rays[0]).kind==='absolute-angle'&&Math.abs(M.labRayAngle(absolute,absolute.rays[0])-67)<.001,'Datum reference makes absolute ray without phantom baseline: '+label);
       reset();assert(cap().demo.labDrawing.points.length===0,'Instrument verification leaves empty sheet: '+label);
     };
-    checkRuler();verifyInstruments('A5 normal');
+    checkRuler();
+    {
+      const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},geometry=()=>{const d=cap().demo.labDrawing;return JSON.stringify([d.points,d.names,d.segments,d.rays,d.circles])},empty=geometry();
+      if(tool('segment').getAttribute('aria-pressed')!=='true')tool('segment').click();
+      tap([100,100]);assert(geometry()===empty&&!tool('undo').disabled,'First endpoint is provisional, Undo remains available');
+      const paper=P.createDocument();paper.addCurrent(id,cap());assert(!P.renderItem(paper.list()[0],false).querySelector('[data-ag-point-label]'),'Provisional endpoint never enters publication');
+      work.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));assert(geometry()===empty&&tool('select').getAttribute('aria-pressed')==='true','Escape cancels draft and exits tool');
+      tool('line').click();tap([100,100]);tool('cancel-tool').click();assert(geometry()===empty&&tool('select').getAttribute('aria-pressed')==='true','Touch Cancel exits without orphan points');
+      tool('segment').click();tap([100,100]);tap([300,100]);const completed=geometry();assert(cap().demo.labDrawing.points.length===2&&cap().demo.labDrawing.segments.length===1,'Completed segment commits both endpoints');
+      tap([400,300]);tool('undo').click();assert(geometry()===completed,'Undo cancels pending second segment before touching committed history');
+      tool('undo').click();assert(geometry()===empty,'One Undo removes segment and both new points');
+      tool('redo').click();assert(geometry()===completed,'Redo restores segment and stable point names');
+      tool('segment').click();tap([100,100]);tap([300,100]);assert(geometry()===completed,'Duplicate segment adds no geometry');tool('undo').click();assert(geometry()===empty,'Duplicate segment adds no history entry');
+      tool('redo').click();tool('segment').click();tap([100,100]);tap([450,250]);assert(cap().demo.labDrawing.points.length===3,'Reused endpoint remains shared');tool('undo').click();assert(geometry()===completed,'Undo preserves previously committed endpoints');
+      tool('undo').click();assert(geometry()===empty,'Fixture returns to empty board');
+      if(tool('segment').getAttribute('aria-pressed')!=='true')tool('segment').click();tap([100,100]);tool('segment').click();assert(geometry()===empty&&tool('select').getAttribute('aria-pressed')==='true','Tapping active tool again exits');
+      tool('ray').click();tap([100,100]);tool('compass').click();assert(geometry()===empty,'Switching tools cancels provisional endpoint');
+      tap([100,100]);previewPointer('pointercancel',[100,100]);assert(geometry()===empty,'Pointer cancellation discards provisional centre');tool('cancel-tool').click();
+      tool('point').click();tap([100,100]);assert(tool('redo').disabled,'New committed action clears redo history');tool('undo').click();tool('cancel-tool').click();assert(geometry()===empty,'Standalone point remains its own undoable action');
+    }
+    verifyInstruments('A5 normal');
     {
       const tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),tap=p=>{previewPointer('pointerdown',p);previewPointer('pointerup',p)},centre=[200,200];
       tool('compass').click();tool('compass-arc').click();tap(centre);tap([320,200]);previewPointer('pointermove',[200,80]);
@@ -1707,8 +1727,8 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const edited=work.querySelector('[data-ag-annotation-value]');assert(Math.hypot(Number(edited.getAttribute('x'))-205,Number(edited.getAttribute('y'))-200)<.01,'Angle label can be positioned independently');
       const revised=P.createDocument();revised.addCurrent(id,cap());const print=P.renderItem(revised.list()[0],false).querySelector('[data-ag-annotation-value]');assert(print.textContent==='x'&&Math.abs(Number(print.getAttribute('x'))-205)<.01,'Edited annotation position and unknown preserved in publication');
       assert(JSON.stringify(capture().points)===before,'Editing angles never changes coordinates');
-      for(let i=0;i<9;i++)doc.querySelector('[data-ag-tool="undo"]').click();
-      assert(!work.querySelector('[data-ag-annotation-value]'),'Undo removes angle annotation and temporary baseline fixture');
+      for(let i=0;i<8;i++)doc.querySelector('[data-ag-tool="undo"]').click();
+      assert(!work.querySelector('[data-ag-annotation-value]')&&capture().segments.length===1,'Undo removes angle annotation and temporary baseline but preserves original diagonal');
     }
     // Point display names and positions are independent of stable geometry IDs.
     {
@@ -1762,7 +1782,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       tapWork([150,390]);tapWork([400,150]);assert(work.querySelectorAll('[data-ag-selected-arm]').length===2&&work.querySelectorAll('[data-ag-angle-choice]').length===2,'Non-adjacent arms remain selected');
       assert([...doc.querySelectorAll('[data-ag-angle-side]')].filter(b=>!b.hidden).length===2,'Both sides are accessible through the contextual menu');
       tapWork([260,250]);const wide=cap().demo.labDrawing;assert(wide.angleNotation.length===1&&Math.abs(M.labAngleAnnotation(wide,wide.angleNotation[0]).angle-90)<.01,'Tapping inside a region marks the complete angle across an intermediate ray');
-      for(let i=0;i<3;i++)doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===initial.rays.length,'Undo restores two-arm fixture');
+      for(let i=0;i<2;i++)doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===initial.rays.length,'Undo restores two-arm fixture');
       doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.segments)===JSON.stringify(beforeSector.segments),'Remove temporary baseline to restore shared fixture');
     }
     // A ray through two named vertices must not round the exact direction.
@@ -1777,17 +1797,17 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(lines.some(el=>Math.hypot(n(el,'x1')-p[0],n(el,'y1')-p[1])<.001&&Math.hypot(n(el,'x2')-p[0],n(el,'y2')-p[1])>Math.hypot(q[0]-p[0],q[1]-p[1])&&check(p,q,[n(el,'x2'),n(el,'y2')])),'Printed ray extends exactly through named vertex');
       const moved=JSON.parse(JSON.stringify(drawing));moved.points[2]=[321,367];assert(check(p,moved.points[2],model.rayEnd(p,model.labRayAngle(moved,moved.rays.at(-1)),[0,0,1188,840])),'Ray follows its referenced point when moved');
       const freeRay=model.labDirectRay(drawing,0,{p:[311,357],kind:''},false);assert(!freeRay.relativeTo&&check(p,[311,357],model.rayEnd(p,freeRay.angle,[0,0,1188,840])),'Free ray direction is exact without adding a reference');
-      doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();
+      doc.querySelector('[data-ag-tool="undo"]').click();
       assert(cap().demo.labDrawing.rays.length===0,'Undo restores original geometry after ray regression');
       const original=JSON.stringify(cap().demo.labDrawing.points);
-      doc.querySelector('[data-ag-tool="ray"]').click();lineTap([150,150]);lineTap([650,330]);const through=cap().demo.labDrawing,last=through.rays.at(-1),definition=model.labRayDefinition(through,last);
+      lineTap([150,150]);lineTap([650,330]);const through=cap().demo.labDrawing,last=through.rays.at(-1),definition=model.labRayDefinition(through,last);
       assert(through.points.length===drawing.points.length+1&&definition.kind==='through-point'&&last.relativeTo===through.names.at(-1),'A new ray through an empty location creates a real defining point');
-      doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===original,'Undo removes newly created reference point');
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===original,'Undo removes newly created reference point');
       const input=doc.querySelector('[data-ag-ray-definition]');input.value='absolute';input.dispatchEvent(new win.Event('change',{bubbles:true}));lineTap([150,150]);
       const direction=doc.querySelector('[data-ag-ray-angle]'),commit=doc.querySelector('[data-ag-ray-commit]');direction.value='37.125';direction.dispatchEvent(new win.Event('input',{bubbles:true}));lineTap([650,330]);assert(cap().demo.labDrawing.rays.length===0,'A canvas click cannot silently commit an absolute direction');
       assert(!commit.disabled,'Exact direction can be committed after choosing origin');commit.click();const absolute=cap().demo.labDrawing,absRay=absolute.rays.at(-1);assert(model.labRayDefinition(absolute,absRay).kind==='absolute-angle'&&Math.abs(model.labRayAngle(absolute,absRay)-37.125)<1e-8&&JSON.stringify(absolute.points)===original,'Exact datum-referenced ray has no artificial reference point');
       const roundTrip=JSON.parse(JSON.stringify(absolute));assert(model.labRayAngle(roundTrip,roundTrip.rays.at(-1))===model.labRayAngle(absolute,absRay),'Absolute direction survives save and restore');
-      doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===0&&JSON.stringify(cap().demo.labDrawing.points)===original,'Undo absolute construction restores fixture');input.value='through';input.dispatchEvent(new win.Event('change',{bubbles:true}));
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===0&&JSON.stringify(cap().demo.labDrawing.points)===original,'Undo absolute construction restores fixture');input.value='through';input.dispatchEvent(new win.Event('change',{bubbles:true}));
       // Infinite line is not two unrelated rays: one identity, two directions.
       doc.querySelector('[data-ag-tool="line"]').click();lineTap([150,150]);lineTap([450,150]);const straightLine=cap().demo.labDrawing,inf=straightLine.rays.at(-1);
       assert(inf.infinite===true&&inf.relativeTo===straightLine.names[1]&&straightLine.rays.length===1,'Line has a single identity and two real defining points');
@@ -1796,7 +1816,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       doc.querySelector('[data-ag-tool="select"]').click();tapWork([70,150]);assert(doc.querySelector('[data-ag-ray-summary]').textContent.startsWith('Line '),'Backward extension selects the same line');
       const printedLine=P.createDocument();printedLine.addCurrent(id,cap());const lineSvg=P.renderItem(printedLine.list()[0],false);assert([...lineSvg.querySelectorAll('line')].some(l=>Number(l.getAttribute('x1'))<0&&Number(l.getAttribute('x2'))>1188&&Math.abs(Number(l.getAttribute('y1'))-150)<1e-6),'Publication retains both infinite extensions');
       doc.querySelector('[data-ag-tool="erase"]').click();tapWork([70,150]);assert(cap().demo.labDrawing.rays.length===0,'Erase on backward extension removes entire line');
-      for(let i=0;i<3;i++)doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===0&&JSON.stringify(cap().demo.labDrawing.points)===original,'Undo restores original fixture after infinite line');
+      for(let i=0;i<2;i++)doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===0&&JSON.stringify(cap().demo.labDrawing.points)===original,'Undo restores original fixture after infinite line');
       const crossLine={...model.labEmpty(true),points:[[200,200],[300,200],[100,300],[100,100]],names:['A','B','D','E'],segments:[[2,3]],rays:[{i:0,angle:0,infinite:true,relativeTo:'B',relativeAngle:0,construction:false}]};
       const detected=model.labIntersections(crossLine);assert(detected.length===1&&crossLine.points.length===4,'Intersection detection does not create named points');
       assert(model.labNewIntersections(crossLine,[],[0,0,500,500]).length===1&&model.labNewIntersections(crossLine,detected,[0,0,500,500]).length===0,'Automatic creation considers only new crossings inside sheet');
@@ -1812,9 +1832,9 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       doc.querySelector('[data-ag-tool="line"]').click();lineTap([60,250]);lineTap([650,250]);const crossing=cap().demo.labDrawing,expected=[225,250];assert(model.labIntersections(crossing).some(v=>Math.hypot(v.p[0]-expected[0],v.p[1]-expected[1])<.001)&&!crossing.points.some(p=>Math.hypot(p[0]-225,p[1]-250)<.001),'Crossing is detected but not defined by default');
       show.click();assert(work.querySelector('[data-ag-intersection-preview]'),'Optional intersection previews render');const previewDoc=P.createDocument();previewDoc.addCurrent(id,cap());assert(!P.renderItem(previewDoc.list()[0],false).querySelector('[data-ag-intersection-preview]'),'Preview markers are not published');
       doc.querySelector('[data-ag-tool="select"]').click();tapWork(expected);assert(cap().demo.labDrawing.points.some(p=>Math.hypot(p[0]-225,p[1]-250)<.001),'Selecting a visible crossing explicitly defines a point');doc.querySelector('[data-ag-tool="undo"]').click();show.click();
-      for(let i=0;i<2;i++)doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===original,'Undo restores drawing after explicit intersection');
+      doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===original,'Undo restores drawing after explicit intersection');
       auto.click();doc.querySelector('[data-ag-tool="line"]').click();lineTap([60,250]);lineTap([650,250]);assert(cap().demo.labDrawing.points.some(p=>Math.hypot(p[0]-225,p[1]-250)<.001),'Opt-in auto creation defines newly drawn crossing');doc.querySelector('[data-ag-tool="erase"]').click();tapWork(expected);assert(!cap().demo.labDrawing.points.some(p=>Math.hypot(p[0]-225,p[1]-250)<.001),'Erasing automatic point does not recreate it');
-      for(let i=0;i<3;i++)doc.querySelector('[data-ag-tool="undo"]').click();auto.click();doc.querySelector('[data-ag-tool="expand"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===original,'Intersection regression restores original fixture');
+      for(let i=0;i<2;i++)doc.querySelector('[data-ag-tool="undo"]').click();auto.click();doc.querySelector('[data-ag-tool="expand"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===original,'Intersection regression restores original fixture');
 
 
 
@@ -1930,7 +1950,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(JSON.stringify(cap().demo.labDrawing.circles.at(-1))===JSON.stringify(circle),'Undo all four style and colour edits restores the original circle');
       const signed=P.createDocument();signed.addCurrent(id,cap());const printed=P.renderItem(signed.list()[0],false),pv=printed.viewBox.baseVal;
       assert(pv.x<=actual[0]-circle.r&&pv.y<=actual[1]-circle.r&&pv.x+pv.width>=actual[0]+circle.r&&pv.y+pv.height>=actual[1]+circle.r,'Published expanded board includes negative circle extent');
-      for(let i=0;i<2;i++)button('undo').click(); // Undo the circle and its centre only; style edits were already undone.
+      button('undo').click(); // Undo the circle and centre atomically.
       restore.click();await tick(150);
       assert(JSON.stringify(cap().demo.labDrawing.points)===JSON.stringify(JSON.parse(before).points),'Undo and restore return to original geometry after camera navigation');
     }
