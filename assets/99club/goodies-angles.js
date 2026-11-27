@@ -1109,6 +1109,9 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    for(const t of ['pointerup','pointercancel','lostpointercapture'])head.addEventListener(t,e=>{if(drag?.id===e.pointerId)drag=null});
    return panel;
  }
+ function geometryNavigation(){
+   const nav=document.createElement('div');nav.className='gd-ag-lab-actions gd-ag-board-navigation';nav.setAttribute('role','group');nav.setAttribute('aria-label','Drawing navigation');nav.dataset.agBoardNavigation='1';return nav;
+ }
  function geometryPaletteDock(overlay,onToggle){
    const dock=document.createElement('button');dock.type='button';dock.className='gd-btn gd-ag-full-dock';dock.dataset.agFullPanels='1';let hidden=false;
    const sync=()=>{dock.textContent=hidden?'Show panels':'Hide panels';dock.setAttribute('aria-expanded',String(!hidden))};sync();
@@ -1168,6 +1171,7 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
   if(free)button('trace','Clear traces','Remove recorded paths without changing the drawing',()=>{save();st.traces={};changed()}).dataset.agTool='clear-traces';
   const panButton=free?button('pan','Pan','Move around the drawing without changing geometry',()=>{panMode=!panMode;first=null;aligned=null;hover=null;paint()}):null;
   const navButtons=free?[button('zoom-out','−','Zoom out',()=>zoomBoard(.8)),button('zoom-in','+','Zoom in',()=>zoomBoard(1.25)),button('fit','Fit','Fit all finite geometry in view',fitBoard)]:[];navButtons.forEach(b=>b.hidden=true);
+  const navigation=free?geometryNavigation():null;
   const guideButton=button('help',free?'Help':'Tool help','Show instrument instructions',()=>{guideOpen=!guideOpen;guideStep=0;paint()});
   if(free||CONSTRUCTION_METHODS_BY_TASK[task?.type]){const libraryButton=button('help',free?'Construction library':'Method guide',free?'Open searchable construction methods':'Open optional construction guidance',()=>methodLibrary.toggle());libraryButton.dataset.agTool='construction-library';methodLibrary=mountConstructionLibrary(box,libraryButton,task,()=>st,publishMethod)}
   for(const [id,label,get,set] of [['snap','Snap',()=>snap,v=>snap=v],...(free?[['measure','Measurements',()=>measure,v=>{measure=v;st.showMeasurements=v;onChange(clone(st))}]]:[]),...(free?[]:[['grid','Grid',()=>grid,v=>grid=v]])]){
@@ -1372,12 +1376,12 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
     const stage=box.closest('#gd-stage');stage?.classList.toggle('gd-ag-full-stage',active);document.documentElement.classList.toggle('gd-ag-full-page',active);
     if(active){
       viewport.style.cssText='position:absolute;inset:0;overflow:hidden;background:white;padding:0;border:0;border-radius:0;max-width:none;max-height:none';
-      toolbar.classList.add('gd-ag-full-tools');floatingPanel('Instruments',[instruments],'10px','46px');const drawingPanel=floatingPanel('Drawing options',[helpers,styleBar,notationBar,regionBar,sheetPanel],'calc(100% - 365px)','54px');if(viewport.clientWidth<600)drawingPanel.querySelector('.gd-ag-full-panel-head button').click();helpPanel=floatingPanel('Instrument help',[guide],'calc(100% - 325px)','240px');helpPanel.hidden=!guideOpen;
+      toolbar.classList.add('gd-ag-full-tools');navigation.append(panButton,...navButtons);toolbar.append(navigation);floatingPanel('Instruments',[instruments],'10px','46px');const drawingPanel=floatingPanel('Drawing options',[helpers,styleBar,notationBar,regionBar,sheetPanel],'calc(100% - 365px)','54px');if(viewport.clientWidth<600)drawingPanel.querySelector('.gd-ag-full-panel-head button').click();helpPanel=floatingPanel('Instrument help',[guide],'calc(100% - 325px)','240px');helpPanel.hidden=!guideOpen;
       panelsHidden=false;dock=geometryPaletteDock(toolbar,hidden=>{panelsHidden=hidden;fullPanels.forEach(p=>p.hidden=hidden||(p===helpPanel&&!guideOpen));if(hidden)methodLibrary?.toggle(false);else fullResize()});
       // Instrument help floats independently of the tool palettes.
       fullResize();syncSheet();
     }else{
-      ws=boardWorkspace();ww=ws.w;hh=ws.h;st.workspace={...ws};toolbar.classList.remove('gd-ag-full-tools');toolbar.append(instruments,helpers,styleBar,notationBar,regionBar,sheetPanel);box.append(guide);helpPanel=null;fullPanels.forEach(p=>p.remove());fullPanels=[];dock?.remove();dock=null;viewport.style.cssText=normalViewportStyle;svg.style.cssText=normalSvgStyle;sizeCanvas();syncSheet();onChange(clone(st));
+      ws=boardWorkspace();ww=ws.w;hh=ws.h;st.workspace={...ws};actions.append(panButton,...navButtons);navigation.remove();toolbar.classList.remove('gd-ag-full-tools');toolbar.append(instruments,helpers,styleBar,notationBar,regionBar,sheetPanel);box.append(guide);helpPanel=null;fullPanels.forEach(p=>p.remove());fullPanels=[];dock?.remove();dock=null;viewport.style.cssText=normalViewportStyle;svg.style.cssText=normalSvgStyle;sizeCanvas();syncSheet();onChange(clone(st));
     }
     paint()
   };
@@ -1539,12 +1543,12 @@ if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>typ
    function zoom(factor){if(!active||!bounds)return;camera=current();camera.scale=Math.max(.005,Math.min(12,camera.scale*factor));resize()}
    function fit(){if(!active)return;const [w,h]=size(),[x,y,bw,bh]=fitGeometryBounds(getFitBounds(),w,h);camera={x:x+bw/2,y:y+bh/2,scale:Math.max(.005,Math.min(12,w/bw))};resize()}
    function makeNavigation(){
-     nav=document.createElement('div');nav.className='gd-ag-lab-actions gd-ag-dynamic-navigation';nav.setAttribute('role','group');nav.setAttribute('aria-label','Drawing navigation');
+     nav=geometryNavigation();overlay.append(nav);
      panButton=instrumentButton(nav,'pan','Pan','Pan drawing without moving geometry',()=>setPan(!pan),'agNav');setPan(false);
      instrumentButton(nav,'zoom-out','−','Zoom out',()=>zoom(.8),'agNav');instrumentButton(nav,'zoom-in','+','Zoom in',()=>zoom(1.25),'agNav');instrumentButton(nav,'fit','Fit','Fit all finite geometry in view',fit,'agNav');
    }
    function makePanel(group,i){
-     const [title,node]=group,panel=geometryPalette(overlay,title,i?[node]:[node,nav],i?'calc(100% - 340px)':'10px',i?'54px':'46px',{dynamic:true});panels.push(panel);
+     const [title,node]=group,panel=geometryPalette(overlay,title,[node],i?'calc(100% - 340px)':'10px',i?'54px':'46px',{dynamic:true});panels.push(panel);
      if(i&&surface.clientWidth<600)panel.querySelector('.gd-ag-full-panel-head button').click();
    }
    // Capture navigation gestures before construction/constraint handlers.
