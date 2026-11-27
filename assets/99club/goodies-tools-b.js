@@ -1214,8 +1214,8 @@ function mountMeasureDrawing(host,c){
  }
  if(c.revealed){bar.hidden=true;return}
  // Only visible geometry is passed to alignment: never the answer or target edge.
- const scene={given:false,points,segments:c.measurement.edges.map(e=>[e.i,e.j]),rays:[],circles:[]};
- utensils=G.instruments.movable(utensilsHost,()=>svg,paint,{unitsPerCm:ME_DRAW_UNIT,kinds:['ruler'],initialOpen:true,showReadout:false,align:(t,operation,scale)=>G.angles?.utensilAlignment(scene,t,operation,scale)});
+ const scene={points,lines:c.measurement.edges.map(e=>({a:points[e.i],b:points[e.j],ray:false}))};
+ utensils=G.instruments.movable(utensilsHost,()=>svg,paint,{unitsPerCm:ME_DRAW_UNIT,kinds:['ruler'],initialOpen:true,showReadout:false,align:(t,operation,scale)=>G.instruments.align(scene,t,operation,scale)});
  mode.onclick=()=>{free=!free;mode.setAttribute('aria-pressed',String(free));mode.textContent=free?'Guided ruler':'Free ruler';utensilsHost.hidden=!free;flip.hidden=free;first=second=hover=null;utensils.clear();if(free)utensils.add('ruler');else paint()};
  clear.onclick=()=>{first=second=hover=null;if(free){utensils.clear();utensils.add('ruler')}else paint()};flip.onclick=()=>{side*=-1;paint()};
  svg.addEventListener('pointermove',e=>{if(!free&&first&&!second){hover=hit(e);paint()}});
