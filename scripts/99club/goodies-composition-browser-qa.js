@@ -1130,7 +1130,7 @@ async function run(){
       for(const type of model.labTypes)for(let i=0;i<30;i++){
         const t=model.generate({type,enrichment:true}),base=methods.find(m=>m.id===model.CONSTRUCTION_METHODS_BY_TASK[type]),m=model.challengeConstructionMethod(base,t),sol=model.labSolution(t),end=model.constructionFrame(m,m.steps.length-1),pts=Object.fromEntries(end.filter(o=>o.kind==='point').map(o=>[o.label,o.at])),dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
         assert(m.challengeSpecific&&m.steps.length===m.graphics.frames.length&&model.constructionMethodGraphic(m,m.steps.length-1).outerHTML.indexOf('NaN')===-1,'Challenge-specific vector stages render: '+type);
-        assert(dist(pts.A,pts.B)===240,'Challenge baseline remains exactly 6 cm: '+type);
+        if(type==='build-circle')assert(pts.A&&!pts.B&&m.graphics.initial.length===1,'Circle guide starts with its centre only');else assert(dist(pts.A,pts.B)===240,'Challenge baseline remains exactly 6 cm: '+type);
         const expected=[],cm=v=>Number(v.toFixed(3))+' cm',deg=v=>Number(v.toFixed(3))+'°';
         if(type==='build-circle')expected.push('Centre A','Radius = '+cm(t.length));else expected.push('AB = 6 cm');
         if(['shape-build','build-right','build-perpendicular','build-sss','build-equilateral'].includes(type))expected.push('AC = '+cm(t.length));
@@ -1181,17 +1181,25 @@ async function run(){
     }
     {
       const model=win.TT99Goodies.angles;
+      const mixedConstruction=[];
       for(const type of model.labTypes){
         const task=model.generate({type,enrichment:true}),item=P.record(id,'challenge',task);
+        mixedConstruction.push(item);
         const pupil=P.renderItem(item,false),key=P.answerGraphic(item);
         assert(!pupil.querySelector('[data-ag-point-label]')&&!pupil.querySelector('[data-ag-construction-key]'),'Construction pupil sheet contains no solution: '+type);
         assert(key.getAttribute('data-ag-construction-key')==='1'&&key.querySelector('[data-ag-point-label]'),'Every construction has compact graphical key: '+type);
         assert(!key.querySelector('[data-ag-grid]'),'Answer annex omits working grid: '+type);
         assert(P.answerNote(item).includes('Illustrative diagram'),'Answer note clarifies scale and valid alternatives: '+type);
-        if(type==='build-circle')assert(key.querySelector('[data-ag-radius-line]'),'Circle answer labels radius');
+        if(type==='build-circle'){assert(key.querySelector('[data-ag-radius-line]')&&!key.querySelector('[data-ag-point-label="B"]')&&!key.textContent.includes('6 cm'),'Circle answer labels radius without unrelated baseline');assert(!pupil.textContent.includes('Draw AB')&&pupil.textContent.includes('Mark centre A'),'Circle pupil prompt requires only its centre and specified radius');}
         if(type==='build-asa')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'ASA answer marks both angles');
         if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
       }
+      const pupilPages=P.pages(mixedConstruction,{title:'Mixed construction practice'}),teacherPages=P.pages(mixedConstruction,{title:'Mixed construction practice',teacher:true}),annex=teacherPages.filter(page=>page.getAttribute('data-worksheet-answer')==='annex');
+      assert(pupilPages.length>1&&pupilPages.every(page=>!page.querySelector('[data-pub-answer-graphic],[data-ag-construction-key]')),'Mixed construction pupil pages contain no answer graphics');
+      const indices=attribute=>annex.flatMap(page=>[...page.querySelectorAll('['+attribute+']')].map(n=>Number(n.getAttribute(attribute))));
+      const expected=mixedConstruction.map((_,i)=>i+1);
+      assert(JSON.stringify(indices('data-pub-answer-number'))===JSON.stringify(expected)&&JSON.stringify(indices('data-pub-answer-graphic'))===JSON.stringify(expected),'Mixed construction annex has one numbered graphical answer per challenge in order');
+      assert(expected.every(i=>indices('data-pub-answer-note').includes(i)),'Every construction answer includes marking guidance');
     }
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
     const mode=doc.getElementById('ag-mode');mode.value='construct';mode.dispatchEvent(new win.Event('change',{bubbles:true}));await tick();
