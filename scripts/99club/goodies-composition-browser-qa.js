@@ -1757,6 +1757,16 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const freeRay=model.labDirectRay(drawing,0,{p:[311,357],kind:''},false);assert(!freeRay.relativeTo&&check(p,[311,357],model.rayEnd(p,freeRay.angle,[0,0,1188,840])),'Free ray direction is exact without adding a reference');
       doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();
       assert(cap().demo.labDrawing.rays.length===0,'Undo restores original geometry after ray regression');
+      const original=JSON.stringify(cap().demo.labDrawing.points);
+      doc.querySelector('[data-ag-tool="ray"]').click();lineTap([150,150]);lineTap([650,330]);const through=cap().demo.labDrawing,last=through.rays.at(-1),definition=model.labRayDefinition(through,last);
+      assert(through.points.length===drawing.points.length+1&&definition.kind==='through-point'&&last.relativeTo===through.names.at(-1),'A new ray through an empty location creates a real defining point');
+      doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();assert(JSON.stringify(cap().demo.labDrawing.points)===original,'Undo removes newly created reference point');
+      const input=doc.querySelector('[data-ag-ray-definition]');input.value='absolute';input.dispatchEvent(new win.Event('change',{bubbles:true}));lineTap([150,150]);
+      const direction=doc.querySelector('[data-ag-ray-angle]'),commit=doc.querySelector('[data-ag-ray-commit]');direction.value='37.125';direction.dispatchEvent(new win.Event('input',{bubbles:true}));lineTap([650,330]);assert(cap().demo.labDrawing.rays.length===0,'A canvas click cannot silently commit an absolute direction');
+      assert(!commit.disabled,'Exact direction can be committed after choosing origin');commit.click();const absolute=cap().demo.labDrawing,absRay=absolute.rays.at(-1);assert(model.labRayDefinition(absolute,absRay).kind==='absolute-angle'&&Math.abs(model.labRayAngle(absolute,absRay)-37.125)<1e-8&&JSON.stringify(absolute.points)===original,'Exact datum-referenced ray has no artificial reference point');
+      const roundTrip=JSON.parse(JSON.stringify(absolute));assert(model.labRayAngle(roundTrip,roundTrip.rays.at(-1))===model.labRayAngle(absolute,absRay),'Absolute direction survives save and restore');
+      doc.querySelector('[data-ag-tool="undo"]').click();doc.querySelector('[data-ag-tool="undo"]').click();assert(cap().demo.labDrawing.rays.length===0&&JSON.stringify(cap().demo.labDrawing.points)===original,'Undo absolute construction restores fixture');input.value='through';input.dispatchEvent(new win.Event('change',{bubbles:true}));
+
     }
     // A constructed angle must have permanent marks, even with measurements disabled.
     doc.querySelector('[data-ag-option="measure"]').click();
