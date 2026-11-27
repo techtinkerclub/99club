@@ -1395,7 +1395,12 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(frame.classList.contains('is-geometry-board')&&surface.dataset.agFullActive==='true','Preset dynamic geometry enters dedicated drawing mode');
       assert(Math.abs(rect.width-vr.width)<3&&Math.abs(rect.height-vr.height)<3&&Math.abs(matrix.a-matrix.d)<.001,'Dynamic board fills viewport without geometric distortion');
       assert(JSON.stringify(cap().demo.locusState)===initial,'Maximising preserves dynamic state and traces');
-      const dock=doc.querySelector('[data-ag-full-panels]');dock.click();assert([...doc.querySelectorAll('[data-ag-dynamic-panel]')].every(p=>p.hidden),'Dynamic palettes can be hidden');dock.click();
+      const dynamicPalettes=[...doc.querySelectorAll('[data-ag-dynamic-panel]')],primary=dynamicPalettes[0],secondary=dynamicPalettes[1],header=primary.querySelector('.gd-ag-full-panel-head'),fold=header.querySelector('button'),body=primary.querySelector('.gd-ag-full-panel-content'),start=header.getBoundingClientRect(),oldLeft=primary.getBoundingClientRect().left;
+      fold.click();assert(body.hidden&&fold.getAttribute('aria-expanded')==='false'&&fold.getAttribute('aria-label')==='Expand Dynamic geometry','Dynamic palette uses accessible shared collapse');fold.click();assert(!body.hidden&&fold.getAttribute('aria-expanded')==='true','Dynamic palette expands');
+      for(const [type,x,y] of [['pointerdown',start.left+10,start.top+8],['pointermove',start.left+70,start.top+20],['pointerup',start.left+70,start.top+20]])header.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:46,button:0,clientX:x,clientY:y}));
+      assert(primary.getBoundingClientRect().left>oldLeft+20&&Number(primary.style.zIndex)>Number(secondary.style.zIndex),'Dynamic palette moves by touch and rises above other panels');
+      const dock=doc.querySelector('[data-ag-full-panels]');dock.click();assert(dynamicPalettes.every(p=>p.hidden)&&dock.getAttribute('aria-expanded')==='false','Dynamic palettes can be hidden');dock.click();assert(dock.getAttribute('aria-expanded')==='true'&&!primary.hidden,'Dynamic palettes can be restored');
+
       const choose=doc.querySelector('[data-ag-locus-preset]');choose.value='custom';choose.dispatchEvent(new win.Event('change',{bubbles:true}));await tick(150);
       surface=doc.querySelector('[data-ag-dynamic-workspace]');assert(surface.dataset.agFullActive==='true'&&frame.classList.contains('is-geometry-board'),'Switching to custom geometry retains full-board mode');
       const customSvg=surface.querySelector('svg'),{x,y,width:w,height:h}=customSvg.viewBox.baseVal,p=[x+w-25,y+h-25],v=new win.DOMPoint(...p).matrixTransform(customSvg.getScreenCTM());
