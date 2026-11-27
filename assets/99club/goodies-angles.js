@@ -1154,6 +1154,58 @@ function generate(s={},rng=Math.random){
    const p=d.trianglePoints;
    return Array.isArray(p)&&p.length===3&&p.every(q=>Array.isArray(q)&&q.length===2&&q.every(Number.isFinite))?p.map(q=>q.slice()):[[170,310],[630,310],[335,95]];
  }
+ // Teaching reference uses the unscaled geometric model. The diagram may
+ // be fitted to the widget, so model centimetres are not a screen ruler.
+ function shapeSymmetry(pts){
+   const n=pts.length,centre=[0,1].map(k=>pts.reduce((s,p)=>s+p[k],0)/n),v=pts.map(p=>labSub(p,centre)),scale=Math.max(...v.map(p=>Math.hypot(...p))),eps=scale*1e-8;
+   const i=v.findIndex(p=>Math.hypot(...p)>eps);if(i<0)return {reflection:0,rotation:0};
+   const len=Math.hypot(...v[i]),close=(a,b)=>labDist(a,b)<=eps;let reflection=0,rotation=0;
+   for(let j=0;j<n;j++){
+     if(Math.abs(Math.hypot(...v[j])-len)>eps)continue;
+     const alpha=Math.atan2(v[i][1],v[i][0]),beta=Math.atan2(v[j][1],v[j][0]),q=beta-alpha,axis=(alpha+beta)/2,co=Math.cos(q),si=Math.sin(q),u=[Math.cos(axis),Math.sin(axis)];
+     if(v.every((p,k)=>close([co*p[0]-si*p[1],si*p[0]+co*p[1]],v[(j+k-i+n)%n])))rotation++;
+     if(v.every((p,k)=>close([2*labDot(p,u)*u[0]-p[0],2*labDot(p,u)*u[1]-p[1]],v[(j+i-k+2*n)%n])))reflection++;
+   }
+   return {reflection,rotation};
+ }
+ function shapeTeachingReference(d={}){
+   if(d.mode!=='polygon'||['triangle-comparison','triangle-criterion','triangle-inequality'].includes(d.shapeView))return null;
+   const shape=d.shapeView||'regular',pts=shape==='free-polygon'?freePolygonPoints(d):shape==='free-quadrilateral'?freeQuadrilateralPoints(d):shape==='free-triangle'?freeTrianglePoints(d):shape==='regular'?Array.from({length:d.n||5},(_,i)=>exactPolar(400,218,d.regular===false&&i===1?155*(1-(1-Math.cos(360/(d.n||5)*D))*.65):155,90+(d.rotation||0)+i*360/(d.n||5))):shapeGeometry(d);
+   const p=polygonProperties(pts);if(!p)return {valid:false,groups:[]};
+   const n=p.n,tri=n===3?triangleProperties(pts):null,quad=n===4?quadrilateralProperties(pts):null,sym=shapeSymmetry(pts),fmt=v=>Number(v.toFixed(2)).toString(),lengths=p.lengths.map(v=>v/LAB_UNIT),perimeter=lengths.reduce((s,v)=>s+v,0),area=polygonArea(pts)/(LAB_UNIT*LAB_UNIT),base=lengths[0],height=2*area/base;
+   const kind=tri?tri.sides+' · '+tri.kind:quad?quad.kind:p.regular?'Regular '+n+'-gon':p.convex?'Irregular convex '+n+'-gon':'Concave '+n+'-gon';
+   const properties=[['Classification',kind],['Sides and vertices',n+' of each'],['Interior angle sum','('+n+' − 2) × 180° = '+180*(n-2)+'°'],['Exterior turns','Signed sum = 360°'],['Symmetry',sym.reflection+' reflection '+(sym.reflection===1?'axis':'axes')+'; rotational order '+sym.rotation]];
+   if(p.regular)properties.push(['Each interior / exterior angle',fmt(180*(n-2)/n)+'° / '+fmt(360/n)+'°']);
+   if(quad)properties.push(['Opposite parallel pairs',String(quad.parallelPairs.length)],['Right angles',String(quad.right)],['Inclusive families',quad.families.join(', ')]);
+   if(tri)properties.push(['Angle relationship',tri.sides==='Equilateral'?'All three angles are 60°.':tri.sides==='Isosceles'?'Angles opposite equal sides are equal.':'All three side lengths differ.']);
+   const diagonals=[['Total diagonals',n+' × ('+n+' − 3) ÷ 2 = '+p.diagonalCount],['From each vertex',String(n-3)],['Triangles in a triangulation',String(n-2)]];
+   if(quad){
+     const u=labSub(pts[2],pts[0]),v=labSub(pts[3],pts[1]),I=quad.intersection,midAC=I&&labDist(I,labAt(pts[0],u,.5))<=1e-8*Math.max(...p.lengths),midBD=I&&labDist(I,labAt(pts[1],v,.5))<=1e-8*Math.max(...p.lengths);
+     diagonals.push(['Diagonal lengths','AC = '+fmt(Math.hypot(...u)/LAB_UNIT)+' cm; BD = '+fmt(Math.hypot(...v)/LAB_UNIT)+' cm'],['Equal / perpendicular',(quad.diagonalEqual?'Equal':'Unequal')+'; '+(quad.diagonalPerpendicular?'perpendicular':'not perpendicular')],['Bisection',quad.diagonalBisect?'Bisect each other':midAC?'BD bisects AC only':midBD?'AC bisects BD only':'Do not bisect each other']);
+   }
+   const formulas=[['Perimeter', 'Add all sides = '+fmt(perimeter)+' cm'],['Area',''+fmt(area)+' cm²']];
+   if(tri){
+     formulas.push(['Triangle area','A = ½bh; b = '+fmt(base)+' cm, h = '+fmt(height)+' cm']);
+     if(tri.sides==='Equilateral')formulas.push(['Equilateral area','A = (√3 ÷ 4)s²; P = 3s']);
+     if(tri.kind==='Right-angled')formulas.push(['Pythagoras','a² + b² = c², where c is the hypotenuse']);
+   }else if(quad?.kind==='Square'){
+     formulas.push(['Square','A = s²; P = 4s; diagonal = s√2']);
+   }else if(quad?.kind==='Rectangle'){
+     formulas.push(['Rectangle','A = lw; P = 2(l + w); diagonal = √(l² + w²)']);
+   }else if(quad?.kind==='Rhombus'){
+     formulas.push(['Rhombus','A = bh = ½d₁d₂; P = 4s']);
+   }else if(quad?.kind==='Parallelogram'){
+     formulas.push(['Parallelogram','A = bh; P = 2(a + b)']);
+   }else if(quad?.kind==='Trapezium'){
+     formulas.push(['Trapezium','A = ½(a + b)h; a and b are parallel sides']);
+   }else if(quad?.kind==='Kite'){
+     formulas.push(['Kite','A = ½d₁d₂; P = 2(a + b)']);
+   }else if(p.regular){
+     const apothem=base/(2*Math.tan(Math.PI/n));formulas.push(['Regular polygon','P = ns; A = ½P × apothem'],['Apothem',fmt(apothem)+' cm']);
+   }else formulas.push(['Irregular polygon','Split into non-overlapping triangles; add their areas.']);
+   formulas.push(['Lengths','Model centimetres; display may be rescaled.']);
+   return {valid:true,kind,points:pts,n,area,perimeter,symmetry:sym,groups:[{title:'Properties & angles',rows:properties},{title:'Diagonals & triangulation',rows:diagonals},{title:'Formulae & example values',rows:formulas}]};
+ }
  function shapeGeometry(d){
    const shape=d.shapeView,w=300,h=shape==='square'?300:Math.max(90,Math.min(280,d.shapeHeight||180)),theta=shape==='rectangle'||shape==='square'?90:Math.max(25,Math.min(85,d.shapeAngle||65)),base=shape==='scalene'?Math.max(20,Math.min(48,d.shapeBaseAngle||40)):Math.max(20,Math.min(75,d.shapeBaseAngle||50));
    if(shape==='trapezium')return [[0,0],[300,0],[240,-h],[65,-h]];
@@ -1162,7 +1214,7 @@ function generate(s={},rng=Math.random){
    if(shape==='equilateral')return trianglePoints(60,60,0,0,300);
    if(shape==='isosceles')return trianglePoints(base,base,0,0,300);
    if(shape==='scalene')return trianglePoints(base,65,0,0,300);
-   return [[0,0],[w,0],polar(w,0,shape==='rhombus'?w:h,theta),polar(0,0,shape==='rhombus'?w:h,theta)];
+   return [[0,0],[w,0],exactPolar(w,0,shape==='rhombus'?w:h,theta),exactPolar(0,0,shape==='rhombus'?w:h,theta)];
  }
 
 
@@ -1393,7 +1445,7 @@ function generate(s={},rng=Math.random){
    }finally{n.at=p.slice()}
    return true;
  }
- const model={transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
+ const model={shapeTeachingReference,shapeSymmetry,transversalModel,protractorReading,utensilAlignment,squareGeometry,isLabArc,labArcContains,labCircleExtents,labContentBounds,locusFitBounds,customBounds,fitGeometryBounds,INDEPENDENT_METHOD_DIMENSIONS,INDEPENDENT_METHOD_ROLES,independentConstructionCheck,challengeConstructionMethod,CONSTRUCTION_METHODS_BY_TASK,loadConstructionLibrary,constructionFrame,constructionMethodGraphic,CUSTOM_OPERATIONS,customInitial,customName,customResolve,customAppend,customMove,customLineCircle,tangentContacts,circleContacts,LOCUS_PRESETS,LOCUS_PARAMETERS,locusParameters,locusPreset,labNotation,labLineMarks,labSetLineMark,labAngleAnnotation,labSameAngle,labAngleArms,labAngleSectors,labAnglePair,labSectorMark,labSectorPreview,labDimensionText,labRulerTargets,labIndependentDimensions,labSquareBaseReferences,labSquareComparison,labParallelMarkPlan,labSquareSlideSnap,labMeasurementTarget,labApplyMeasurement,labAngleText,labProtractorDirection,labAngleGraphics,labAnnotationPlan,boxesOverlap,labelBox,labFaces,labFaceAt,labRegionShapes,labMarks,labRayAngle,labRayDefinition,labAbsoluteRay,labDirectRay,labReferenceArm,labRelativeRay,labDetachReferences,labStraightEnds,rayEnd,labLabel,labPointText,labConstruction,labVisible,labStyleKey,labOutside,workspaceSize,workspaceState,workspaceFits,datumState,datumCoordinates,datumPoint,datumSnap,datumDirection,datumGridStart,datumGraphic,locusInitial,locusProject,locusPoints,locusTraceMove,traceParts,traceAdd,traceToggle,shapeGeometry,freeTrianglePoints,triangleComparison,triangleComparisonResult,triangleCriterion,TRIANGLE_CRITERIA,triangleInequality,inequalitySettings,triangleProperties,triangleCentres,eulerLineModel,quadrilateralProperties,freeQuadrilateralPoints,circleInvestigation,circleInvestigationMove,CIRCLE_VIEWS,polygonProperties,freePolygonPoints,polygonInvestigationExamples,polygonInvestigationTurns,QUAD_REASONING,quadReasoningPoints,angleVertexPlacement,labelCorners,dimensionPlacement,labelIntersectsLine,angleLabelPlacement,validRegion,polygonArea,vertexLabel,labEmpty,labSnap,labIntersections,labIntersectionSettings,labNewIntersections,labCheck,labSolution,labTypes,MODES,LEVELS,YEARS,FAMILIES,settings,types,challengeGroups,generate,polar,classify,polyInterior,polyExterior,trianglePoints};
 if(typeof module==='object'&&module.exports){module.exports=model;return}
 const G=root.TT99Goodies;if(!G)return;G.angles=model;
 const {q,qa,esc,field,btn,setPanels}=G,CK=G.challengeKit;
@@ -1895,7 +1947,7 @@ function diagram(d,teacher=false,options={}){
    }
    if(type==='triangle-centroid-ratio'){const pts=fit(trianglePoints(d.angles[0],d.angles[1])),p=triangleProperties(pts),a=pts[0],m=p.midpoints[0],g=p.centroid;polygon(pts,['A','B','C']);line(a,m,teal,3,{'data-ag-triangle-median':'0'});circle(m,4,ink);circle(g,4,teal);text(m[0]+16,m[1]+20,'D',18);text(g[0]+17,g[1]-12,'G',18);if(teacher){text(400,410,'AG : GD = 2 : 1',22,{'data-ag-centroid-rule':'1'});return frame(65,0,670,440)}return polygonFrame([...pts,m,g],90)}
    if(type==='triangle'||type==='triangle-type'||type==='triangle-angle-type'){const v=d.angles,ar=rot*D,raw=trianglePoints(v[0],v[1]),points=fit(type==='triangle-angle-type'?raw.map(([x,y])=>[x*Math.cos(ar)-y*Math.sin(ar),x*Math.sin(ar)+y*Math.cos(ar)]):raw);polygon(points);if(type==='triangle'||teacher)points.forEach((p,i)=>corner(points,i,type==='triangle'&&i===2&&!teacher?'x':v[i]+'°'));if(type==='triangle-angle-type'&&teacher){text(400,410,triangleProperties(points).kind,22,{'data-ag-triangle-classification':'1'});return frame(65,0,670,440)}return polygonFrame(points)}
-   const n=d.n||5,regular=d.regular!==false,pts=Array.from({length:n},(_,i)=>polar(400,218,!regular&&i===1?155*(1-(1-Math.cos(360/n*D))*.65):155,90+rot+i*360/n));polygon(pts);
+   const n=d.n||5,regular=d.regular!==false,pts=Array.from({length:n},(_,i)=>exactPolar(400,218,!regular&&i===1?155*(1-(1-Math.cos(360/n*D))*.65):155,90+rot+i*360/n));polygon(pts);
    if(type==='polygon-sum'||explore&&d.triangulate!==false){for(let i=2;i<n-1;i++)line(pts[0],pts[i],'#89aaa1',2,{'stroke-dasharray':'5 5'});if(teacher||explore)text(400,410,(n-2)+' × 180° = '+180*(n-2)+'°',24)}
    if(explore&&d.showCorners!==false&&regular)corner(pts,0,round(polyInterior(n))+'°');
    if(type==='regular')corner(pts,0,teacher?polyInterior(n)+'°':'x');
@@ -1923,7 +1975,23 @@ function methodPublication(data,teacher=false){
  }
  para(m.conditions,15);svg.setAttribute('viewBox','0 0 '+W+' '+Math.ceil(y+12));return svg
 }
-function paper(item,teacher){if(item.data.constructionMethod)return methodPublication(item.data,teacher);const d=geometry(item.data);if(item.kind==='diagram')return diagram(d,true,{scale:d.scale,paper:true});let prompt=d.prompt;if(['measure','reflex'].includes(d.type))prompt+=' Use your own protractor.';if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt=(d.type==='build-circle'?'Mark centre A in the working space. ':'Draw AB = 6 cm first using your ruler. ')+prompt+' Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{paper:true,scale:teacher&&['measure','reflex','draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',printDiagramScale:labTypes.includes(d.type)?null:['draw','draw-reflex','measure','reflex'].includes(d.type)?1.55:1.05,diagramMaxHeight:labTypes.includes(d.type)?830:380,answer:d.answer,showAnswer:teacher})}
+function appendShapeReference(svg,d){
+ const m=shapeTeachingReference(d);if(!m?.valid||d.showReference===false)return svg;
+ const ns='http://www.w3.org/2000/svg',view=svg.getAttribute('viewBox').split(/\\s+/).map(Number),[x,y,w,h]=view;let at=y+h+20;
+ const add=(tag,attrs,value)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(value!=null)el.textContent=value;svg.append(el);return el};
+ const bg=add('rect',{x,y:y+h,width:w,height:1,fill:'#fff','data-ag-shape-reference':'1'});
+ const size=Math.max(15,Math.min(21,w/34)),margin=20;
+ for(const group of m.groups){
+   add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size+2,'font-weight':700,fill:'#285c55','data-ag-shape-reference-group':group.title},group.title);at+=size+12;
+   for(const [label,value] of group.rows){
+     const lines=G.exportTools.wrapPaperText(label+': '+value,w-2*margin,size,400);
+     for(const line of lines){add('text',{x:x+margin,y:at+size,'font-family':'Arial,sans-serif','font-size':size,fill:'#263e43'},line);at+=size*1.32}
+   }
+   at+=12;
+ }
+ bg.setAttribute('height',at-y-h+10);svg.setAttribute('viewBox',[x,y,w,at-y+10].join(' '));return svg;
+}
+function paper(item,teacher){if(item.data.constructionMethod)return methodPublication(item.data,teacher);const d=geometry(item.data);if(item.kind==='diagram')return appendShapeReference(diagram(d,true,{scale:d.scale,paper:true}),d);let prompt=d.prompt;if(['measure','reflex'].includes(d.type))prompt+=' Use your own protractor.';if(inspectTypes.includes(d.type))prompt+=' You may use a ruler or protractor to investigate the diagram.';if(labTypes.includes(d.type))prompt=(d.type==='build-circle'?'Mark centre A in the working space. ':'Draw AB = 6 cm first using your ruler. ')+prompt+' Use your geometry set in the working space.';if(d.choices)prompt+=' Choices: '+d.choices.join(' / ')+'.';return G.exportTools.composeWorksheetCardSvg(diagram(d,teacher,{paper:true,scale:teacher&&['measure','reflex','draw','draw-reflex'].includes(d.type)}),{title:'Angles & geometry',prompt,responseMode:(['draw','draw-reflex'].includes(d.type)||labTypes.includes(d.type))?'none':d.choices?'lines':'box',responseLines:1,responseLabel:'Answer',paperStyle:'plain',printDiagramScale:labTypes.includes(d.type)?null:['draw','draw-reflex','measure','reflex'].includes(d.type)?1.55:1.05,diagramMaxHeight:labTypes.includes(d.type)?830:380,answer:d.answer,showAnswer:teacher})}
 if(G.publishing)G.publishing.register(ID,{label:'Angles & geometry',types:s=>types(s),title:item=>item.data.constructionMethod?.title||FAMILIES.find(t=>t[0]===item.data.type)?.[1]||'Angle illustration',recipe:(s,type)=>({...settings(s),type}),generate,signature:d=>d.constructionMethod?JSON.stringify([d.constructionMethod.id,d.publicationMode,d.constructionMethod.graphics,d.constructionMethod.steps]):JSON.stringify([d.type,d.angle,d.angles,d.rotation,d.clockwise,d.n,d.regular,d.shape,d.relation,d.length,d.rightLength,d.rightAngle,d.radius,d.part,d.circleStart,d.circleSpan,d.fact,d.transversalParallel,d.chordLength,d.tangentAngle,d.width,d.height,d.missingSide,d.claim,d.baseLength,d.factor,d.hypotenuse]),capture:s=>s.constructionPublication?[G.publishing.record(ID,s.constructionPublication.publicationMode==='exercise'?'challenge':'diagram',s.constructionPublication)]:[G.publishing.record(ID,s.task?'challenge':'diagram',s.task?{...geometry(s.task),revealed:false}:s.demo)],render:paper,answerSummary:item=>item.data.constructionMethod?item.data.constructionMethod.checks.join('; '):item.data.answer,answerGraphic:item=>item.data.constructionMethod?constructionMethodGraphic(item.data.constructionMethod,item.data.constructionMethod.steps.length-1):diagram(geometry(item.data),true,{paper:true,scale:['measure','draw','draw-reflex','reflex'].includes(item.data.type)}),answerNote:item=>item.data.constructionMethod?[item.data.constructionMethod.why,item.data.constructionMethod.conditions,'Accept any mathematically valid construction satisfying the given conditions.'].join(' '):[item.data.note,labTypes.includes(item.data.type)?'Illustrative diagram; accept any construction meeting the stated conditions, including valid reflections where applicable.':''].filter(Boolean).join(' ')});
 
  const icon=G.instruments.icon,instrumentButton=G.instruments.button;
@@ -2855,6 +2923,12 @@ G.anglesTool=function(){
   const pupil=construct?CK.pupilSpec('model',{hint:draw?'Drag the orange arm to the correct graduation, then check.':'Use the geometry tools to complete the construction, then check.',ready:()=>build?labCheck(lab||labEmpty(),task).ready:attempt!==null,check:()=>build?labCheck(lab||labEmpty(),task).correct:Math.abs(attempt-task.angle)<=1}):task?.choices?CK.pupilSpec('choice',{choices:task.choices,expected:task.answer}):CK.pupilSpec('number');
   host.innerHTML=(task?CK.bannerHtml(task,{pupil,actions:[{action:'another',label:'Another'},{action:'end',label:'Exit challenge'}]}):'')+'<div class="gd-ag-visual" style="width:100%;max-width:920px;margin:0 auto"></div>';
   const box=q('.gd-ag-visual',host);
+  let reference=null;
+  function updateReference(){
+    if(!reference)return;const m=shapeTeachingReference(d),body=q('[data-ag-shape-reference-body]',reference);
+    if(!m?.valid){body.innerHTML='<p>Move the vertices to form a simple, non-degenerate polygon before inspecting its properties.</p>';return}
+    body.innerHTML=m.groups.map(g=>'<section><h4>'+esc(g.title)+'</h4><dl>'+g.rows.map(([label,value])=>'<dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd>').join('')+'</dl></section>').join('');
+  }
   // Capture on the persistent wrapper: the SVG may be replaced on every
   // snapped degree, but pointer capture and the coordinate transform survive.
   let drag=null,triangleDrag=null,circleDrag=null;const freeCircle=!task&&demo.mode==='circle'&&CIRCLE_VIEWS.slice(1).some(([k])=>k===demo.circleView);
@@ -2865,7 +2939,7 @@ G.anglesTool=function(){
     const measuring=!!task&&['measure','reflex'].includes(task.type)&&!task.revealed;
     const svg=diagram(d,teacher,{attempt,length:attemptLength,scale:task?(task.revealed&&['measure','reflex'].includes(task.type)||['draw','draw-reflex'].includes(task.type)):demo.scale,measureWorkspace:measuring,interactive,...(drag?{full:drag.max===360}:{})});
     svg.style.cssText='width:100%;height:auto;max-height:560px;display:block;margin:auto';
-    box.replaceChildren(svg);if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon'&&!['triangle-comparison','triangle-criterion','triangle-inequality'].includes(demo.shapeView))mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);
+    box.replaceChildren(svg);updateReference();if(measuring)mountAngleMeasurement(box,svg,d);else if(task&&!task.revealed&&inspectTypes.includes(task.type))mountInvestigation(box,svg);else if(!task&&demo.mode==='polygon'&&!['triangle-comparison','triangle-criterion','triangle-inequality'].includes(demo.shapeView))mountPolygonRegions(box,svg,d,v=>demo.regionsByShape=v);
   }
   if(freeCircle){
     const moveCircle=e=>{if(circleDrag?.id!==e.pointerId)return;const q=new DOMPoint(e.clientX,e.clientY).matrixTransform(circleDrag.inverse),values=circleInvestigationMove(d,circleDrag.which,[q.x+circleDrag.offset[0],q.y+circleDrag.offset[1]]);Object.assign(demo,values);Object.assign(d,values);drawSvg()};
@@ -2929,6 +3003,9 @@ G.anglesTool=function(){
     else if(m==='lines')row.innerHTML=action('relation','Change relationship')+'<strong>'+esc(d.relation)+'</strong>'+(d.relation==='Neither'?angleButtons(d.angle+'°'):'')+action('rotate','Rotate 15°');
     
     host.appendChild(row);
+    if(m==='polygon'&&shapeTeachingReference(d)){
+      reference=document.createElement('details');reference.className='gd-ag-shape-reference';reference.dataset.agShapeReference='1';reference.open=demo.showReference!==false;reference.innerHTML='<summary>Properties, diagonals &amp; formulae</summary><div data-ag-shape-reference-body></div>';reference.ontoggle=()=>{demo.showReference=reference.open};host.appendChild(reference);updateReference();
+    }
     const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
     const cycle=(v,arr)=>arr[(arr.indexOf(v)+1)%arr.length];
     qa('[data-ag-action]',row).forEach(b=>b.onclick=()=>{const id=b.dataset.agAction;
