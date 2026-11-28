@@ -1,8 +1,5 @@
-# Integrated release verification: given circle centre and loci.
-# Integrated release verification: external tangents and regular pentagon.
 name: 99 Club QA
 # Integrated release verification: tangent and inscribed-square constructions.
-# Integrated release verification: regular hexagon and octagon constructions.
 
 on:
   push:
@@ -88,6 +85,7 @@ concurrency:
   group: 99club-qa-${{ github.ref }}
   cancel-in-progress: true
 
+# Integrated release verification: given circle centre and loci.
 jobs:
   engine-and-contract-qa:
     runs-on: ubuntu-latest
@@ -481,5 +479,3 @@ jobs:
             99club-preview-qa-report.json
             99club-preview-controls-report.json
           if-no-files-found: ignore
-
-# Integrated release verification: triangle centres and their circles.
