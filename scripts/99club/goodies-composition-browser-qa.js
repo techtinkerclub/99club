@@ -1295,7 +1295,7 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
@@ -1309,6 +1309,8 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(family==='build-thirds'){
+          point([A[0]+80,A[1]]);point([A[0]+160,A[1]]);verify();
         }else if(family==='build-circle'){
           circle(A,t.length);assert(Math.abs(cap().lab.circles[0].r-t.length*40)<1e-8,'Calibrated compass sets assessed radius');verify();
         }else if(['build-sss','build-equilateral'].includes(family)){
@@ -1327,7 +1329,7 @@ async function run(){
         }else {
           // Complete the four required edges through independently computed
           // expected vertices, using exact geometric intersections where available.
-          const a=family==='build-rhombus'?t.angle:90,h=family==='build-rhombus'?6:t.length,D=polar(A,h*40,a),C=[B[0]+D[0]-A[0],B[1]+D[1]-A[1]];
+          const a=['build-rhombus','build-parallelogram'].includes(family)?t.angle:90,h=family==='build-rhombus'?6:t.length,D=polar(A,h*40,a),C=[B[0]+D[0]-A[0],B[1]+D[1]-A[1]];
           ray(A,B,a);circle(A,h);point([D[0]+.6,D[1]-.6]);const actualD=cap().lab.points.find(p=>near(p,D));assert(actualD,'Constructed AD has exact opening and angle: '+family);
           circle(B,h);circle(actualD,6);point([C[0]+.6,C[1]-.6]);const actualC=cap().lab.points.find(p=>near(p,C));assert(actualC,'Fourth vertex acquired from exact compass crossings: '+family);
           line(A,actualD);line(actualD,actualC);line(actualC,B);verify();
