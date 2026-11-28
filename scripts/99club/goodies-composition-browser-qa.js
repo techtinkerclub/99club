@@ -3630,15 +3630,18 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       const rotationPanel=doc.querySelector('[data-ag-rotation-reference]'),rotationSlider=rotationPanel.querySelector('[data-ag-rotation-slider]');
       rotationSlider.value=45;rotationSlider.dispatchEvent(new win.Event('input',{bubbles:true}));
       assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='false','45 degree square turn is not a match');
+      assert(rotationPanel.querySelector('[data-ag-rotation-progress]').dataset.agRotationProgress==='0','No matching positions counted before the first quarter turn');
       const arcGraphic=rotationPanel.querySelector('[data-ag-rotation-graphic]'),turnArc=arcGraphic.querySelector('[data-ag-rotation-turn-arc]'),rayDirection=n=>Math.atan2(Number(n.getAttribute('cy'))-120,Number(n.getAttribute('cx'))-210),arcDirection=p=>Math.atan2(p.y-120,p.x-210),angleError=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));assert(turnArc&&angleError(arcDirection(turnArc.getPointAtLength(0)),rayDirection(arcGraphic.querySelector('[data-ag-rotation-start-vertex]')))<1e-5&&angleError(arcDirection(turnArc.getPointAtLength(turnArc.getTotalLength())),rayDirection(arcGraphic.querySelector('[data-ag-rotation-moving-vertex]')))<1e-5,'Rotation arc starts and ends on the actual corner rays');
 
       rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true'&&Number(rotationSlider.value)===90,'Next matching rotation moves to 90 degrees');
+      assert(rotationPanel.querySelector('[data-ag-rotation-progress]').dataset.agRotationProgress==='1','First quarter turn counts one matching position');for(let j=2;j<=4;j++){rotationPanel.querySelector('[data-ag-rotation-next-match]').click();assert(rotationPanel.querySelector('[data-ag-rotation-progress]').dataset.agRotationProgress===String(j),'Count each matching position exactly once, including 360 degrees')}assert(Number(rotationSlider.value)===360,'Full turn completes order four');
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();assert(Number(rotationSlider.value)===0,'Rotation reset');
       assert(rotationPanel.querySelector('[data-ag-rotation-order]').textContent.includes('360° ÷ 4 = 90°'),'Square order and smallest matching turn are explained');
       doc.querySelector('[data-ag-teaching-tab="symmetry"]').click();await tick();assert(!rotationPanel.hidden,'Rotation lesson is visible before starting animation');
       rotationPanel.querySelector('[data-ag-rotation-full-turn]').click();
       if(!win.matchMedia('(prefers-reduced-motion: reduce)').matches){for(let j=0;j<40&&Number(rotationSlider.value)!==90;j++)await tick(50);assert(Number(rotationSlider.value)===90&&rotationPanel.querySelector('[data-ag-rotation-graphic]').dataset.agRotationMatch==='true','Full turn pauses at first exact square match')}
       else assert(Number(rotationSlider.value)===360,'Reduced motion completes full revolution directly');
+      if(!win.matchMedia('(prefers-reduced-motion: reduce)').matches){const fullTurn=rotationPanel.querySelector('[data-ag-rotation-full-turn]');fullTurn.click();const pausedAt=Number(rotationSlider.value);await tick(200);assert(Number(rotationSlider.value)===pausedAt&&fullTurn.getAttribute('aria-pressed')==='false','Pause freezes the rotation demonstration');fullTurn.click();for(let j=0;j<40&&Number(rotationSlider.value)!==180;j++)await tick(50);assert(Number(rotationSlider.value)===180&&rotationPanel.querySelector('[data-ag-rotation-progress]').dataset.agRotationProgress==='2','Continue reaches the second match without resetting')}
       rotationPanel.querySelector('[data-ag-rotation-reset]').click();await tick(80);assert(Number(rotationSlider.value)===0,'Reset cancels full-turn animation');
 
       doc.querySelector('[data-ag-teaching-tab="symmetry"]').click();await tick();
@@ -3647,6 +3650,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(Number(rotationSlider.value)===90&&turnPic.querySelector('svg').dataset.agRotationMatch==='true','Drag a corner directly through a quarter turn');rotationPanel.querySelector('[data-ag-rotation-reset]').click();
       const rotationPack=P.createDocument();rotationPack.addCurrent(id,cap());const rotationPrint=P.renderItem(rotationPack.list()[0],false);
       assert(rotationPrint.querySelector('[data-ag-rotation-graphic]'),'Rotational symmetry graphic printed');
+      assert(rotationPrint.querySelector('[data-ag-rotation-progress]').textContent.includes('0 / 4'),'Printed symmetry preserves matching position count and order');
       const printedView=rotationPrint.viewBox.baseVal;assert([printedView.x,printedView.y,printedView.width,printedView.height].every(Number.isFinite)&&printedView.width>0&&printedView.height>0&&!rotationPrint.outerHTML.includes('NaN'),'Teaching publication has finite SVG geometry: '+rotationPrint.getAttribute('viewBox'));
       for(const [shape,axes] of [['square',4],['rectangle',2],['equilateral',3],['scalene',0],['rhombus',2],['kite',1]]){
         const m=ref(shape),initial=M.reflectionInvestigation(m);

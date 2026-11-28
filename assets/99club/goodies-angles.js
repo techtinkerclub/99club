@@ -1812,7 +1812,8 @@ function generate(s={},rng=Math.random){
    const pts=m.points,centre=m.symmetry.centre,n=pts.length,angle=Math.max(0,Math.min(360,Number(degrees)||0)),q=angle*D,co=Math.cos(q),si=Math.sin(q),scale=Math.max(...pts.map(p=>labDist(p,centre))),eps=scale*1e-8;
    const rotated=pts.map(p=>{const [x,y]=labSub(p,centre);return [centre[0]+co*x+si*y,centre[1]-si*x+co*y]});
    const offset=pts.findIndex((p,i)=>rotated.every((v,k)=>labDist(v,pts[(i+k)%n])<=eps));
-   return {angle,centre,rotated,matches:offset>=0,offset,order:m.symmetry.rotation,smallest:360/m.symmetry.rotation};
+   const order=m.symmetry.rotation,smallest=360/order,passed=Math.max(0,Math.min(order,Math.floor(angle/smallest+1e-10)));
+   return {angle,centre,rotated,matches:offset>=0,offset,order,smallest,passed};
  }
  // Two equal outer squares, each containing four congruent right triangles.
  // Independent mathematical investigations in centimetres. Geometry, area
@@ -3152,7 +3153,7 @@ function rotationReferenceGraphic(m,degrees,interactive=false){
  const start=Math.atan2(p[1]-120,p[0]-210),arc=Math.min(34,labDist(p,[210,120])*.65),rad=model.angle*D;
  if(model.angle>0&&model.angle<360&&arc>1){const a=[210+arc*Math.cos(start),120+arc*Math.sin(start)],b=[210+arc*Math.cos(start-rad),120+arc*Math.sin(start-rad)];add('path',{d:'M '+a.join(' ')+' A '+arc+' '+arc+' 0 '+(model.angle>180?1:0)+' 0 '+b.join(' '),fill:'none',stroke:'#a56a2e','stroke-width':2,'data-ag-rotation-turn-arc':'1'});const tangent=[Math.sin(start-rad),-Math.cos(start-rad)],normal=[-tangent[1],tangent[0]],back=labAt(b,tangent,-7);add('path',{d:'M '+labAt(back,normal,3).join(' ')+' L '+b.join(' ')+' L '+labAt(back,normal,-3).join(' '),fill:'none',stroke:'#a56a2e','stroke-width':1.8})}
  label(210,249,Number(model.angle.toFixed(2))+'° — '+(model.matches?'Matches the original outline':'Does not match the original outline'),{'font-weight':700,fill:model.matches?'#175e55':'#85551f','data-ag-rotation-result':'1'});
- label(210,271,'Order '+model.order+' · smallest matching turn '+Number(model.smallest.toFixed(2))+'°',{'font-size':14});
+ label(210,271,'Matches: '+model.passed+' / '+model.order+' · First match: '+Number(model.smallest.toFixed(2))+'°',{'font-size':14,'data-ag-rotation-progress':String(model.passed)});
  return svg;
 }
 function measurementText(m){
@@ -3251,10 +3252,10 @@ function mountTransformationReference(container,m,demo){
  for(const b of section.querySelectorAll('[data-ag-transform-kind]'))b.onclick=()=>{if(settings.kind!==b.dataset.agTransformKind){settings.kind=b.dataset.agTransformKind;controls()}};q('[data-ag-transform-reset]').onclick=()=>{settings={kind:settings.kind};controls()};container.append(section);controls();
 }
 function mountRotationReference(container,m,demo){
- let angle=Math.max(0,Math.min(360,Number(demo.symmetryRotation)||0)),token=0;
+ let angle=Math.max(0,Math.min(360,Number(demo.symmetryRotation)||0)),token=0,playing=false,paused=false;
  const section=document.createElement('section');section.className='gd-ag-rotation-reference';section.dataset.agRotationReference='1';
- section.innerHTML='<h4>Rotational symmetry</h4><strong class="gd-ag-teaching-formula" data-ag-rotation-order></strong><p>Turn the orange shape until it fits the green outline. Count the matching positions in one full turn.</p><div data-ag-rotation-picture></div><div class="gd-row"><button type="button" class="gd-btn" data-ag-rotation-reset>Reset</button><button type="button" class="gd-btn gd-btn--primary" data-ag-rotation-next-match>Turn until it fits</button><button type="button" class="gd-btn" data-ag-rotation-full-turn>Show full turn</button></div><details><summary>Set an exact angle</summary><label>Turn (degrees) <output data-ag-rotation-angle></output><input type="range" min="0" max="360" step="any" data-ag-rotation-slider aria-label="Rotation in degrees"></label><button type="button" class="gd-btn" data-ag-rotation-quarter>+ 90°</button></details>';
- const input=section.querySelector('[data-ag-rotation-slider]'),stop=()=>{token++},step=360/m.symmetry.rotation;section.querySelector('[data-ag-rotation-order]').textContent='Order '+m.symmetry.rotation+' · 360° ÷ '+m.symmetry.rotation+' = '+Number(step.toFixed(2))+'°';const show=()=>{demo.symmetryRotation=angle;input.value=angle;section.querySelector('[data-ag-rotation-angle]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-rotation-picture]').replaceChildren(rotationReferenceGraphic(m,angle,true))};
+ section.innerHTML='<h4>Rotational symmetry</h4><strong class="gd-ag-teaching-formula" data-ag-rotation-order></strong><p>Turn the orange shape to fit the green outline. Count each match after leaving the start; the full turn counts once.</p><div data-ag-rotation-picture></div><div class="gd-row"><button type="button" class="gd-btn" data-ag-rotation-reset>Reset</button><button type="button" class="gd-btn gd-btn--primary" data-ag-rotation-next-match>Turn until it fits</button><button type="button" class="gd-btn" data-ag-rotation-full-turn aria-pressed="false">Play full turn</button></div><details><summary>Set an exact angle</summary><label>Turn (degrees) <output data-ag-rotation-angle></output><input type="range" min="0" max="360" step="any" data-ag-rotation-slider aria-label="Rotation in degrees"></label><button type="button" class="gd-btn" data-ag-rotation-quarter>+ 90°</button></details>';
+ const input=section.querySelector('[data-ag-rotation-slider]'),full=section.querySelector('[data-ag-rotation-full-turn]'),stop=(resume=false)=>{token++;playing=false;paused=resume;full.textContent=resume?'Continue turn':'Play full turn';full.setAttribute('aria-pressed','false')},step=360/m.symmetry.rotation;section.querySelector('[data-ag-rotation-order]').textContent='Order '+m.symmetry.rotation+' · 360° ÷ '+m.symmetry.rotation+' = '+Number(step.toFixed(2))+'°';const show=()=>{demo.symmetryRotation=angle;input.value=angle;section.querySelector('[data-ag-rotation-angle]').textContent=Number(angle.toFixed(2))+'°';section.querySelector('[data-ag-rotation-picture]').replaceChildren(rotationReferenceGraphic(m,angle,true))};
  const picture=section.querySelector('[data-ag-rotation-picture]');let drag=null;
  const pointerAngle=p=>Math.atan2(120-p.y,p.x-210)/D;
  picture.addEventListener('pointerdown',e=>{const svg=picture.querySelector('svg'),matrix=svg?.getScreenCTM();if(!e.target.closest('[data-ag-rotation-moving-vertex]')||!matrix||e.button!==0)return;const inverse=matrix.inverse(),p=new DOMPoint(e.clientX,e.clientY).matrixTransform(inverse);stop();drag={id:e.pointerId,inverse,last:pointerAngle(p),raw:angle};e.preventDefault();try{picture.setPointerCapture(e.pointerId)}catch(_){}});
@@ -3264,9 +3265,9 @@ function mountRotationReference(container,m,demo){
  section.querySelector('[data-ag-rotation-reset]').onclick=()=>{stop();angle=0;show()};
  section.querySelector('[data-ag-rotation-quarter]').onclick=()=>{stop();angle=angle===360?90:Math.min(360,angle+90);show()};
  section.querySelector('[data-ag-rotation-next-match]').onclick=()=>{stop();const step=360/m.symmetry.rotation;angle=angle>=360-1e-8?step:Math.min(360,(Math.floor((angle+1e-8)/step)+1)*step);show()};
- const full=section.querySelector('[data-ag-rotation-full-turn]');
- full.onclick=()=>{const id=++token;angle=0;show();if(root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){angle=360;show();return}let match=1;
- const next=()=>{if(id!==token||!section.isConnected||section.hidden)return;const from=angle,to=Math.min(360,match*step),start=performance.now();const animate=()=>{if(id!==token||!section.isConnected||section.hidden)return;const t=Math.min(1,(performance.now()-start)/650);angle=t===1?to:from+(to-from)*t;show();if(t<1)root.setTimeout(animate,32);else if(match<m.symmetry.rotation){match++;root.setTimeout(next,550)}};animate()};next()};
+ full.onclick=()=>{if(playing){stop(true);return}const id=++token;playing=true;if(!paused||angle>=360-1e-8)angle=0;paused=false;full.textContent='Pause turn';full.setAttribute('aria-pressed','true');show();if(root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){angle=360;show();stop();return}let match=Math.min(m.symmetry.rotation,Math.floor((angle+1e-8)/step)+1);
+ const active=()=>{if(id!==token)return false;if(!section.isConnected||section.hidden){stop();return false}return true};
+ const next=()=>{if(!active())return;const from=angle,to=Math.min(360,match*step),start=performance.now();const animate=()=>{if(!active())return;const t=Math.min(1,(performance.now()-start)/650);angle=t===1?to:from+(to-from)*t;show();if(t<1)root.setTimeout(animate,32);else if(match<m.symmetry.rotation){match++;root.setTimeout(next,550)}else{stop();full.textContent='Replay full turn'}};animate()};next()};
  container.appendChild(section);show();
 }
 function reflectionReferenceGraphic(m,degrees,offset,fold=null){
