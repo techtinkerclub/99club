@@ -1471,7 +1471,7 @@ async function run(){
             const pp=cap().lab.points.find(v=>near(v,p)),qq=cap().lab.points.find(v=>near(v,q));assert(pp&&qq,'Equal compass arcs locate perpendicular bisector endpoints');line(pp,qq);
           }
           point([o[0]+.6,o[1]-.6]);assert(cap().lab.points.some(p=>near(p,o)),'Centre snaps to the intersection of two constructed bisectors');const finished=cap().lab;assert(M.labCheck(finished,t).precise,'Circle-centre full drawing: '+JSON.stringify({task:t,points:finished.points,segments:finished.segments,givenCircle:finished.givenCircle,check:M.labCheck(finished,t)}));
-          tool('reset').click();assert(cap().lab.points.length===2&&cap().lab.circles.length===0&&svg.querySelectorAll('[data-ag-given-circle]').length===1,'Reset restores the given outline and removes the discovered centre');
+
         }else if(family==='build-two-distance-locus'||family==='build-equidistant-locus'){
           const eq=family==='build-equidistant-locus',mid=[(A[0]+B[0])/2,A[1]],r=t.length*40,h=eq?r:Math.sqrt(r*r-120*120);
           if(eq){point(mid);const actualM=cap().lab.points.find(p=>near(p,mid));assert(actualM,'Locate midpoint of AB');ray(actualM,B,90);ray(actualM,B,270);circle(actualM,t.length);}
@@ -1563,6 +1563,10 @@ async function run(){
           line(A,actualD);line(actualD,actualC);line(actualC,B);verify();
         }
         const result=verify(),paper=P.createDocument();paper.addCurrent(id,cap());const item=paper.list()[0];assert(result.precise&&P.answerGraphic(item),'Verified assessed construction retains teacher answer publication: '+family);
+        if(family==='build-find-circle-centre'){
+          tool('reset').click();assert(cap().lab.points.length===2&&cap().lab.circles.length===0&&svg.querySelectorAll('[data-ag-given-circle]').length===1,'Reset restores the given outline and removes the discovered centre');
+          assert(!M.labCheck(cap().lab,t).precise,'Reset drawing is no longer assessed as complete');
+        }
       }
     }
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
