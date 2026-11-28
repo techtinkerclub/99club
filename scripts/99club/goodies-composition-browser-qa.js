@@ -1221,6 +1221,11 @@ async function run(){
         if(type==='build-circle')assert(end.some(o=>o.kind==='circle'&&o.radius===40*t.length),'Guide circle has task radius');
         if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
         if(pts.C&&!['build-bisector','build-golden-section'].includes(type))assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution: '+type);
+        if(['build-hypotenuse','build-semicircle','build-external-tangents'].includes(type)){
+          const start=model.labEmpty(false,t),[a,b]=start.points,m=a.map((x,j)=>(x+b[j])/2),r=dist(a,b)/2;
+          assert(m[0]-r>=20&&m[0]+r<=780&&m[1]-r>=20&&m[1]+r<=380,'Complete diameter circle has usable clearance on the initial canvas: '+type);
+          assert(end.some(o=>o.kind==='circle'&&dist(o.center,m)<1e-7&&Math.abs(o.radius-r)<1e-7),'Guide and canvas share the same diameter circle');
+        }
         if(pts.D)assert(dist(pts.D,sol.points[3])<1e-7,'Guide D matches assessed solution');
         if(type==='build-thirds')assert(dist(pts.P,sol.points[2])<1e-7&&dist(pts.Q,sol.points[3])<1e-7,'Guide division points match verified solution');
         if(['build-centroid','build-circumcircle','build-incircle','build-orthocentre'].includes(type)){
@@ -1388,6 +1393,7 @@ async function run(){
         if(type==='build-copy-angle'){
           assert(pupil.querySelectorAll('[data-ag-given-point]').length===3&&!pupil.textContent.includes('Draw AB = 6 cm first'),'Original angle supplied without its copy');
           assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'Answer marks both equal angles');
+          assert(key.querySelectorAll('[data-ag-given-segment]').length===1,'Answer distinguishes the immutable source arm from the copied arm');
         }
         if(['build-common-external-tangents','build-common-internal-tangents'].includes(type))assert(key.querySelectorAll('[data-ag-common-tangent-right-angle]').length===4&&key.querySelectorAll('[data-ag-solution-circle]').length===2,'Common tangent answer shows both circles and four right angles');
         if(type==='build-tangent')assert(key.querySelector('[data-ag-tangent-right-angle]'),'Tangent key marks perpendicular radius');
@@ -1513,6 +1519,7 @@ async function run(){
           line(B,c);line(c,d0);line(d0,A);verify();
         }else if(family==='build-find-circle-centre'){
           const g=initial.givenCircle,o=g.o,sign=Math.sign(o[1]-A[1]),expected=[o[0],o[1]+sign*g.r];
+          assert(near(M.labSolution(t).points[2],expected),'Illustrated solution uses a well-separated third point on the circle');
           assert(svg.querySelectorAll('[data-ag-given-circle]').length===1&&svg.querySelectorAll('[data-ag-point-label]').length===2,'Given circle starts with two chord endpoints, not its centre');
           point([expected[0],expected[1]+sign]);const C=cap().lab.points.find(p=>near(p,expected));assert(C,'A slightly offset tap snaps to given circumference');line(B,C);const chord=cap().lab,ci=chord.points.findIndex(p=>near(p,C));assert(chord.segments.some(e=>e.includes(1)&&e.includes(ci)),'Chord BC is committed: '+JSON.stringify({points:chord.points,segments:chord.segments}));
           for(const [a,b] of [[A,B],[B,C]]){
