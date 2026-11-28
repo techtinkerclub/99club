@@ -1176,8 +1176,9 @@ async function run(){
         assert(m.challengeSpecific&&m.steps.length===m.graphics.frames.length&&model.constructionMethodGraphic(m,m.steps.length-1).outerHTML.indexOf('NaN')===-1,'Challenge-specific vector stages render: '+type);
         if(type==='build-circle')assert(pts.A&&!pts.B&&m.graphics.initial.length===1,'Circle guide starts with its centre only');else assert(dist(pts.A,pts.B)===240,'Challenge baseline remains exactly 6 cm: '+type);
         const expected=[],cm=v=>Number(v.toFixed(3))+' cm',deg=v=>Number(v.toFixed(3))+'°';
-        if(type==='build-circle')expected.push('Centre A','Radius = '+cm(t.length));else if(type==='build-find-circle-centre')expected.push('Given circle and chord AB');else if(['build-perpendicular-from-point','build-parallel-through-point'].includes(type))expected.push('Given segment AB and external point P');else expected.push('AB = 6 cm');
+        if(type==='build-circle')expected.push('Centre A','Radius = '+cm(t.length));else if(type==='build-copy-angle')expected.push('Given angle BAC and arm BA');else if(type==='build-find-circle-centre')expected.push('Given circle and chord AB');else if(['build-perpendicular-from-point','build-parallel-through-point'].includes(type))expected.push('Given segment AB and external point P');else expected.push('AB = 6 cm');
         if(type==='build-isosceles-trapezium')expected.push('CD = '+cm(t.rightLength),'Perpendicular height = '+cm(t.length));
+        if(['build-common-external-tangents','build-common-internal-tangents'].includes(type))expected.push('Radius at A = '+cm(t.length),'Radius at B = '+cm(t.rightLength));
         if(type==='build-two-distance-locus')expected.push('Distance from A and B = '+cm(t.length));
         if(type==='build-equidistant-locus')expected.push('Radius from midpoint M = '+cm(t.length));
         if(['shape-build','build-right','build-perpendicular','build-sss','build-equilateral'].includes(type))expected.push('AC = '+cm(t.length));
@@ -1203,7 +1204,8 @@ async function run(){
         const mirrored=JSON.parse(JSON.stringify(sol));mirrored.points=mirrored.points.map(([x,y])=>[x,604-y]);if(mirrored.givenCircle)mirrored.givenCircle.o=[mirrored.givenCircle.o[0],604-mirrored.givenCircle.o[1]];
         assert(model.labCheck(mirrored,t).precise,'Reflected exact solution passes precision verification: '+type);
         const imperfect=JSON.parse(JSON.stringify(sol));
-        if(type==='build-perpendicular-from-point'||type==='build-isosceles-trapezium')imperfect.points.at(-1)[0]+=.8;
+        if(['build-copy-angle','build-common-external-tangents','build-common-internal-tangents'].includes(type))imperfect.points.at(-1)[1]+=.8;
+        else if(type==='build-perpendicular-from-point'||type==='build-isosceles-trapezium')imperfect.points.at(-1)[0]+=.8;
         else if(type==='build-parallel-through-point')imperfect.points.at(-1)[1]+=.8;
         else if(['build-find-circle-centre','build-two-distance-locus','build-equidistant-locus'].includes(type))imperfect.points.at(-1)[0]+=.8;
         else if(type==='build-circle')imperfect.circles[0].r+=.8;
@@ -1280,6 +1282,22 @@ async function run(){
           assert(Math.abs(dist(c,d)-40*t.rightLength)<1e-7&&Math.abs(dist(a,d)-dist(b,c))<1e-7&&Math.abs(a[1]-c[1]-40*t.length)<1e-7,'Independent shorter base, leg equality and height checks');
           const missing=JSON.parse(JSON.stringify(sol));missing.segments.pop();assert(!model.labCheck(missing,t).precise,'Open trapezium cannot pass');
           const reversed=JSON.parse(JSON.stringify(sol));reversed.points=[a,b,d,c];reversed.segments=sol.segments.map(e=>e.map(i=>i===2?3:i===3?2:i));assert(model.labCheck(reversed,t).precise,'Trapezium point insertion order does not matter');
+        }
+        if(type==='build-copy-angle'){
+          const [a,b,c,d]=sol.points,start=model.labEmpty(false,t);
+          assert(start.givenCount===3&&start.givenSegments.length===1&&dist(pts.D,d)<1e-7,'Copy angle keeps original angle and constructs only its copy');
+          assert(Math.abs(dist(pts.X,c)-dist(pts.Y,d))<1e-7,'Independent equal chord check for exact angle transfer');
+          const missing=JSON.parse(JSON.stringify(sol));missing.segments.pop();assert(!model.labCheck(missing,t).precise,'Original angle alone cannot pass');
+          const wrong=JSON.parse(JSON.stringify(sol));wrong.points[3][1]=2*b[1]-wrong.points[3][1];assert(!model.labCheck(wrong,t).precise,'Copied angle on wrong side does not pass');
+        }
+        if(['build-common-external-tangents','build-common-internal-tangents'].includes(type)){
+          const [a,b,...p]=sol.points,internal=type==='build-common-internal-tangents';
+          assert(['T1','U1','T2','U2'].every((k,j)=>dist(pts[k],p[j])<1e-7),'All four guide contacts match assessed example');
+          for(let j=0;j<4;j++){const o=j%2?b:a,v=p[j],w=p[j^1];assert(Math.abs(dist(o,v)-40*(j%2?t.rightLength:t.length))<1e-7&&Math.abs((o[0]-v[0])*(w[0]-v[0])+(o[1]-v[1])*(w[1]-v[1]))<1e-6,'Each contact radius is perpendicular to its tangent')}
+          assert((p[0][1]-a[1])*(p[1][1]-b[1])*(internal?-1:1)>0,'Correct internal or external tangent side');
+          const missing=JSON.parse(JSON.stringify(sol));missing.segments.pop();assert(!model.labCheck(missing,t).precise,'One common tangent is insufficient');
+          const wrong=JSON.parse(JSON.stringify(sol));wrong.circles.pop();assert(!model.labCheck(wrong,t).precise,'Both original circles are required');
+          const reversed=JSON.parse(JSON.stringify(sol)),order=[0,1,5,4,3,2];reversed.points=order.map(i=>sol.points[i]);reversed.segments=sol.segments.map(e=>e.map(i=>order.indexOf(i)));assert(model.labCheck(reversed,t).precise,'Common tangents accept any contact insertion order');
         }
         if(type==='build-golden-section'){assert(dist(pts.G,sol.points[2])<1e-7,'Golden-section guide matches verified point');assert(dist(pts.B,pts.C)===120&&Math.abs(dist(pts.A,pts.F)-dist(pts.A,pts.G))<1e-7,'Golden-section guide transfers the exact compass opening')}
         if(type==='build-semicircle')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.M,sol.points[3])<1e-7,'Semicircle guide matches verified example');
@@ -1367,6 +1385,11 @@ async function run(){
           assert(type==='build-perpendicular-from-point'?key.querySelector('[data-ag-external-perpendicular]'):key.querySelectorAll('[data-ag-parallel-mark]').length===2,'Key marks line relation');
         }
         if(type==='build-isosceles-trapezium')assert(key.querySelector('[data-ag-trapezium-height]')&&key.querySelectorAll('[data-ag-equal-leg]').length===2,'Trapezium key shows perpendicular height and equal legs');
+        if(type==='build-copy-angle'){
+          assert(pupil.querySelectorAll('[data-ag-given-point]').length===3&&!pupil.textContent.includes('Draw AB = 6 cm first'),'Original angle supplied without its copy');
+          assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'Answer marks both equal angles');
+        }
+        if(['build-common-external-tangents','build-common-internal-tangents'].includes(type))assert(key.querySelectorAll('[data-ag-common-tangent-right-angle]').length===4&&key.querySelectorAll('[data-ag-solution-circle]').length===2,'Common tangent answer shows both circles and four right angles');
         if(type==='build-tangent')assert(key.querySelector('[data-ag-tangent-right-angle]'),'Tangent key marks perpendicular radius');
         if(type==='build-external-tangents')assert(key.querySelectorAll('[data-ag-external-tangent-right-angle]').length===2,'Both tangent contacts have right-angle markers');
         if(['build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','build-inscribed-pentagon'].includes(type)){
@@ -1423,7 +1446,7 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','build-centroid','build-external-tangents','build-inscribed-pentagon','build-find-circle-centre','build-two-distance-locus','build-equidistant-locus','build-perpendicular-from-point','build-parallel-through-point','build-isosceles-trapezium','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','build-centroid','build-external-tangents','build-inscribed-pentagon','build-find-circle-centre','build-two-distance-locus','build-equidistant-locus','build-perpendicular-from-point','build-parallel-through-point','build-isosceles-trapezium','build-copy-angle','build-common-external-tangents','build-common-internal-tangents','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
@@ -1437,6 +1460,25 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(family==='build-copy-angle'){
+          const C=initial.points[2],X=[A[0]+80,A[1]],Y=[B[0]-80,B[1]],D=polar(B,80,180-t.angle);
+          select('erase');tap([(A[0]+C[0])/2,(A[1]+C[1])/2]);assert((cap().lab||initial).segments.some(e=>e.includes(0)&&e.includes(2)),'Source angle arm is immutable');
+          circle(A,2);point(X);const x=cap().lab.points.find(p=>near(p,X));assert(x,'Original equal-radius arc meets AB');circle(B,2);point(Y);const y=cap().lab.points.find(p=>near(p,Y));assert(y,'Copied equal-radius arc meets BA');
+          select('compass');tool('compass-pickup').click();tap(x);tap(C);tap(y);
+          assert(Math.abs(cap().lab.circles.at(-1).r-d(x,C))<1e-7,'Exact chord opening transferred from source angle');
+          point([D[0]+.6,D[1]-.6]);const actual=cap().lab.points.find(p=>near(p,D));assert(actual,'Copied angle obtained at exact compass crossing');line(B,actual);verify();
+        }else if(family==='build-common-external-tangents'||family==='build-common-internal-tangents'){
+          const R=t.length*40,r=t.rightLength*40,internal=family==='build-common-internal-tangents',a=internal?R+r:R-r,mid=[(A[0]+B[0])/2,A[1]],nx=a/d(A,B),ny=Math.sqrt(1-nx*nx);
+          const exactCircle=(o,rad)=>{select('compass');if(tool('compass-opening').getAttribute('aria-pressed')==='true')tool('compass-opening').click();set('length-graduation',.01);tap(o);snap(false);tap(polar(o,rad+.09,90));snap(true);assert(Math.abs(cap().lab.circles.at(-1).r-rad)<1e-7,'Specified exact compass opening')};
+          exactCircle(A,R);exactCircle(B,r);point(mid);const m=cap().lab.points.find(p=>near(p,mid));assert(m,'Midpoint of circle centres');exactCircle(m,120);exactCircle(A,a);
+          for(const sign of [-1,1]){
+            const x=[A[0]+a*nx,A[1]+sign*a*ny],p=[A[0]+R*nx,A[1]+sign*R*ny],q=[B[0]+(internal?-r:r)*nx,B[1]+(internal?-r:r)*sign*ny];
+            point([x[0]+.6,x[1]-.6]);const hit=cap().lab.points.find(v=>near(v,x));assert(hit,'Auxiliary tangent contact snaps to exact circle crossing');
+            // Radius direction is established by the auxiliary contact. Mark
+            // final contacts on the original circles using radial snap.
+            point(p);point(q);const actualP=cap().lab.points.find(v=>near(v,p)),actualQ=cap().lab.points.find(v=>near(v,q));assert(actualP&&actualQ,'Both original-circle contact points acquired');line(actualP,actualQ);
+          }
+          verify();
         }else if(family==='build-perpendicular-from-point'||family==='build-parallel-through-point'){
           const P=initial.points[2],perp=family==='build-perpendicular-from-point',F=[P[0],A[1]];
           assert(svg.querySelector('[data-ag-point-label="P"]'),'Fixed external P is visibly labelled');
