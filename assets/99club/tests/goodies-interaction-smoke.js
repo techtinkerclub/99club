@@ -211,4 +211,23 @@ requireText(numberMobile,"const desiredHelp=",'Number Mobile avoids rewriting id
 requireText(numberMobile,"eq&&eq.textContent!==desired",'Number Mobile avoids rewriting an unchanged equation');
 requireText(numberMobile,"G.numberMobileBalanceVersion='2.2'",'Number Mobile freeze hotfix version');
 
+// Geometry transformations: run the numerical contract without a browser.
+{
+  const M=require('../goodies-angles.js'),near=(a,b)=>Math.abs(a-b)<1e-7,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+  let cases=0,pairs=0;
+  for(const shapeView of ['square','rectangle','kite','scalene','free-polygon','regular','trapezium','right-triangle','free-quadrilateral','free-triangle']){
+    const m=M.shapeTeachingReference({mode:'polygon',shapeView});
+    if(!m.valid)throw new Error('Invalid transformation fixture: '+shapeView);
+    for(const kind of ['translation','rotation','reflection','enlargement'])for(const factor of [.25,1,1.5,2])for(const angle of [0,37,90,180,-90]){
+      const t=M.transformationInvestigation(m,{kind,dx:-3.5,dy:2.25,angle,px:.65,py:-.4,factor}),k=kind==='enlargement'?factor:1;
+      cases++;
+      if(!near(t.after.length,t.before.length*k)||!near(t.after.perimeter,t.before.perimeter*k)||!near(t.after.area,t.before.area*k*k))throw new Error('Transformation metric invariant: '+shapeView+' '+kind);
+      for(let i=0;i<t.original.length;i++)for(let j=0;j<i;j++){
+        pairs++;if(!near(dist(t.original[i],t.original[j])*k,dist(t.image[i],t.image[j])))throw new Error('Transformation distance invariant: '+shapeView+' '+kind);
+      }
+    }
+  }
+  console.log('Geometry transformations: '+cases+' cases, '+pairs+' pairwise distances passed.');
+}
+
 console.log('Goodies interaction regression checks passed.');

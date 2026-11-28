@@ -3404,6 +3404,60 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
       assert(trianglePanel.querySelectorAll('[data-ag-family-possible="false"]').length===2,'Impossible equilateral right and obtuse cells explicitly shown');
       triangleSelect.value='current';triangleSelect.dispatchEvent(new win.Event('change',{bubbles:true}));
       doc.querySelector('[data-ag-teaching-tab="families"]').click();await tick();const trianglePack=P.createDocument();trianglePack.addCurrent(id,cap());const trianglePrint=P.renderItem(trianglePack.list()[0],false);assert(trianglePrint.querySelector('[data-ag-classification-picture]')&&!trianglePrint.querySelector('[data-ag-triangle-family-graphic]'),'Triangle classification primary picture printed');trianglePanel.querySelector('[data-ag-triangle-family-more]').open=true;await tick();const extendedTrianglePack=P.createDocument();extendedTrianglePack.addCurrent(id,cap());assert(P.renderItem(extendedTrianglePack.list()[0],false).querySelector('[data-ag-triangle-family-graphic]'),'Optional classification grid printed when open');trianglePanel.querySelector('[data-ag-triangle-family-more]').open=false;await tick();
+      // Transformation invariants: use independent coordinate and metric checks.
+      {
+        const close=(a,b)=>Math.abs(a-b)<1e-7,dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+        assert(M.transformationInvestigation({valid:false})===null,'Invalid polygon cannot produce a transformation');
+        for(const shape of ['square','rectangle','kite','scalene','free-polygon','regular']){
+          const m=ref(shape),base=M.transformationInvestigation(m,{dx:0,dy:0});
+          for(const kind of ['translation','rotation','reflection','enlargement'])for(const factor of [.25,1,1.5,2]){
+            const t=M.transformationInvestigation(m,{kind,dx:-3.5,dy:2.25,angle:37,px:.65,py:-.4,factor}),k=kind==='enlargement'?factor:1;
+            assert(close(t.after.length,t.before.length*k)&&close(t.after.perimeter,t.before.perimeter*k)&&close(t.after.area,t.before.area*k*k),'Transformation metric invariants: '+shape+' '+kind+' '+factor);
+            assert(close(t.before.area,base.before.area)&&t.congruent===(k===1),'Original is unchanged and congruence is accurate');
+            for(let i=0;i<t.original.length;i++){
+              const a=t.original[i],b=t.image[i],o=t.pivot,v=[a[0]-o[0],a[1]-o[1]],w=[b[0]-o[0],b[1]-o[1]];
+              for(let j=0;j<i;j++)assert(close(dist(a,t.original[j])*k,dist(b,t.image[j])),'Every corresponding pair scales uniformly');
+              if(kind==='translation')assert(close(b[0]-a[0],-3.5*40)&&close(b[1]-a[1],-2.25*40),'Translation uses mathematical up and right');
+              if(kind==='rotation'){const q=37*Math.PI/180;assert(close(w[0],v[0]*Math.cos(q)+v[1]*Math.sin(q))&&close(w[1],-v[0]*Math.sin(q)+v[1]*Math.cos(q)),'Positive rotation is anticlockwise in screen coordinates')}
+              if(kind==='reflection')assert(close((v[0]+w[0])*(-t.u[1])+(v[1]+w[1])*t.u[0],0)&&close((w[0]-v[0])*t.u[0]+(w[1]-v[1])*t.u[1],0),'Mirror bisects corresponding segment at right angles');
+              if(kind==='enlargement')assert(close(w[0],v[0]*k)&&close(w[1],v[1]*k),'Enlargement rays have correct scale about O');
+            }
+          }
+        }
+        const limits=M.transformationInvestigation(ref('square'),{kind:'reflection',angle:-30,px:8,py:-8});
+        assert(limits.angle===0&&limits.px===1&&limits.py===-1,'Mirror slider and model share bounds');
+        assert(M.transformationInvestigation(ref('square'),{factor:null}).factor===1.5,'Missing factor uses meaningful default');
+        const tab=doc.querySelector('[data-ag-teaching-tab="transformations"]');assert(tab,'Transformation lesson accessible');tab.click();await tick();
+        const lesson=doc.querySelector('[data-ag-transformation-reference]'),graphic=()=>lesson.querySelector('[data-ag-transformation-graphic]'),setField=(key,value)=>{const input=lesson.querySelector('[data-ag-transform-field="'+key+'"]');assert(input,'Transformation field exists: '+key);input.value=value;input.dispatchEvent(new win.Event('input',{bubbles:true}))};
+        for(const kind of ['translation','rotation','reflection','enlargement']){
+          lesson.querySelector('[data-ag-transform-kind="'+kind+'"]').click();await tick();
+          assert(graphic().dataset.agTransformationGraphic===kind&&graphic().querySelectorAll('[data-ag-transform-correspondence]').length===3,'Correct visible original and image for '+kind);
+          assert(lesson.querySelector('[data-ag-transform-kind="'+kind+'"]').getAttribute('aria-pressed')==='true','Selected mode announced');
+          if(kind==='translation'){setField('dx',-3);setField('dy',2);assert(lesson.querySelector('[data-ag-transform-action]').textContent.includes('left')&&lesson.querySelector('[data-ag-transform-action]').textContent.includes('up'),'Translation describes actual movement')}
+          if(kind==='rotation'){setField('angle',-90);assert(graphic().querySelector('[data-ag-transform-turn]')&&lesson.querySelector('[data-ag-transform-action]').textContent.includes('clockwise'),'Rotation includes actual turn')}
+          if(kind==='reflection'){setField('angle',90);assert(graphic().querySelector('[data-ag-transform-mirror]'),'Reflection displays mirror line')}
+          if(kind==='enlargement'){setField('factor',.5);assert(graphic().querySelectorAll('[data-ag-transform-ray]').length===3&&lesson.querySelector('[data-ag-transform-note]').textContent.includes('0.5:1'),'Reduction shows corresponding rays and ratio')}
+          const item=P.createDocument();item.addCurrent(id,cap());const paper=P.renderItem(item.list()[0],false);
+          assert(paper.querySelector('[data-ag-transformation-graphic]').dataset.agTransformationGraphic===kind&&[...paper.querySelectorAll('text')].map(n=>n.textContent).join(' ').includes(lesson.querySelector('[data-ag-transform-result]').textContent),'Published transformation preserves selected measurements: '+kind);
+          assert(!paper.querySelector('[data-ag-transform-drag],[data-ag-rotation-graphic]'),'Published diagram has no interactive handles or unrelated lessons');
+        }
+        lesson.querySelector('[data-ag-transform-reset]').click();assert(Number(lesson.querySelector('[data-ag-transform-field="factor"]').value)===1.5,'Reset restores scale factor');
+        const moveTransform=(kind,deltaX,deltaY,cancel=false)=>{
+          const svg=graphic(),surface=svg.parentElement,node=svg.querySelector('[data-ag-transform-drag="'+kind+'"]'),matrix=svg.getScreenCTM(),frame=svg._agTransformFrame;
+          const start=new win.DOMPoint(280,153).matrixTransform(matrix),end=new win.DOMPoint(280+deltaX*frame.s,153-deltaY*frame.s).matrixTransform(matrix);
+          const emit=(target,type,p)=>target.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerId:197,pointerType:'touch',button:0,clientX:p.x,clientY:p.y}));
+          assert(node,'Transformation has a draggable handle: '+kind);emit(node,'pointerdown',start);emit(surface,'pointermove',end);emit(surface,cancel?'pointercancel':'pointerup',end);
+        };
+        lesson.querySelector('[data-ag-transform-kind="translation"]').click();lesson.querySelector('[data-ag-transform-reset]').click();moveTransform('translation',40,40);
+        let state=cap().demo.transformationSettings;assert(state.dx===3&&state.dy===2,'Drag translation moves image by one centimetre in each axis');
+        moveTransform('translation',-80,0,true);assert(cap().demo.transformationSettings.dx===3,'Cancelled translation restores initial state');
+        lesson.querySelector('[data-ag-transform-kind="rotation"]').click();lesson.querySelector('[data-ag-transform-reset]').click();
+        const extent=M.transformationInvestigation(ref('equilateral'),{kind:'rotation'}).extent;
+        moveTransform('pivot',extent*.25,extent*.25);state=cap().demo.transformationSettings;assert(state.px===.25&&state.py===.25,'Centre drag follows pointer');
+        moveTransform('pivot',extent*.5,0,true);assert(cap().demo.transformationSettings.px===.25,'Cancelled centre drag restores initial state');
+
+      }
+      result('pending','board','Geometry transformation checks complete; checking landscape teaching layout');
       // Real embedded layout: active tabs occupy space, inactive cards do not.
       const teaching=doc.querySelector('.gd-ag-shape-reference'),teachingStage=doc.getElementById('gd-stage'),teachingTab=key=>teaching.querySelector('[data-ag-teaching-tab="'+key+'"]');
       assert(teachingTab('properties')&&teachingTab('symmetry')&&teachingTab('families')&&teachingTab('proof'),'All triangle teaching groups directly accessible');
@@ -3437,7 +3491,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(title.textContent==='Equilateral triangle'&&title.getBoundingClientRect().height>0,'Explorer has a descriptive visible shape title: '+title.textContent);
         assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3&&exploreControls.getBoundingClientRect().bottom<=teachingStage.getBoundingClientRect().bottom+3&&exploreSvg.getBoundingClientRect().bottom<=teachingStage.getBoundingClientRect().bottom+3,'Explorer diagram fits remaining landscape height: '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);
         exploreControls.querySelector('[data-ag-polygon-shade]').click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Open shade tools do not cause explorer scrolling');exploreControls.querySelector('[data-ag-polygon-shade]').click();await tick(40);
-        for(const key of ['properties','polygon-proof','symmetry','families','proof','shape-measures','area-comparison']){const tab=teachingTab(key);if(!tab)continue;tab.click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape teaching fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);assert(teaching.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect().top>=teachingStage.getBoundingClientRect().top-1,'Topic navigation remains at top: '+key);}
+        for(const key of ['properties','polygon-proof','symmetry','families','proof','shape-measures','area-comparison','transformations']){const tab=teachingTab(key);if(!tab)continue;tab.click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape teaching fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);assert(teaching.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect().top>=teachingStage.getBoundingClientRect().top-1,'Topic navigation remains at top: '+key);}
       }
       if(win.matchMedia('(min-width:800px) and (min-height:480px) and (orientation:landscape)').matches){
         for(const [key,selector,core] of [['polygon-proof','[data-ag-diagonal-enrichment]','[data-ag-angle-sum-picture]'],['families','[data-ag-triangle-family-more]','[data-ag-triangle-family-primary]'],['symmetry','[data-ag-reflection-advanced]','[data-ag-rotation-reference]']]){
@@ -3476,6 +3530,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         }
       }finally{teachingIframe.style.cssText=priorTeachingStyle;await tick(60);win.TT99Goodies.modeControl.set('polygon:equilateral');await tick(40)}
       assert(!teachingAudit.length,'Landscape teaching audit overflow: '+JSON.stringify(teachingAudit));
+      result('pending','board','Landscape teaching audit complete; continuing composition QA');
       max.click();await tick(80);assert(!fixture.frame.classList.contains('is-geometry-teaching-max'),'Restoring leaves teaching maximisation cleanly');
       for(const m of [...Array.from({length:10},(_,i)=>ref('regular',{n:i+3})),...M.polygonInvestigationExamples().map(e=>ref('free-polygon',{n:e.points.length,polygonPoints:e.points}))]){
         for(let vertex=0;vertex<m.n;vertex++){
