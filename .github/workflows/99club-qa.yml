@@ -478,3 +478,5 @@ jobs:
             99club-preview-qa-report.json
             99club-preview-controls-report.json
           if-no-files-found: ignore
+
+# Integrated release verification: external tangents and regular pentagon.
