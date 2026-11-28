@@ -13,7 +13,7 @@ function constructionMethodGraphic(method,step=-1){
  for(const o of items.filter(o=>o.kind==='point')){add('circle',{cx:o.at[0],cy:o.at[1],r:3,fill:o.style==='result'?'#16796c':'#31434a','data-ag-method-primitive':'point'});add('text',{x:o.at[0]+8,y:o.at[1]-8,'font-size':13,fill:'#31434a',stroke:'#fff','stroke-width':3,'paint-order':'stroke'},o.label)}
  return svg
 }
-const CONSTRUCTION_METHODS_BY_TASK={'shape-build':'triangle-sas','build-sss':'triangle-sss','build-equilateral':'triangle-equilateral','build-right':'triangle-right-legs','build-rectangle':'rectangle-sides','build-square':'square-on-side','build-midpoint':'midpoint','build-perpendicular':'perpendicular-at-point','build-circle':'circle-given-radius','build-asa':'triangle-asa','build-bisector':'midpoint','build-rhombus':'rhombus-side-angle','build-thirds':'divide-segment-thirds','build-parallelogram':'parallelogram-sas','build-hypotenuse':'right-triangle-hypotenuse','build-semicircle':'angle-in-semicircle','build-angle-bisector':'angle-bisector','build-golden-section':'golden-section','build-tangent':'tangent-at-point','build-inscribed-square':'square-in-circle','build-inscribed-hexagon':'regular-hexagon','build-inscribed-octagon':'regular-octagon'};
+const CONSTRUCTION_METHODS_BY_TASK={'shape-build':'triangle-sas','build-sss':'triangle-sss','build-equilateral':'triangle-equilateral','build-right':'triangle-right-legs','build-rectangle':'rectangle-sides','build-square':'square-on-side','build-midpoint':'midpoint','build-perpendicular':'perpendicular-at-point','build-circle':'circle-given-radius','build-asa':'triangle-asa','build-bisector':'midpoint','build-rhombus':'rhombus-side-angle','build-thirds':'divide-segment-thirds','build-parallelogram':'parallelogram-sas','build-hypotenuse':'right-triangle-hypotenuse','build-semicircle':'angle-in-semicircle','build-angle-bisector':'angle-bisector','build-golden-section':'golden-section','build-tangent':'tangent-at-point','build-inscribed-square':'square-in-circle','build-inscribed-hexagon':'regular-hexagon','build-inscribed-octagon':'regular-octagon','build-centroid':'triangle-centroid','build-circumcircle':'triangle-circumcircle','build-incircle':'triangle-incircle','build-orthocentre':'triangle-orthocentre'};
 // Challenge-specific guidance is generated from the same dimensions as assessment.
 function challengeConstructionMethod(method,task){
  if(!task||method.id!==CONSTRUCTION_METHODS_BY_TASK[task.type])return method;
@@ -25,6 +25,27 @@ function challengeConstructionMethod(method,task){
    add('Draw equal arcs from A and B on both sides of AB.',arc(A,r,x),arc(A,r,y),arc(B,r,x),arc(B,r,y));
    add('Join the intersections X and Y.',P(x,'X'),P(y,'Y'),L([mid[0],mid[1]-120],[mid[0],mid[1]+120],type==='build-bisector'?'result':'construction'));
    add('Mark M where the perpendicular bisector crosses AB. AM = MB = 3 cm.',P(mid,'M','result'));
+ }else if(centreChallenge(type)){
+   const spec=centreChallenge(type),pts=[A,B,C],model=triangleCentres(pts),centre=model[spec.kind];
+   add('Construct AC = '+fmt(length)+' cm at '+task.angle+'° to AB, then join C to B.',L(A,C,'result'),L(B,C,'result'),P(C,'C'));
+   for(let i=0;i<2;i++){
+     const v=pts[i],b=pts[(i+1)%3],c=pts[(i+2)%3],names=['A','B','C'],side=names[(i+1)%3]+names[(i+2)%3];
+     if(spec.kind==='centroid'){
+       const m=model.midpoints[i],r=.65*labDist(b,c),h=Math.sqrt(r*r-labDist(b,m)**2),u=labSub(c,b),norm=[-u[1]/Math.hypot(...u),u[0]/Math.hypot(...u)],x=labAt(m,norm,h),y=labAt(m,norm,-h);
+       add('Use equal compass arcs from the endpoints of '+side+' to locate its midpoint. Join that midpoint to '+names[i]+'.',arc(b,r,x),arc(c,r,x),arc(b,r,y),arc(c,r,y),L(x,y),P(m,'M'+(i+1)),L(v,m));
+     }else if(spec.kind==='circumcentre'){
+       const m=model.midpoints[i],r=Math.max(.65*labDist(b,c),labDist(b,centre)+8),h=Math.sqrt(r*r-labDist(b,m)**2),u=labSub(c,b),norm=[-u[1]/Math.hypot(...u),u[0]/Math.hypot(...u)],x=labAt(m,norm,h),y=labAt(m,norm,-h);
+       add('Draw equal arcs from both ends of '+side+'. Join their crossings to construct the perpendicular bisector.',arc(b,r,x),arc(c,r,x),arc(b,r,y),arc(c,r,y),L(x,y),P(m,'M'+(i+1)));
+     }else if(spec.kind==='incentre'){
+       const r=.48*Math.min(labDist(v,b),labDist(v,c)),x=labAt(v,labSub(b,v),r/labDist(v,b)),y=labAt(v,labSub(c,v),r/labDist(v,c)),z=labAt(x,labSub(y,v),1);
+       add('Bisect the interior angle at '+names[i]+' using equal compass openings on both arms and intersecting arcs.',arc(v,r,x),arc(v,r,y),arc(x,r,z),arc(y,r,z),L(v,model.bisectorFeet[i]));
+     }else{
+       add('Draw the perpendicular from '+names[i]+' to the opposite side '+side+' (or its extension).',L(v,model.altitudeFeet[i]),P(model.altitudeFeet[i],'F'+(i+1)));
+     }
+   }
+   add('Mark '+spec.label+' at the intersection of the two construction lines.',P(centre,spec.label,'result'));
+   if(spec.kind==='circumcentre')add('Set the compass opening from O to any vertex. Draw the circle through all three vertices.',L(centre,A),circle(centre,model.circumradius,'result'));
+   if(spec.kind==='incentre')add('Construct the perpendicular from I to one side. Transfer that distance to the compass and draw the circle touching all three sides.',L(centre,model.contacts[0]),P(model.contacts[0],'T'),circle(centre,model.inradius,'result'));
  }else if(type==='build-tangent'||inscribedSides(type)){
    const radius=length*40;
    add('Draw a circle centred at A with radius '+fmt(length)+' cm.',circle(A,radius,'result'));
@@ -122,6 +143,7 @@ function challengeConstructionMethod(method,task){
    case 'build-asa':given.push('Angle BAC = '+deg(task.angle),'Angle ABC = '+deg(task.rightAngle));break;
    case 'build-tangent':given.push('Circle radius = '+cm(length),'TU = '+cm(task.tangentLength));break;
    case 'build-inscribed-square':case 'build-inscribed-hexagon':case 'build-inscribed-octagon':given.push('Circle radius = '+cm(length));break;
+   case 'build-centroid':case 'build-circumcircle':case 'build-incircle':case 'build-orthocentre':given.push('AC = '+cm(length),'Angle BAC = '+deg(task.angle));break;
    case 'build-angle-bisector':given.push('AC = 4 cm','Angle BAC = '+deg(task.angle));break;
    case 'build-golden-section':title='Divide AB in the golden ratio';break;
    case 'build-hypotenuse':given.push('AC = '+cm(length),'Angle ACB = 90°');break;
@@ -324,7 +346,7 @@ const FAMILIES=[
  ['straight','Missing angle on a straight line','facts',5],['point','Missing angle around a point','facts',5],['opposite','Vertically opposite angles','facts',6],
  ['rectangle','Angles in rectangles','polygon',5],['rectangle-length','Missing length in a rectangle','polygon',5],['isosceles-angle','Missing base angle in an isosceles triangle','polygon',6],['diagonal-equal','Equal diagonals in quadrilaterals','polygon',5],['diagonal-bisect','Diagonals that bisect each other','polygon',6],['diagonal-perpendicular','Perpendicular diagonals','polygon',6],['side-count','Count sides of a polygon','polygon',2],['parallel-count','Count pairs of parallel sides','polygon',3],['shape-family','Recognise inclusive shape families','polygon',5],['quad-reasoning','Quadrilateral reasoning: always, sometimes or never','polygon',6],['geometry-reasoning','Geometry reasoning: always, sometimes or never','polygon',6],['circle-part','Name a circle part','circle',6],['circle-diameter','Find diameter from radius','circle',6],['circle-radius','Find radius from diameter','circle',6],['triangle-type','Classify a triangle by sides','polygon',4],['triangle-angle-type','Classify a triangle by angles','polygon',4],['triangle-centroid-ratio','Divide a median at the centroid','polygon',7],['triangle-centre','Identify a triangle centre','polygon',7],['euler-ratio','Find a distance on the Euler line','polygon',7],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
  ['triangle','Missing angle in a triangle','polygon',6],['linked-isosceles','Linked triangle angles','polygon',6],['linked-l-area','Compound shape: missing length, area and perimeter','polygon',6],['linked-right-triangle','Right triangle: length, perimeter and area','polygon',7],['quadrilateral','Missing angle in a quadrilateral','polygon',6],['regular','Interior angle of a regular polygon','polygon',6],
- ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],['build-midpoint','Locate the midpoint of a segment','construct',4],['build-perpendicular','Construct a perpendicular segment','construct',5],['build-circle','Construct a circle of given radius','construct',6],['build-asa','Construct a triangle from two angles and a side','construct',6],['build-bisector','Construct a perpendicular bisector','construct',7],['build-rhombus','Construct a rhombus from a side and angle','construct',7],['build-thirds','Divide a segment into three equal parts','construct',7],['build-parallelogram','Construct a parallelogram from two sides and an angle','construct',7],['build-hypotenuse','Construct a right triangle from hypotenuse and leg','construct',7],['build-semicircle','Construct a right angle on a circle','construct',7],['build-angle-bisector','Construct an angle bisector','construct',7],['build-golden-section','Divide a segment in the golden ratio','construct',7],['build-tangent','Construct a tangent to a circle','construct',7],['build-inscribed-square','Inscribe a square in a circle','construct',7],['build-inscribed-hexagon','Inscribe a regular hexagon in a circle','construct',7],['build-inscribed-octagon','Inscribe a regular octagon in a circle','construct',7],
+ ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],['build-midpoint','Locate the midpoint of a segment','construct',4],['build-perpendicular','Construct a perpendicular segment','construct',5],['build-circle','Construct a circle of given radius','construct',6],['build-asa','Construct a triangle from two angles and a side','construct',6],['build-bisector','Construct a perpendicular bisector','construct',7],['build-rhombus','Construct a rhombus from a side and angle','construct',7],['build-thirds','Divide a segment into three equal parts','construct',7],['build-parallelogram','Construct a parallelogram from two sides and an angle','construct',7],['build-hypotenuse','Construct a right triangle from hypotenuse and leg','construct',7],['build-semicircle','Construct a right angle on a circle','construct',7],['build-angle-bisector','Construct an angle bisector','construct',7],['build-golden-section','Divide a segment in the golden ratio','construct',7],['build-tangent','Construct a tangent to a circle','construct',7],['build-inscribed-square','Inscribe a square in a circle','construct',7],['build-inscribed-hexagon','Inscribe a regular hexagon in a circle','construct',7],['build-inscribed-octagon','Inscribe a regular octagon in a circle','construct',7],['build-centroid','Construct the centroid of a triangle','construct',7],['build-circumcircle','Construct a triangle circumcircle','construct',7],['build-incircle','Construct a triangle incircle','construct',7],['build-orthocentre','Construct the orthocentre of a triangle','construct',7],
  ['exterior','Exterior angle of a regular polygon','polygon',7],['circle-circumference','Find circumference using π','circle',7],['circle-area','Find circle area using π','circle',7],['circle-chord-half','Find half a bisected chord','circle',7],['circle-chord-distance','Find the perpendicular distance to a chord','circle',7],['circle-arc-length','Calculate arc length','circle',7],['circle-sector-area','Calculate sector area','circle',7],['circle-segment-area','Calculate a circular segment area','circle',7],['circle-tangent-angle','Find an angle in a radius–tangent triangle','circle',7],['parallel','Corresponding and alternate angles','facts',7],['co-interior','Co-interior angles','facts',7],['similar-side','Missing length in similar triangles','polygon',7],['triangle-comparison','Congruent, similar or neither','polygon',7],['triangle-criterion','Is the triangle uniquely determined?','polygon',7],['triangle-inequality','Can these sides form a triangle?','polygon',7],['pythagoras','Find a missing right-triangle side','polygon',7],['area-same-base','Triangles with the same base and height','polygon',6],['area-same-perimeter','Find area with a fixed perimeter','polygon',6],['perimeter-same-area','Find perimeter with a fixed area','polygon',6],['polygon-sum','Interior angle sum of a polygon','polygon',7],['polygon-missing','Missing angle in an irregular polygon','polygon',7],['polygon-turn-missing','Missing signed exterior turn','polygon',7],['polygon-diagonal-count','Count all diagonals of a polygon','polygon',7]
 ];
 const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.length-1)];
@@ -488,6 +510,7 @@ function generate(s={},rng=Math.random){
  if(type==='build-bisector')return task({},'Construct a perpendicular bisector of AB. Make it cross AB and extend on both sides.','Crosses AB at its midpoint, at 90°','Draw equal compass arcs centred at A and B with opening greater than 3 cm. Join their intersections; the line passes through the midpoint at 90°.');
  if(type==='build-tangent'){const l=pick(rng,[1.5,2]);return task({length:l,tangentLength:1.5},'Draw a circle centred at A with radius '+l+' cm. Mark T where it meets AB. Draw tangent segment TU = 1.5 cm, on either side of AB.','AT = '+l+' cm; TU = 1.5 cm; angle ATU = 90°','A tangent at T is perpendicular to the radius AT. Construct that perpendicular and measure 1.5 cm along it. Either side of AB is valid.');}
  if(type==='build-inscribed-square'){const l=pick(rng,[1.5,2]);return task({length:l},'Draw a circle centred at A with radius '+l+' cm. Mark P where it meets AB. Construct a square PQRS inside the circle, with all four vertices on the circumference. Draw all sides.','Four equal sides; four right angles; all vertices on the circle','Extend PA through A to obtain the opposite vertex. Construct the perpendicular diameter for the other two vertices. Join the four points in cyclic order.');}
+ if(centreChallenge(type)){const spec=centreChallenge(type),[length,angle]=pick(rng,[[4,70],[4,75],[4,80],[5,60],[5,70],[5,75],[5,80]]);return task({length,angle},'Construct triangle ABC with AB = 6 cm, AC = '+length+' cm and angle BAC = '+angle+'°. Draw both remaining sides. '+spec.prompt,spec.answer,spec.note);}
  if(type==='build-inscribed-hexagon'||type==='build-inscribed-octagon'){const l=pick(rng,[1.5,2]),n=inscribedSides(type),shape=n===6?'hexagon':'octagon',last=String.fromCharCode(79+n),angle=180-360/n;return task({length:l},'Draw a circle centred at A with radius '+l+' cm. Mark P where it meets AB. Construct a regular '+shape+' with '+n+' vertices on the circle, labelled P to '+last+'. Join consecutive vertices and close the shape.',n+' equal sides; '+n+' angles of '+angle+'°; all vertices on the circle',n===6?'Keep the compass opening equal to the radius and step it around the circumference six times. Join consecutive vertices.':'Construct two perpendicular diameters, then bisect the four right angles at A. Join the eight points in order.');}
  if(type==='build-angle-bisector'){const a=pick(rng,[40,60,80,90,120]);return task({angle:a,length:4},'Draw AC = 4 cm making angle BAC = '+a+'° with AB. Construct AD inside the angle so BAD and DAC are equal.','Angle BAD = angle DAC = '+a/2+'°','Draw AC at the specified angle. Use equal compass openings to locate equal distances on the arms, then intersect equal arcs from those points. Join the interior intersection to A.');}
  if(type==='build-golden-section')return task({},'Divide AB = 6 cm in the golden ratio. Mark G on AB so AB ÷ AG = AG ÷ GB, with AG longer than GB.','AG = 3(√5 − 1) cm ≈ 3.71 cm','Construct the midpoint M. At B draw BC perpendicular to AB, with BC = AM. Join AC. Use compass opening BC from C to mark F on CA, then transfer AF from A to mark G on AB.');
@@ -970,7 +993,35 @@ function generate(s={},rng=Math.random){
   }
   return {...hit,p,kind:'Graduation',lengthCm:r/LAB_UNIT};
  }
- const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square','build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon'];
+ const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square','build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','build-centroid','build-circumcircle','build-incircle','build-orthocentre'];
+ function centreChallenge(type){
+   return ({
+     'build-centroid':{kind:'centroid',label:'G',prompt:'Construct and mark the centroid G.',answer:'G is the intersection of the medians; each median is divided 2 : 1.',note:'Find the midpoints of two sides and join them to the opposite vertices. Their intersection is G.'},
+     'build-circumcircle':{kind:'circumcentre',label:'O',radius:'circumradius',prompt:'Construct the circumcentre O and draw the circumcircle through A, B and C.',answer:'OA = OB = OC; the circle passes through all three vertices.',note:'Construct the perpendicular bisectors of two sides. Use their intersection O as the compass centre and open it to a vertex.'},
+     'build-incircle':{kind:'incentre',label:'I',radius:'inradius',prompt:'Construct the incentre I and draw the incircle touching all three sides.',answer:'I is equally distant from all three sides; the circle is tangent to each side.',note:'Bisect two interior angles. From their intersection I construct the perpendicular to a side. Transfer that distance to the compass.'},
+     'build-orthocentre':{kind:'orthocentre',label:'H',prompt:'Construct and mark the orthocentre H.',answer:'H is the intersection of the altitudes, each perpendicular to the opposite side.',note:'Construct the perpendicular from each of two vertices to its opposite side. Their intersection is H.'}
+   })[type]||null;
+ }
+ // Candidate triangles require both actual remaining sides. Verify the centre against
+ // the drawn triangle, not a hard-coded screen coordinate or vertex insertion order.
+ function labCentreCandidates(s,target){
+   const [A,B]=s.points,spec=centreChallenge(target.type),out=[];
+   if(!A||!B||!spec||labDist(A,B)<1e-8)return out;
+   const linked=(i,j)=>s.segments.some(e=>e.includes(i)&&e.includes(j));
+   for(let i=2;i<s.points.length;i++){
+     if(!linked(0,i)||!linked(1,i))continue;
+     const C=s.points[i],model=triangleCentres([A,B,C]);if(!model)continue;
+     for(let j=2;j<s.points.length;j++){
+       if(i===j)continue;const p=s.points[j],expected=model[spec.kind];
+       // The broad candidate window is for helpful feedback, not acceptance.
+       if(labDist(p,expected)>24)continue;
+       const circles=spec.radius?s.circles.filter(c=>!isLabArc(c)&&s.points[c.i]):[];
+       const circleError=spec.radius?Math.min(...circles.map(c=>Math.max(labDist(s.points[c.i],p),Math.abs(c.r-model[spec.radius]))))/LAB_UNIT:0;
+       out.push({C,p,model,centreError:labDist(p,expected)/LAB_UNIT,circleError});
+     }
+   }
+   return out;
+ }
  function inscribedSides(type){return ({'build-inscribed-square':4,'build-inscribed-hexagon':6,'build-inscribed-octagon':8})[type]||0}
  function inscribedVertices(A,B,r,n){const len=labDist(A,B),u=labSub(B,A).map(x=>x/len),v=[u[1],-u[0]];return Array.from({length:n},(_,i)=>{const a=2*Math.PI*i/n;return labAt(labAt(A,u,r*Math.cos(a)),v,r*Math.sin(a))})}
  // These circle challenges share a circle centred on the given A and a
@@ -996,6 +1047,10 @@ function generate(s={},rng=Math.random){
   const A=s.points[0],B=s.points[1];if(!A||!B)return {ready:false,correct:false};const midpoint=labAt(A,labSub(B,A),.5),base=labAngle(A,B),diff=(p,q)=>Math.min(mod(p-q),mod(q-p));
   if(target.type==='build-circle'){const ready=s.circles.length>0;return {ready,correct:s.circles.some(c=>!isLabArc(c)&&labDist(s.points[c.i],A)<=6&&near(c.r/LAB_UNIT,target.length))}}
   if(s.points.length<3)return {ready:false,correct:false};
+  if(centreChallenge(target.type)){
+    const candidates=labCentreCandidates(s,target);
+    return {ready:candidates.length>0,correct:candidates.some(c=>near(len(A,B),6)&&near(len(A,c.C),target.length)&&near(diff(labAngle(A,c.C),base),target.angle,2)&&c.centreError<=.15&&c.circleError<=.15)};
+  }
   if(target.type==='build-tangent'||inscribedSides(target.type)){
     const candidates=labCircleChallengeCandidates(s,target),circle=labCircleChallengeError(s,target)<=.15;
     return {ready:candidates.length>0,correct:circle&&candidates.some(c=>c.points.every((p,i)=>labDist(p,c.targets[i])<=6))};
@@ -1041,6 +1096,13 @@ function generate(s={},rng=Math.random){
    const add=items=>checks.push(items);
    if(target.type==='build-circle'){
      for(const c of s.circles)if(!isLabArc(c)&&s.points[c.i])add([distance('Centre at A',len(s.points[c.i],A)),distance('Radius',c.r/LAB_UNIT-target.length)]);
+   }else if(centreChallenge(target.type)){
+     const spec=centreChallenge(target.type);
+     for(const c of labCentreCandidates(s,target)){
+       const items=[base(),distance('AC length',len(A,c.C)-target.length),angular('Given angle BAC',angle(B,A,c.C)-target.angle),distance('Position of '+spec.kind,c.centreError)];
+       if(spec.radius)items.push(distance('Circle centre and radius',c.circleError));
+       add(items);
+     }
    }else if(target.type==='build-tangent'||inscribedSides(target.type)){
      for(const c of labCircleChallengeCandidates(s,target)){
        const pts=c.points,items=[base(),distance('Specified circle centre and radius',labCircleChallengeError(s,target)),...pts.map((p,i)=>distance('Vertex '+(target.type==='build-tangent'?['T','U'][i]:String.fromCharCode(80+i)),len(p,c.targets[i])))];
@@ -1112,6 +1174,11 @@ function generate(s={},rng=Math.random){
   if(d.type==='build-circle'){st.circles.push({i:0,r:40*d.length,construction:false});return st}
   if(d.type==='build-perpendicular'){st.points.push(exactPolar(...A,40*d.length,90));st.segments.push([0,2]);return st}
   if(d.type==='build-bisector'){const m=labAt(A,labSub(B,A),.5);st.points.push([m[0],m[1]-155],[m[0],m[1]+65],m);st.segments.push([2,3]);return st}
+  if(centreChallenge(d.type)){
+    const spec=centreChallenge(d.type),C=exactPolar(...A,d.length*LAB_UNIT,d.angle),model=triangleCentres([A,B,C]);
+    st.points.push(C,model[spec.kind]);st.segments.push([0,2],[1,2]);
+    if(spec.radius)st.circles.push({i:3,r:model[spec.radius],construction:false});return st;
+  }
   if(d.type==='build-tangent'||inscribedSides(d.type)){
     const r=d.length*LAB_UNIT,p=[A[0]+r,A[1]];st.circles.push({i:0,r,construction:false});
     if(d.type==='build-tangent'){st.points.push(p,[p[0],p[1]-d.tangentLength*LAB_UNIT]);st.segments.push([2,3])}
@@ -1976,19 +2043,31 @@ function diagram(d,teacher=false,options={}){
    for(const d of labIndependentDimensions(st)){const [i,j]=d.ids;dimension(st.points[i],st.points[j],d.value,{size:14,offset:30,lines:dimLines,bounds:[ox,oy,ox+ww,oy+hh],manualOffset:d.offset,independent:true})}
    annotationPlan.renderNotation((d,k)=>path(d,{stroke:teal,'stroke-width':1.8,'stroke-dasharray':k==='symmetry'?'8 4 2 4':'','data-ag-notation':k}),(p,v)=>text(p[0],p[1],v,13,{'data-ag-annotation-value':'1','paint-order':'stroke',stroke:'#fff','stroke-width':3}));
    annotationPlan.renderAutomatic((d,p,v)=>{path(d,{stroke:teal,'stroke-width':1.8,'data-ag-angle-mark':'1'});text(p[0],p[1],v,12,{'data-ag-angle-value':'1','paint-order':'stroke',stroke:'#fff','stroke-width':3})});
-    st.points.forEach((p,i)=>{if(key&&d.type==='build-circle'&&i!==0)return;circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,d.type==='build-tangent'&&i>=2&&i<4?['T','U'][i-2]:inscribedSides(d.type)&&i>=2&&i<2+inscribedSides(d.type)?String.fromCharCode(80+i-2):d.type==='build-golden-section'&&i===2?'G':d.type==='build-semicircle'&&i===2?'T':['build-hypotenuse','build-semicircle'].includes(d.type)&&i===3?'M':d.type==='build-thirds'&&i===2?'P':d.type==='build-thirds'&&i===3?'Q':d.type==='build-midpoint'&&i===2?'M':d.type==='build-bisector'&&i===4?'M':labPointText(st,i)+(free&&datumState(st).coordinates?' '+datumCoordinateText(st,p):''),16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
+    st.points.forEach((p,i)=>{if(key&&d.type==='build-circle'&&i!==0)return;circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,d.type==='build-tangent'&&i>=2&&i<4?['T','U'][i-2]:inscribedSides(d.type)&&i>=2&&i<2+inscribedSides(d.type)?String.fromCharCode(80+i-2):centreChallenge(d.type)&&i===3?centreChallenge(d.type).label:d.type==='build-golden-section'&&i===2?'G':d.type==='build-semicircle'&&i===2?'T':['build-hypotenuse','build-semicircle'].includes(d.type)&&i===3?'M':d.type==='build-thirds'&&i===2?'P':d.type==='build-thirds'&&i===3?'Q':d.type==='build-midpoint'&&i===2?'M':d.type==='build-bisector'&&i===4?'M':labPointText(st,i)+(free&&datumState(st).coordinates?' '+datumCoordinateText(st,p):''),16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
    if(!free&&['shape-build','build-right','build-perpendicular','build-asa','build-rhombus','build-parallelogram'].includes(d.type))labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
    if(key&&d.type==='build-asa')labelArc(...st.points[1],38,180-d.rightAngle,d.rightAngle,d.rightAngle+'°');
    if(key&&d.type==='build-circle'){const p=st.points[0],q=polar(...p,40*d.length,120);line(p,q,orange,2,{'data-ag-radius-line':'1'});dimension(p,q,d.length+' cm',{size:18,offset:24,outside:[p[0]-100,p[1]-100]})}
    if(key&&d.type==='build-tangent'){const p=st.points[2];path('M '+[p[0]-14,p[1]].join(' ')+' L '+[p[0]-14,p[1]-14].join(' ')+' L '+[p[0],p[1]-14].join(' '),{stroke:teal,'stroke-width':2,'data-ag-tangent-right-angle':'1'});dimension(st.points[0],p,d.length+' cm',{outside:[p[0],p[1]+25]})}
    if(key&&inscribedSides(d.type)){const n=inscribedSides(d.type),verts=st.points.slice(2,2+n),p=verts[0];for(let i=0;i<n/2;i++)line(verts[i],verts[i+n/2],orange,1.5,{'stroke-dasharray':'5 4','data-ag-inscribed-diameter':'1'});dimension(st.points[0],p,d.length+' cm',{outside:[p[0],p[1]+25]});if(n===6)dimension(p,verts[1],d.length+' cm',{outside:[p[0]+25,p[1]-25]})}
+   if(key&&centreChallenge(d.type)){
+     const spec=centreChallenge(d.type),pts=st.points.slice(0,3),model=triangleCentres(pts),centre=st.points[3],guide=(a,b)=>line(a,b,orange,1.6,{'stroke-dasharray':'5 4','data-ag-centre-construction':spec.kind});
+     for(let i=0;i<3;i++){
+       if(spec.kind==='centroid')guide(pts[i],model.midpoints[i]);
+       if(spec.kind==='incentre')guide(pts[i],model.bisectorFeet[i]);
+       if(spec.kind==='orthocentre')guide(pts[i],model.altitudeFeet[i]);
+       if(spec.kind==='circumcentre'){const m=model.midpoints[i],v=labSub(pts[(i+2)%3],pts[(i+1)%3]),norm=[-v[1]/Math.hypot(...v),v[0]/Math.hypot(...v)],h=Math.max(35,labDist(m,centre)+12);guide(labAt(m,norm,-h),labAt(m,norm,h))}
+     }
+     if(spec.kind==='incentre')for(const p of model.contacts)guide(centre,p);
+     if(spec.kind==='circumcentre')for(const p of pts)guide(centre,p);
+     labelArc(...pts[0],38,0,d.angle,d.angle+'°');
+   }
    if(key&&d.type==='build-angle-bisector'){labelArc(...st.points[0],40,0,d.angle/2,d.angle/2+'°');labelArc(...st.points[0],40,d.angle/2,d.angle/2,d.angle/2+'°')}
    if(key&&d.type==='build-golden-section'){const p=st.points[2],a=st.points[0],b=st.points[1];dimension(a,p,'≈ 3.71 cm',{outside:[(a[0]+p[0])/2,a[1]+35]});dimension(p,b,'≈ 2.29 cm',{outside:[(p[0]+b[0])/2,b[1]+35]})}
    if(key&&['build-hypotenuse','build-semicircle'].includes(d.type)){const p=st.points[2],a=st.points[0],b=st.points[1],u=labSub(a,p),v=labSub(b,p),q=labAt(p,u,16/Math.hypot(...u)),r=labAt(p,v,16/Math.hypot(...v));path('M '+q.join(' ')+' L '+[q[0]+r[0]-p[0],q[1]+r[1]-p[1]].join(' ')+' L '+r.join(' '),{stroke:teal,'stroke-width':2,'data-ag-construction-right-angle':'1'})}
    if(key&&d.type==='build-thirds'){for(let i=0;i<3;i++){const p=labAt(st.points[0],labSub(st.points[1],st.points[0]),(i+.5)/3);line([p[0],p[1]-8],[p[0],p[1]+8],teal,2,{'data-ag-thirds-tick':'1'})}}
    if(key&&['build-midpoint','build-bisector'].includes(d.type)){const m=d.type==='build-midpoint'?st.points[2]:st.points[4];for(const p of [labAt(st.points[0],labSub(m,st.points[0]),.5),labAt(m,labSub(st.points[1],m),.5)])line([p[0],p[1]-8],[p[0],p[1]+8],teal,2,{'data-ag-midpoint-tick':'1'});if(d.type==='build-bisector')labelArc(...m,25,0,90,null)}
    if(!free&&['build-rectangle','build-square'].includes(d.type)){for(let i=0;i<4;i++){const p=st.points[i],u=st.points[(i+1)%4],v=st.points[(i+3)%4],a=polar(...p,16,labAngle(p,u)),b=polar(...p,16,labAngle(p,v));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':2})}}
-   let bounds=[ox,oy,ww,hh];if(key){const ps=d.type==='build-circle'?[st.points[0]]:st.points.slice();if(['build-hypotenuse','build-semicircle'].includes(d.type)){const p=st.points[3],r=labDist(st.points[0],p);ps.push([p[0]-r,p[1]-r],[p[0]+r,p[1]+r])}if(['build-circle','build-tangent'].includes(d.type)||inscribedSides(d.type)){const p=st.points[0],r=40*d.length;ps.push([p[0]-r,p[1]-r],[p[0]+r,p[1]+r])}const xs=ps.map(p=>p[0]),ys=ps.map(p=>p[1]),pad=65;bounds=[Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)-Math.min(...xs)+2*pad,Math.max(...ys)-Math.min(...ys)+2*pad]}const out=frame(...bounds);if(key)out.setAttribute('data-ag-construction-key','1');if(free){out.setAttribute('data-ag-workspace-mm',ww/4+' '+hh/4);out.setAttribute('width',ww/4+'mm');out.setAttribute('height',hh/4+'mm')}return out;
+   let bounds=[ox,oy,ww,hh];if(key){const ps=d.type==='build-circle'?[st.points[0]]:st.points.slice();if(['build-hypotenuse','build-semicircle'].includes(d.type)){const p=st.points[3],r=labDist(st.points[0],p);ps.push([p[0]-r,p[1]-r],[p[0]+r,p[1]+r])}if(['build-circle','build-tangent'].includes(d.type)||inscribedSides(d.type)){const p=st.points[0],r=40*d.length;ps.push([p[0]-r,p[1]-r],[p[0]+r,p[1]+r])}if(centreChallenge(d.type))for(const c of st.circles){const p=st.points[c.i];ps.push([p[0]-c.r,p[1]-c.r],[p[0]+c.r,p[1]+c.r])}const xs=ps.map(p=>p[0]),ys=ps.map(p=>p[1]),pad=65;bounds=[Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)-Math.min(...xs)+2*pad,Math.max(...ys)-Math.min(...ys)+2*pad]}const out=frame(...bounds);if(key)out.setAttribute('data-ag-construction-key','1');if(free){out.setAttribute('data-ag-workspace-mm',ww/4+' '+hh/4);out.setAttribute('width',ww/4+'mm');out.setAttribute('height',hh/4+'mm')}return out;
  }
  if(mode==='construct'&&labTypes.includes(d.type)&&!teacher){
    add('rect',{x:24,y:24,width:752,height:552,fill:'#fff',stroke:'#c4d3cf','stroke-width':1.5,'stroke-dasharray':'5 5','data-ag-pupil-working':'1'});return frame(0,0,800,600);
