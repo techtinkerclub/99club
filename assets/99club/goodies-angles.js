@@ -48,7 +48,7 @@ function challengeConstructionMethod(method,task){
    if(spec.kind==='incentre')add('Construct the perpendicular from I to one side. Transfer that distance to the compass and draw the circle touching all three sides.',L(centre,model.contacts[0]),P(model.contacts[0],'T'),circle(centre,model.inradius,'result'));
  }else if(type==='build-copy-angle'){
    const r=80,x=labAt(A,labSub(B,A),r/labDist(A,B)),y=C,z=labAt(B,labSub(A,B),r/labDist(A,B)),w=E;
-   add('Draw an arc centred at A crossing AB at X and AC at C.',arc(A,r,x),arc(A,r,y),P(x,'X'));
+   add('Set the compass opening to AC. Draw an arc centred at A through C and mark its crossing X on AB.',arc(A,r,x),arc(A,r,y),P(x,'X'));
    add('Keep the same opening. Draw an arc from B meeting BA at Y.',arc(B,r,z),P(z,'Y'));
    add('Pick up the exact distance XC with the compass. Draw an arc centred at Y to meet the previous arc at D on the same side of AB as C.',arc(z,labDist(x,y),w),P(w,'D','result'));
    add('Join B to D. Angle ABD equals angle BAC because the three sides of the compass triangles match.',L(B,w,'result'));
@@ -58,7 +58,7 @@ function challengeConstructionMethod(method,task){
    add('Find the midpoint M of AB. Draw the auxiliary circle with diameter AB.',P(mid,'M'),circle(mid,labDist(mid,A)));
    const pairs=commonTangentPairs(A,B,R,r,internal),hits=tangentContacts(A,B,a);
    add('Draw a circle centred at A of radius '+fmt(a/LAB_UNIT)+' cm ('+(internal?'sum':'difference')+' of the radii). Mark its intersections X₁ and X₂ with the diameter circle.',circle(A,a),...hits.map((p,i)=>P(p,'X'+(i+1))));
-   add('Extend the radii AX₁ and AX₂ to the larger circle, locating T₁ and T₂.',...pairs.flatMap(([t,u],i)=>[L(A,t),P(t,'T'+(i+1),'result')]));
+   add('Draw rays from A through X₁ and X₂. Mark T₁ and T₂ where those rays meet the original larger circle.',...pairs.flatMap(([t,u],i)=>[L(A,t),P(t,'T'+(i+1),'result')]));
    add('Through B construct parallel radii on the '+(internal?'opposite':'same')+' side of AB. Mark U₁ and U₂ on the smaller circle.',...pairs.flatMap(([t,u],i)=>[L(B,u),P(u,'U'+(i+1),'result')]));
    add('Join corresponding contact points T₁ to U₁ and T₂ to U₂. Both tangents are perpendicular to both contact radii.',...pairs.map(([t,u])=>L(t,u,'result')));
  }else if(externalPointChallenge(type)){
@@ -1019,7 +1019,7 @@ function generate(s={},rng=Math.random){
  function labEmpty(free=false,task=null){
    const centred=!free&&(['build-find-circle-centre','build-two-distance-locus','build-equidistant-locus','build-copy-angle'].includes(task?.type)||commonTangentChallenge(task?.type)),points=free?[]:centred?[[280,200],[520,200]]:[LAB_A.slice(),LAB_B.slice()],st={given:!free,points,segments:[],rays:[],circles:[],regions:[]};
    if(!free&&task?.type==='build-copy-angle'){
-     points.push(polar(...points[0],80,task.angle));st.segments.push([0,2]);st.givenCount=3;st.givenSegments=[[0,2]];
+     points.push(exactPolar(...points[0],80,task.angle));st.segments.push([0,2]);st.givenCount=3;st.givenSegments=[[0,2]];
    }
    if(!free&&externalPointChallenge(task?.type)){
      const a=points[0];points.push([a[0]+task.offset*LAB_UNIT,a[1]-task.height*LAB_UNIT]);st.givenCount=3;st.names=['A','B','P'];st.nextName=3;
@@ -1375,7 +1375,7 @@ function generate(s={},rng=Math.random){
  }
  function labSolution(d){
   const st=labEmpty(false,d),A=st.points[0],B=st.points[1];
-  if(d.type==='build-copy-angle'){const p=polar(...B,80,180-d.angle);st.points.push(p);st.segments.push([1,3]);return st}
+  if(d.type==='build-copy-angle'){const p=exactPolar(...B,80,180-d.angle);st.points.push(p);st.segments.push([1,3]);return st}
   if(commonTangentChallenge(d.type)){
     const R=d.length*LAB_UNIT,r=d.rightLength*LAB_UNIT;st.circles.push({i:0,r:R,construction:false},{i:1,r,construction:false});
     for(const pair of commonTangentPairs(A,B,R,r,d.type==='build-common-internal-tangents')){const i=st.points.length;st.points.push(...pair);st.segments.push([i,i+1])}return st;
