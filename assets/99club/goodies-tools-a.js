@@ -294,6 +294,13 @@ function placeValue(){
   let tokens=[],next=1,controller=null,resizeObserver=null,resizeFrame=0,lastStageWidth=0,notice='';
   let controlTab='setup',challengeTab='standard',challengeCategory='read',challengeType='read-number',challenge=null,beforeChallenge=null;
   let representationMode='counters';
+  // A floating whiteboard input is focused in the parent document, not this iframe.
+  // Keep its uncommitted draft through layout-only renders, independently of DOM focus.
+  let quickNumberDraft=null;
+  function quickSetupValue(){
+    if(quickNumberDraft&&(quickNumberDraft.total!==total()||quickNumberDraft.start!==rangeStart||quickNumberDraft.end!==rangeEnd))quickNumberDraft=null;
+    return quickNumberDraft?quickNumberDraft.raw:String(total());
+  }
   let activityMode='powers',activityTarget=null,activityBudget=5,activityStatus='',powerMessage='',activityActive=false,activityContext='teach';
   let activityBefore=null;
   let activityInput='',activityAnswer=null,activityHiddenIndex=-1,activityDigit=0,activityStartCounts=[],activityPrompt='';
@@ -324,6 +331,7 @@ function placeValue(){
   function nonStandard(){return counts().some(n=>n>9)}
   function stateSnapshot(){return{tokens:JSON.parse(JSON.stringify(tokens)),next,placeRange,rangeStart,rangeEnd,representationMode}}
   function restoreState(value){
+    quickNumberDraft=null;
     if(Number.isInteger(value?.rangeStart)&&Number.isInteger(value?.rangeEnd))applyPlaceWindow(value.rangeStart,value.rangeEnd,value.placeRange||'custom');
     else setPlaceRange(value?.placeRange||'standard');
     tokens=Array.isArray(value?.tokens)?value.tokens.map(t=>({...t,place:clamp(Math.round(num(t.place,Math.min(4,places.length-1))),0,places.length-1)})):[];
@@ -332,6 +340,7 @@ function placeValue(){
     notice='';
   }
   function buildFromNumber(raw){
+    quickNumberDraft=null;
     const value=clamp(normaliseValue(num(raw,0)),0,rangeMax()),scale=valueScale(),units=Math.round(value*scale);
     tokens=[];next=1;
     places.forEach((placeMeta,place)=>{
@@ -753,7 +762,7 @@ function placeValue(){
         field('Highest','<select class="gd-select" id="pv-range-high">'+highestOptions+'</select>')+
         field('Lowest','<select class="gd-select" id="pv-range-low">'+lowestOptions+'</select>')+
       '</div>'+
-      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+total()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>')+
+      field('Quick setup number','<div class="gd-row"><input class="gd-input" id="pv-value" type="number" min="0" max="'+rangeMax()+'" step="'+valueStep()+'" value="'+quickSetupValue()+'"><button class="gd-btn" id="pv-build" type="button">Build</button></div>')+
       '<div class="gd-row">'+btn('Build random whole','pv-random')+(decimalAvailable?btn('Build random decimal','pv-dec'):'')+'</div>'+
       '<div class="gd-row">'+btn('Regroup counters','pv-regroup')+btn('Clear board','pv-clear')+'</div>'+
       '<p class="gd-help">Choose exactly the places you need — for example 1,000 to 1 for whole-number work. Up to seven adjacent places are shown at once.</p>';
@@ -1128,7 +1137,7 @@ function placeValue(){
     if(totalEl)totalEl.textContent=summaryHidden('total')?'?':format(total());
     if(expandedEl)expandedEl.textContent=summaryHidden('expanded')?hiddenSummaryText():expandedText();
     if(hint)hint.textContent=stageNotice();
-    if(input&&document.activeElement!==input)input.value=clean(total()).toFixed(total()%1?2:0);
+    if(input&&document.activeElement!==input)input.value=quickSetupValue();
     const cs=counts();
     qa('[data-pv-count]',q('#gd-stage')).forEach(el=>{const index=+el.dataset.pvCount;el.textContent=columnCountHidden(index)?'?':(cs[index]||0)});
   }
@@ -1239,7 +1248,7 @@ function placeValue(){
     const input=q('#pv-value'),regroup=q('#pv-regroup'),range=q('#pv-range'),high=q('#pv-range-high'),low=q('#pv-range-low');
     if(input){
       input.max=String(rangeMax());input.step=String(valueStep());
-      if(document.activeElement!==input)input.value=String(total());
+      if(document.activeElement!==input)input.value=quickSetupValue();
     }
     if(range&&document.activeElement!==range)range.value=PLACE_RANGES.some(r=>r.id===placeRange)?placeRange:'custom';
     if(high&&document.activeElement!==high)high.value=String(rangeStart);
@@ -1337,6 +1346,7 @@ function placeValue(){
       controller.select(null);
     };
     if(build)build.onclick=applyQuickValue;
+    if(quickValue)quickValue.oninput=()=>{quickNumberDraft={raw:quickValue.value,total:total(),start:rangeStart,end:rangeEnd}};
     if(quickValue)quickValue.onkeydown=e=>{
       if(e.key==='Enter'){e.preventDefault();applyQuickValue()}
     };
