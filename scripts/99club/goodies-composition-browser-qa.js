@@ -1183,6 +1183,8 @@ async function run(){
         if(type==='shape-build'||type==='build-asa')expected.push('Angle BAC = '+deg(t.angle));
         if(type==='build-asa')expected.push('Angle ABC = '+deg(t.rightAngle));
         if(['build-square','build-rectangle'].includes(type))expected.push('BC = '+cm(t.length),'Four right angles');
+        if(['build-tangent','build-inscribed-square'].includes(type))expected.push('Circle radius = '+cm(t.length));
+        if(type==='build-tangent')expected.push('TU = '+cm(t.tangentLength));
         if(type==='build-angle-bisector')expected.push('AC = 4 cm','Angle BAC = '+deg(t.angle));
         if(type==='build-hypotenuse')expected.push('AC = '+cm(t.length),'Angle ACB = 90°');
         if(type==='build-parallelogram')expected.push('AD = '+cm(t.length),'Angle BAD = '+deg(t.angle));
@@ -1214,6 +1216,8 @@ async function run(){
         if(type==='build-thirds')assert(dist(pts.P,sol.points[2])<1e-7&&dist(pts.Q,sol.points[3])<1e-7,'Guide division points match verified solution');
         if(type==='build-golden-section'){assert(dist(pts.G,sol.points[2])<1e-7,'Golden-section guide matches verified point');assert(dist(pts.B,pts.C)===120&&Math.abs(dist(pts.A,pts.F)-dist(pts.A,pts.G))<1e-7,'Golden-section guide transfers the exact compass opening')}
         if(type==='build-semicircle')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.M,sol.points[3])<1e-7,'Semicircle guide matches verified example');
+        if(type==='build-tangent')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.U,sol.points[3])<1e-7,'Tangent guide matches verified example');
+        if(type==='build-inscribed-square')assert(['P','Q','R','S'].every((k,i)=>dist(pts[k],sol.points[i+2])<1e-7),'Square guide vertices match verified example');
       }
       const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
       doc.querySelector('[data-ag-tool="construction-library"]').click();await tick(50);
@@ -1261,6 +1265,8 @@ async function run(){
         if(type==='build-asa')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'ASA answer marks both angles');
         if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
         if(type==='build-thirds')assert(key.querySelectorAll('[data-ag-thirds-tick]').length===3,'Trisection answer marks all three equal intervals');
+        if(type==='build-tangent')assert(key.querySelector('[data-ag-tangent-right-angle]'),'Tangent key marks perpendicular radius');
+        if(type==='build-inscribed-square')assert(['P','Q','R','S'].every(k=>key.textContent.includes(k)),'Inscribed square key labels all four vertices');
         if(type==='build-angle-bisector')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'Angle bisector answer marks both half angles');
         if(type==='build-golden-section')assert(key.textContent.includes('3.71 cm')&&key.textContent.includes('2.29 cm'),'Golden ratio answer shows approximate lengths');
         if(['build-hypotenuse','build-semicircle'].includes(type))assert(key.querySelector('[data-ag-construction-right-angle]'),'Circle construction answer marks the right angle at the circumference');
@@ -1304,7 +1310,7 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
@@ -1318,6 +1324,19 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(['build-tangent','build-inscribed-square'].includes(family)){
+          const r=t.length*40,P=polar(A,r,0);circle(A,t.length);point(P);
+          const actualP=cap().lab.points.find(p=>near(p,P));assert(actualP,'Circle meets reference AB at exact point');
+          if(family==='build-tangent'){
+            ray(actualP,B,90);circle(actualP,t.tangentLength);
+            const U=polar(actualP,t.tangentLength*40,90);point([U[0]+.6,U[1]-.6]);
+            const actualU=cap().lab.points.find(p=>near(p,U));assert(actualU,'Tangent perpendicular and opening meet at U');line(actualP,actualU);
+          }else{
+            ray(A,B,90);ray(A,B,180);ray(A,B,270);
+            const verts=[actualP];for(const a of [90,180,270]){const q=polar(A,r,a);point([q[0]+.6,q[1]-.6]);const actual=cap().lab.points.find(p=>near(p,q));assert(actual,'Perpendicular diameters meet circle at exact vertex '+a);verts.push(actual)}
+            for(let i=0;i<4;i++)line(verts[i],verts[(i+1)%4]);
+          }
+          verify();
         }else if(family==='build-golden-section'){
           const mid=[(A[0]+B[0])/2,A[1]],C=[B[0],B[1]-120],af=Math.hypot(240,120)-120,F=[A[0]+240*af/(af+120),A[1]-120*af/(af+120)],G=[A[0]+af,A[1]];
           point(mid);ray(B,A,90);circle(B,3);point([C[0]+.6,C[1]-.6]);const actualC=cap().lab.points.find(p=>near(p,C));assert(actualC,'Golden-section perpendicular and compass give exact C');
