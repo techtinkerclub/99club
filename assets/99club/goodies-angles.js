@@ -437,9 +437,15 @@ function challengeGroups(s={}){
   ['circle','Circles',t=>t.mode==='circle'],
   ['linked','Multi-step geometry',t=>t.id.startsWith('linked-')],
   ['construct','Construction',t=>t.mode==='construct'],
-  ['ks3','KS3 enrichment',t=>t.year===7]
+  ['ks3-lines','Enrichment · Lines & angles',t=>['build-bisector','build-thirds','build-angle-bisector','build-golden-section','build-perpendicular-from-point','build-parallel-through-point','build-copy-angle'].includes(t.id),true],
+  ['ks3-shapes','Enrichment · Construct shapes',t=>['build-rhombus','build-parallelogram','build-hypotenuse','build-isosceles-trapezium','build-inscribed-square','build-inscribed-pentagon','build-inscribed-hexagon','build-inscribed-octagon'].includes(t.id),true],
+  ['ks3-centres','Enrichment · Triangle centres',t=>['build-centroid','build-circumcircle','build-incircle','build-orthocentre','triangle-centroid-ratio','triangle-centre','euler-ratio'].includes(t.id),true],
+  ['ks3-tangents','Enrichment · Circle constructions',t=>['build-semicircle','build-tangent','build-external-tangents','build-find-circle-centre','build-common-external-tangents','build-common-internal-tangents'].includes(t.id),true],
+  ['ks3-loci','Enrichment · Loci',t=>['build-two-distance-locus','build-equidistant-locus'].includes(t.id),true],
+  ['ks3-circles','Enrichment · Circle calculations',t=>t.mode==='circle',true],
+  ['ks3','Enrichment · Shape & angle reasoning',t=>t.mode!=='construct'&&t.mode!=='circle'&&!['triangle-centroid-ratio','triangle-centre','euler-ratio'].includes(t.id),true]
  ];
- return defs.map(([id,label,test])=>({id,label,ids:catalogue.filter(t=>(id==='ks3'||t.year!==7)&&test(t)).map(t=>t.id)})).filter(g=>g.ids.length);
+ return defs.map(([id,label,test,enrichment=false])=>({id,label,ids:catalogue.filter(t=>(enrichment?t.year===7:t.year!==7)&&test(t)).map(t=>t.id)})).filter(g=>g.ids.length);
 }
 
 const exactPolar=(x,y,r,a)=>[x+r*Math.cos(a*D),y-r*Math.sin(a*D)];
