@@ -1183,6 +1183,7 @@ async function run(){
         if(type==='shape-build'||type==='build-asa')expected.push('Angle BAC = '+deg(t.angle));
         if(type==='build-asa')expected.push('Angle ABC = '+deg(t.rightAngle));
         if(['build-square','build-rectangle'].includes(type))expected.push('BC = '+cm(t.length),'Four right angles');
+        if(type==='build-angle-bisector')expected.push('AC = 4 cm','Angle BAC = '+deg(t.angle));
         if(type==='build-hypotenuse')expected.push('AC = '+cm(t.length),'Angle ACB = 90°');
         if(type==='build-parallelogram')expected.push('AD = '+cm(t.length),'Angle BAD = '+deg(t.angle));
         if(type==='build-rhombus')expected.push('All four sides = 6 cm','Angle BAD = '+deg(t.angle));
@@ -1199,7 +1200,7 @@ async function run(){
         if(type==='build-circle')imperfect.circles[0].r+=.8;
         else if(type==='build-bisector'){for(const j of imperfect.segments[0])imperfect.points[j][0]+=.8}
         else if(type==='build-asa')imperfect.points[2][0]+=1.2;
-        else if(type==='build-midpoint')imperfect.points[2][0]+=.8;
+        else if(['build-midpoint','build-golden-section','build-angle-bisector'].includes(type))imperfect.points[2][0]+=.8;
         else if(type==='build-semicircle')imperfect.points[2][1]-=.8;
         else if(type==='build-hypotenuse')imperfect.points[2][0]+=.8;
         else {const p=imperfect.points[2],o=type==='build-rectangle'||type==='build-square'||type==='build-rhombus'?imperfect.points[1]:imperfect.points[0],d=dist(p,o);p[0]+=.8*(p[0]-o[0])/d;p[1]+=.8*(p[1]-o[1])/d}
@@ -1208,9 +1209,10 @@ async function run(){
         for(const precision of [1,2]){imperfect.measurementPrecision=precision;assert(!model.labCheck(imperfect,t).precise,'Display rounding cannot convert an error into precise geometry')}
         if(type==='build-circle')assert(end.some(o=>o.kind==='circle'&&o.radius===40*t.length),'Guide circle has task radius');
         if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
-        if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
+        if(pts.C&&!['build-bisector','build-golden-section'].includes(type))assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution: '+type);
         if(pts.D)assert(dist(pts.D,sol.points[3])<1e-7,'Guide D matches assessed solution');
         if(type==='build-thirds')assert(dist(pts.P,sol.points[2])<1e-7&&dist(pts.Q,sol.points[3])<1e-7,'Guide division points match verified solution');
+        if(type==='build-golden-section'){assert(dist(pts.G,sol.points[2])<1e-7,'Golden-section guide matches verified point');assert(dist(pts.B,pts.C)===120&&Math.abs(dist(pts.A,pts.F)-dist(pts.A,pts.G))<1e-7,'Golden-section guide transfers the exact compass opening')}
         if(type==='build-semicircle')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.M,sol.points[3])<1e-7,'Semicircle guide matches verified example');
       }
       const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
@@ -1259,6 +1261,8 @@ async function run(){
         if(type==='build-asa')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'ASA answer marks both angles');
         if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
         if(type==='build-thirds')assert(key.querySelectorAll('[data-ag-thirds-tick]').length===3,'Trisection answer marks all three equal intervals');
+        if(type==='build-angle-bisector')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'Angle bisector answer marks both half angles');
+        if(type==='build-golden-section')assert(key.textContent.includes('3.71 cm')&&key.textContent.includes('2.29 cm'),'Golden ratio answer shows approximate lengths');
         if(['build-hypotenuse','build-semicircle'].includes(type))assert(key.querySelector('[data-ag-construction-right-angle]'),'Circle construction answer marks the right angle at the circumference');
       }
       const pupilPages=P.pages(mixedConstruction,{title:'Mixed construction practice'}),teacherPages=P.pages(mixedConstruction,{title:'Mixed construction practice',teacher:true}),annex=teacherPages.filter(page=>page.getAttribute('data-worksheet-answer')==='annex');
@@ -1300,7 +1304,7 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
@@ -1314,6 +1318,17 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(family==='build-golden-section'){
+          const mid=[(A[0]+B[0])/2,A[1]],C=[B[0],B[1]-120],af=Math.hypot(240,120)-120,F=[A[0]+240*af/(af+120),A[1]-120*af/(af+120)],G=[A[0]+af,A[1]];
+          point(mid);ray(B,A,90);circle(B,3);point([C[0]+.6,C[1]-.6]);const actualC=cap().lab.points.find(p=>near(p,C));assert(actualC,'Golden-section perpendicular and compass give exact C');
+          line(A,actualC);circle(actualC,3);point([F[0]+.6,F[1]-.6]);const actualF=cap().lab.points.find(p=>near(p,F));assert(actualF,'Golden-section auxiliary compass crossing matches independent oracle');
+          select('compass');tool('compass-pickup').click();tap(A);tap(actualF);tap(A);
+          const transferred=cap().lab.circles.at(-1);assert(Math.abs(transferred.r-af)<1e-7,'Golden-section irrational compass opening transfers without graduation rounding');
+          point([G[0]+.6,G[1]-.6]);assert(cap().lab.points.some(p=>near(p,G)),'Golden-section final point matches analytic result');verify();
+        }else if(family==='build-angle-bisector'){
+          ray(A,B,t.angle);circle(A,4);const C=polar(A,160,t.angle),X=polar(A,160,0);
+          point(C);point(X);const actualC=cap().lab.points.find(p=>near(p,C)),actualX=cap().lab.points.find(p=>near(p,X));assert(actualC&&actualX,'Equal distances on both angle arms');
+          circle(actualC,4);circle(actualX,4);const D=polar(A,320*Math.cos(t.angle*Math.PI/360),t.angle/2);point([D[0]+.6,D[1]-.6]);const actualD=cap().lab.points.find(p=>near(p,D));assert(actualD,'Interior compass crossing acquired');line(A,actualC);line(A,actualD);verify();
         }else if(['build-hypotenuse','build-semicircle'].includes(family)){
           const O=[(A[0]+B[0])/2,A[1]];point(O);circle(O,3);
           let C;
