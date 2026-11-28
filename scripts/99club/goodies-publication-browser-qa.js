@@ -82,7 +82,7 @@ if(process.argv[2]==='prepare'){
    const geometryEvidence=[],enrichmentItems=[];
    const geometryIds=new Set(geometryFamilies.map(f=>f.id));
    assert(geometryIds.size===G.angles.FAMILIES.length&&G.angles.FAMILIES.every(f=>geometryIds.has(f[0])),'Publication audit includes every registered geometry family');
-   const geometryFinite=(svg,id,kind)=>{assert(svg&&svg.tagName.toLowerCase()==='svg',id+' '+kind+' missing SVG');const [x,y,w,h]=vb(svg);assert([x,y,w,h].every(Number.isFinite)&&w>0&&h>0,id+' '+kind+' invalid viewport');assert(!/\\b(?:NaN|Infinity|undefined)\\b/.test(svg.outerHTML),id+' '+kind+' invalid SVG content');return svg};
+   const geometryFinite=(svg,id,kind)=>{assert(svg&&svg.tagName.toLowerCase()==='svg',id+' '+kind+' missing SVG');const [x,y,w,h]=vb(svg);assert([x,y,w,h].every(Number.isFinite)&&w>0&&h>0,id+' '+kind+' invalid viewport');assert(!/\b(?:NaN|Infinity|undefined)\b/.test(svg.outerHTML),id+' '+kind+' invalid SVG content');return svg};
    for(const family of geometryFamilies){
      const id=family.id,settings={...P.defaultSettings('angles'),mode:family.mode,level:'medium',enrichment:true};
      try{
