@@ -1,4 +1,3 @@
-# Integrated release verification: external point lines and isosceles trapezium.
 # Integrated release verification: external tangents and regular pentagon.
 name: 99 Club QA
 # Integrated release verification: tangent and inscribed-square constructions.
@@ -101,6 +100,7 @@ jobs:
       - name: Run 99 Club QA
         env:
           QA_SAMPLES: ${{ github.event_name == 'schedule' && '60' || github.event.inputs.samples || '20' }}
+        # Verify external-point and trapezium construction integration.
         run: node scripts/99club/qa.js
       - name: Run Alphametics catalogue regression
         run: node assets/99club/tests/games-v141-alphametics-smoke.js
