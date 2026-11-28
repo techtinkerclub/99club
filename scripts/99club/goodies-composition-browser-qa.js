@@ -1183,6 +1183,7 @@ async function run(){
         if(type==='shape-build'||type==='build-asa')expected.push('Angle BAC = '+deg(t.angle));
         if(type==='build-asa')expected.push('Angle ABC = '+deg(t.rightAngle));
         if(['build-square','build-rectangle'].includes(type))expected.push('BC = '+cm(t.length),'Four right angles');
+        if(type==='build-parallelogram')expected.push('AD = '+cm(t.length),'Angle BAD = '+deg(t.angle));
         if(type==='build-rhombus')expected.push('All four sides = 6 cm','Angle BAD = '+deg(t.angle));
         assert(JSON.stringify(m.given)===JSON.stringify(expected)&&m.objective===t.prompt,'Method givens and task prompt agree: '+type);
         if(type==='build-midpoint'||type==='build-bisector')assert(m.title===(type==='build-midpoint'?'Construct the midpoint of AB':'Construct the perpendicular bisector of AB'),'Shared technique has challenge-specific title');
@@ -1206,6 +1207,7 @@ async function run(){
         if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
         if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
         if(pts.D)assert(dist(pts.D,sol.points[3])<1e-7,'Guide D matches assessed solution');
+        if(type==='build-thirds')assert(dist(pts.P,sol.points[2])<1e-7&&dist(pts.Q,sol.points[3])<1e-7,'Guide division points match verified solution');
       }
       const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
       doc.querySelector('[data-ag-tool="construction-library"]').click();await tick(50);
@@ -1252,6 +1254,7 @@ async function run(){
         if(type==='build-circle'){assert(key.querySelector('[data-ag-radius-line]')&&!key.querySelector('[data-ag-point-label="B"]')&&!key.textContent.includes('6 cm'),'Circle answer labels radius without unrelated baseline');assert(!pupil.textContent.includes('Draw AB')&&pupil.textContent.includes('Mark centre A'),'Circle pupil prompt requires only its centre and specified radius');}
         if(type==='build-asa')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'ASA answer marks both angles');
         if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
+        if(type==='build-thirds')assert(key.querySelectorAll('[data-ag-thirds-tick]').length===3,'Trisection answer marks all three equal intervals');
       }
       const pupilPages=P.pages(mixedConstruction,{title:'Mixed construction practice'}),teacherPages=P.pages(mixedConstruction,{title:'Mixed construction practice',teacher:true}),annex=teacherPages.filter(page=>page.getAttribute('data-worksheet-answer')==='annex');
       assert(pupilPages.length>1&&pupilPages.every(page=>!page.querySelector('[data-pub-answer-graphic],[data-ag-construction-key]')),'Mixed construction pupil pages contain no answer graphics');
