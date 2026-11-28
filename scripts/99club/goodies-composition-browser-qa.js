@@ -1416,15 +1416,15 @@ async function run(){
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
         }else if(family==='build-find-circle-centre'){
-          const g=initial.givenCircle,o=g.o,expected=[o[0]-g.r,o[1]];
+          const g=initial.givenCircle,o=g.o,sign=Math.sign(o[1]-A[1]),expected=[o[0],o[1]+sign*g.r];
           assert(svg.querySelectorAll('[data-ag-given-circle]').length===1&&svg.querySelectorAll('[data-ag-point-label]').length===2,'Given circle starts with two chord endpoints, not its centre');
-          point([expected[0]-1,expected[1]]);const C=cap().lab.points.find(p=>near(p,expected));assert(C,'A slightly offset tap snaps to given circumference');line(B,C);
+          point([expected[0],expected[1]+sign]);const C=cap().lab.points.find(p=>near(p,expected));assert(C,'A slightly offset tap snaps to given circumference');line(B,C);const chord=cap().lab,ci=chord.points.findIndex(p=>near(p,C));assert(chord.segments.some(e=>e.includes(1)&&e.includes(ci)),'Chord BC is committed: '+JSON.stringify({points:chord.points,segments:chord.segments}));
           for(const [a,b] of [[A,B],[B,C]]){
             const m=[(a[0]+b[0])/2,(a[1]+b[1])/2],length=d(a,b),opening=3.5,r=40*opening,u=[(b[0]-a[0])/length,(b[1]-a[1])/length],h=Math.sqrt(r*r-length*length/4),p=[m[0]-u[1]*h,m[1]+u[0]*h],q=[m[0]+u[1]*h,m[1]-u[0]*h];
             circle(a,opening);circle(b,opening);point(p);point(q);
             const pp=cap().lab.points.find(v=>near(v,p)),qq=cap().lab.points.find(v=>near(v,q));assert(pp&&qq,'Equal compass arcs locate perpendicular bisector endpoints');line(pp,qq);
           }
-          point([o[0]+.6,o[1]-.6]);assert(cap().lab.points.some(p=>near(p,o)),'Centre snaps to the intersection of two constructed bisectors');verify();
+          point([o[0]+.6,o[1]-.6]);assert(cap().lab.points.some(p=>near(p,o)),'Centre snaps to the intersection of two constructed bisectors');const finished=cap().lab;assert(M.labCheck(finished,t).precise,'Circle-centre full drawing: '+JSON.stringify({task:t,points:finished.points,segments:finished.segments,givenCircle:finished.givenCircle,check:M.labCheck(finished,t)}));
           tool('reset').click();assert(cap().lab.points.length===2&&cap().lab.circles.length===0&&svg.querySelectorAll('[data-ag-given-circle]').length===1,'Reset restores the given outline and removes the discovered centre');
         }else if(family==='build-two-distance-locus'||family==='build-equidistant-locus'){
           const eq=family==='build-equidistant-locus',mid=[(A[0]+B[0])/2,A[1]],r=t.length*40,h=eq?r:Math.sqrt(r*r-120*120);
