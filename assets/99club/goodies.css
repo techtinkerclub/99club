@@ -2829,6 +2829,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-circle-explorer]>svg{
 }
 
 #tt99-goodies-root [data-ag-shape-measure-steps][hidden]{display:none!important}
+#tt99-goodies-root [data-ag-perimeter-steps][hidden]{display:none!important}
 #tt99-goodies-root [data-ag-shape-measure-steps]:not([hidden]){display:grid;gap:5px;justify-items:start}
 #tt99-goodies-root [data-ag-measure-manual]{font-size:.85em;margin:0}
 #tt99-goodies-root [data-ag-measure-manual]>summary{cursor:pointer;color:#175e55}
