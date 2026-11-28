@@ -4388,6 +4388,16 @@ pp.querySelector('[data-ag-pythagoras-details]').open=true;assert(pp.querySelect
       const en=panel.querySelector('#ag-enrich');en.checked=true;en.dispatchEvent(new Event('change',{bubbles:true}));await tick(100);
       assert(panel.querySelector('details[data-ag-section="properties"]').open&&panel.querySelector('details[data-ag-section="settings"]').open,'Open geometry sections survive generation settings changes');
       assert(panel.querySelector('details[data-ag-section="ks3"]')&&fixture.doc.querySelector('#ag-enrich').checked,'KS3 questions appear only after opt-in');
+      const sections=[...panel.querySelectorAll('.gd-ag-challenge-catalogue details[data-ag-section]')],enrichmentSections=sections.filter(e=>e.dataset.agSection.startsWith('ks3'));
+      assert(sections.length===16&&enrichmentSections.length===7,'Enrichment is separated into seven compact, topic-based sections');
+      const challengeIds=sections.flatMap(e=>[...e.querySelectorAll('[data-ag-challenge-mode]')].map(n=>n.dataset.agChallengeMode));
+      const expectedIds=fixture.win.TT99Goodies.angles.types({enrichment:true}).map(t=>t.id);
+      assert(challengeIds.length===expectedIds.length&&new Set(challengeIds).size===challengeIds.length&&expectedIds.every(id=>challengeIds.includes(id)),'Every available question appears once in the catalogue');
+      assert(enrichmentSections.every(e=>e.querySelectorAll('[data-ag-challenge-mode]').length<=13),'No enrichment category is an unwieldy list');
+      const circleSection=panel.querySelector('details[data-ag-section="ks3-tangents"]');
+      assert(circleSection.querySelector('[data-ag-challenge-mode="build-common-internal-tangents"]')&&circleSection.querySelector('[data-ag-challenge-mode="build-find-circle-centre"]'),'Circle constructions are easy to find together');
+      circleSection.open=true;const locusSection=panel.querySelector('details[data-ag-section="ks3-loci"]');
+      assert(locusSection.querySelectorAll('[data-ag-challenge-mode]').length===2&&!locusSection.open,'Locus challenges have their own collapsed category');
       const propertyRandom=panel.querySelector('details[data-ag-section="properties"] [data-gd-native-random]');propertyRandom.click();await tick(100);
       const source=fixture.doc.querySelector('[data-gd-native-prefix="ag"]'),groups=JSON.parse(source.dataset.gdNativeGroups);
       const getTask=()=>fixture.doc.defaultView.TT99Goodies.lessonState.capture('angles').model.task;
