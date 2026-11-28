@@ -13,7 +13,7 @@ function constructionMethodGraphic(method,step=-1){
  for(const o of items.filter(o=>o.kind==='point')){add('circle',{cx:o.at[0],cy:o.at[1],r:3,fill:o.style==='result'?'#16796c':'#31434a','data-ag-method-primitive':'point'});add('text',{x:o.at[0]+8,y:o.at[1]-8,'font-size':13,fill:'#31434a',stroke:'#fff','stroke-width':3,'paint-order':'stroke'},o.label)}
  return svg
 }
-const CONSTRUCTION_METHODS_BY_TASK={'shape-build':'triangle-sas','build-sss':'triangle-sss','build-equilateral':'triangle-equilateral','build-right':'triangle-right-legs','build-rectangle':'rectangle-sides','build-square':'square-on-side','build-midpoint':'midpoint','build-perpendicular':'perpendicular-at-point','build-circle':'circle-given-radius','build-asa':'triangle-asa','build-bisector':'midpoint','build-rhombus':'rhombus-side-angle'};
+const CONSTRUCTION_METHODS_BY_TASK={'shape-build':'triangle-sas','build-sss':'triangle-sss','build-equilateral':'triangle-equilateral','build-right':'triangle-right-legs','build-rectangle':'rectangle-sides','build-square':'square-on-side','build-midpoint':'midpoint','build-perpendicular':'perpendicular-at-point','build-circle':'circle-given-radius','build-asa':'triangle-asa','build-bisector':'midpoint','build-rhombus':'rhombus-side-angle','build-thirds':'divide-segment-thirds','build-parallelogram':'parallelogram-sas'};
 // Challenge-specific guidance is generated from the same dimensions as assessment.
 function challengeConstructionMethod(method,task){
  if(!task||method.id!==CONSTRUCTION_METHODS_BY_TASK[task.type])return method;
@@ -25,6 +25,12 @@ function challengeConstructionMethod(method,task){
    add('Draw equal arcs from A and B on both sides of AB.',arc(A,r,x),arc(A,r,y),arc(B,r,x),arc(B,r,y));
    add('Join the intersections X and Y.',P(x,'X'),P(y,'Y'),L([mid[0],mid[1]-120],[mid[0],mid[1]+120],type==='build-bisector'?'result':'construction'));
    add('Mark M where the perpendicular bisector crosses AB. AM = MB = 3 cm.',P(mid,'M','result'));
+ }else if(type==='build-thirds'){
+   const u=[30,-55],p=labAt(A,u,1),q=labAt(A,u,2),r=labAt(A,u,3),F=sol.points[2],G=sol.points[3];
+   add('Draw an auxiliary ray from A at a convenient angle to AB.',L(A,r));
+   add('Use the same compass opening to mark X, Y and Z consecutively on the ray.',arc(A,Math.hypot(...u),p,15),arc(p,Math.hypot(...u),q,15),arc(q,Math.hypot(...u),r,15),P(p,'X'),P(q,'Y'),P(r,'Z'));
+   add('Join Z to B. Through X and Y draw lines parallel to ZB.',L(r,B),L(p,F),L(q,G));
+   add('Mark the two intersections with AB. The three intervals are equal.',P(F,'P','result'),P(G,'Q','result'));
  }else if(type==='build-circle'){
    add('Set the compass opening to '+fmt(length)+' cm.',L(A,[A[0],A[1]-length*40]));
    add('Place the compass at A and draw one full circle.',circle(A,length*40,'result'));
@@ -44,6 +50,11 @@ function challengeConstructionMethod(method,task){
    add('At A draw a perpendicular to AB. Mark D '+fmt(length)+' cm from A.',L(A,[A[0],Math.max(10,E[1]-25)]),arc(A,length*40,E),P(E,'D'),L(A,E,'result'));
    add('At B draw a perpendicular on the same side. Mark C '+fmt(length)+' cm from B.',L(B,[B[0],Math.max(10,C[1]-25)]),arc(B,length*40,C),P(C,'C'),L(B,C,'result'));
    add('Join C to D to complete the shape.',L(C,E,'result'));
+ }else if(type==='build-parallelogram'){
+   add('At A draw a ray making '+task.angle+'° with AB.',L(A,E));
+   add('Set the compass to '+fmt(length)+' cm and mark D on the ray.',arc(A,length*40,E),P(E,'D'),L(A,E,'result'));
+   add('Draw arcs centred at B (radius '+fmt(length)+' cm) and D (radius 6 cm). Choose their intersection C that completes the parallelogram.',arc(B,length*40,C),arc(E,240,C),P(C,'C'));
+   add('Join B to C and C to D.',L(B,C,'result'),L(C,E,'result'));
  }else if(type==='build-rhombus'){
    add('At A draw a ray making '+task.angle+'° with AB.',L(A,E));
    add('Set the compass to 6 cm and mark D on the ray.',arc(A,240,E),P(E,'D'),L(A,E,'result'));
@@ -66,6 +77,8 @@ function challengeConstructionMethod(method,task){
    case 'build-right':case 'build-perpendicular':given.push('AC = '+cm(length),'Angle BAC = 90°');break;
    case 'build-rectangle':case 'build-square':given.push('BC = '+cm(length),'Four right angles');break;
    case 'build-asa':given.push('Angle BAC = '+deg(task.angle),'Angle ABC = '+deg(task.rightAngle));break;
+   case 'build-thirds':title='Divide AB into three equal parts';break;
+   case 'build-parallelogram':given.push('AD = '+cm(length),'Angle BAD = '+deg(task.angle));break;
    case 'build-rhombus':given.push('All four sides = 6 cm','Angle BAD = '+deg(task.angle));break;
    case 'shape-build':given.push('AC = '+cm(length),'Angle BAC = '+deg(task.angle));break;
  }
@@ -262,7 +275,7 @@ const FAMILIES=[
  ['straight','Missing angle on a straight line','facts',5],['point','Missing angle around a point','facts',5],['opposite','Vertically opposite angles','facts',6],
  ['rectangle','Angles in rectangles','polygon',5],['rectangle-length','Missing length in a rectangle','polygon',5],['isosceles-angle','Missing base angle in an isosceles triangle','polygon',6],['diagonal-equal','Equal diagonals in quadrilaterals','polygon',5],['diagonal-bisect','Diagonals that bisect each other','polygon',6],['diagonal-perpendicular','Perpendicular diagonals','polygon',6],['side-count','Count sides of a polygon','polygon',2],['parallel-count','Count pairs of parallel sides','polygon',3],['shape-family','Recognise inclusive shape families','polygon',5],['quad-reasoning','Quadrilateral reasoning: always, sometimes or never','polygon',6],['geometry-reasoning','Geometry reasoning: always, sometimes or never','polygon',6],['circle-part','Name a circle part','circle',6],['circle-diameter','Find diameter from radius','circle',6],['circle-radius','Find radius from diameter','circle',6],['triangle-type','Classify a triangle by sides','polygon',4],['triangle-angle-type','Classify a triangle by angles','polygon',4],['triangle-centroid-ratio','Divide a median at the centroid','polygon',7],['triangle-centre','Identify a triangle centre','polygon',7],['euler-ratio','Find a distance on the Euler line','polygon',7],['quad-type','Classify a quadrilateral','polygon',4],['regularity','Regular or irregular polygon','polygon',5],
  ['triangle','Missing angle in a triangle','polygon',6],['linked-isosceles','Linked triangle angles','polygon',6],['linked-l-area','Compound shape: missing length, area and perimeter','polygon',6],['linked-right-triangle','Right triangle: length, perimeter and area','polygon',7],['quadrilateral','Missing angle in a quadrilateral','polygon',6],['regular','Interior angle of a regular polygon','polygon',6],
- ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],['build-midpoint','Locate the midpoint of a segment','construct',4],['build-perpendicular','Construct a perpendicular segment','construct',5],['build-circle','Construct a circle of given radius','construct',6],['build-asa','Construct a triangle from two angles and a side','construct',6],['build-bisector','Construct a perpendicular bisector','construct',7],['build-rhombus','Construct a rhombus from a side and angle','construct',7],
+ ['shape-build','Construct a triangle from dimensions and an angle','construct',6],['build-sss','Construct a triangle from three sides','construct',6],['build-equilateral','Construct an equilateral triangle','construct',5],['build-right','Construct a right-angled triangle','construct',5],['build-rectangle','Construct a rectangle','construct',5],['build-square','Construct a square','construct',4],['build-midpoint','Locate the midpoint of a segment','construct',4],['build-perpendicular','Construct a perpendicular segment','construct',5],['build-circle','Construct a circle of given radius','construct',6],['build-asa','Construct a triangle from two angles and a side','construct',6],['build-bisector','Construct a perpendicular bisector','construct',7],['build-rhombus','Construct a rhombus from a side and angle','construct',7],['build-thirds','Divide a segment into three equal parts','construct',7],['build-parallelogram','Construct a parallelogram from two sides and an angle','construct',7],
  ['exterior','Exterior angle of a regular polygon','polygon',7],['circle-circumference','Find circumference using π','circle',7],['circle-area','Find circle area using π','circle',7],['circle-chord-half','Find half a bisected chord','circle',7],['circle-chord-distance','Find the perpendicular distance to a chord','circle',7],['circle-arc-length','Calculate arc length','circle',7],['circle-sector-area','Calculate sector area','circle',7],['circle-segment-area','Calculate a circular segment area','circle',7],['circle-tangent-angle','Find an angle in a radius–tangent triangle','circle',7],['parallel','Corresponding and alternate angles','facts',7],['co-interior','Co-interior angles','facts',7],['similar-side','Missing length in similar triangles','polygon',7],['triangle-comparison','Congruent, similar or neither','polygon',7],['triangle-criterion','Is the triangle uniquely determined?','polygon',7],['triangle-inequality','Can these sides form a triangle?','polygon',7],['pythagoras','Find a missing right-triangle side','polygon',7],['area-same-base','Triangles with the same base and height','polygon',6],['area-same-perimeter','Find area with a fixed perimeter','polygon',6],['perimeter-same-area','Find perimeter with a fixed area','polygon',6],['polygon-sum','Interior angle sum of a polygon','polygon',7],['polygon-missing','Missing angle in an irregular polygon','polygon',7],['polygon-turn-missing','Missing signed exterior turn','polygon',7],['polygon-diagonal-count','Count all diagonals of a polygon','polygon',7]
 ];
 const rand=(rng,a,b)=>a+Math.floor(rng()*(b-a+1)),pick=(rng,a)=>a[rand(rng,0,a.length-1)];
@@ -424,6 +437,8 @@ function generate(s={},rng=Math.random){
  if(type==='build-circle'){const l=pick(rng,[1,1.5,2]);return task({length:l},'Draw a circle with centre A and radius '+l+' cm.','Centre A; radius '+l+' cm','Set the compass opening to '+l+' cm, place its centre on A and draw the circle.');}
  if(type==='build-asa'){const a=pick(rng,[30,45,60,75]),b=pick(rng,[30,45,60,75].filter(b=>a+b<=120)),l=6*Math.sin(b*D)/Math.sin((180-a-b)*D);return task({angle:a,rightAngle:b,length:l},'Construct triangle ABC with AB = 6 cm, angle BAC = '+a+'° and angle ABC = '+b+'°. Draw both remaining sides.','Angles A = '+a+'°, B = '+b+'°, C = '+(180-a-b)+'°','Construct the two angles at A and B on the same side of AB. Mark their intersection C and join the sides. Reflections are valid.');}
  if(type==='build-bisector')return task({},'Construct a perpendicular bisector of AB. Make it cross AB and extend on both sides.','Crosses AB at its midpoint, at 90°','Draw equal compass arcs centred at A and B with opening greater than 3 cm. Join their intersections; the line passes through the midpoint at 90°.');
+ if(type==='build-thirds')return task({},'Divide AB = 6 cm into three equal segments. Mark both division points on AB.','AP = PQ = QB = 2 cm','Use a ruler to mark 2 cm and 4 cm from A, or construct three equal intervals on an auxiliary ray and project them onto AB using parallel lines.');
+ if(type==='build-parallelogram'){const a=pick(rng,[45,60,120]),l=pick(rng,[3,4,5]);return task({angle:a,length:l},'Construct parallelogram ABCD with AB = 6 cm, AD = '+l+' cm and angle BAD = '+a+'°. Draw all four sides.','AB = CD = 6 cm; AD = BC = '+l+' cm; angle BAD = '+a+'°','Construct AD with the given length and angle. Through B draw a parallel to AD, and through D a parallel to AB; their intersection is C. A valid compass construction or reflection is also accepted.');}
  if(type==='build-rhombus'){const a=pick(rng,[45,60,120]);return task({angle:a,length:6},'Construct rhombus ABCD with AB = 6 cm and angle BAD = '+a+'°. Draw all four sides.','All four sides = 6 cm; angle BAD = '+a+'°','Draw AD = 6 cm at '+a+'° to AB. Use equal compass openings from B and D to locate C opposite A. Join BC and CD.');}
  if(type==='shape-build'){const a=angle(30,120),l=rand(rng,3,7);return task({angle:a,length:l,baseLength:6},'Use geometry instruments to construct triangle ABC with AB = 6 cm, AC = '+l+' cm and angle BAC = '+a+'°. Draw both remaining sides.',a+'°; '+l+' cm','Accept the triangle with AB = 6 cm, AC = '+l+' cm and included angle '+a+'°. Rotation or reflection is also valid on paper.')}
  throw Error('Unknown family');
@@ -899,12 +914,14 @@ function generate(s={},rng=Math.random){
   }
   return {...hit,p,kind:'Graduation',lengthCm:r/LAB_UNIT};
  }
- const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square','build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus'];
+ const labTypes=['shape-build','build-sss','build-equilateral','build-right','build-rectangle','build-square','build-midpoint','build-perpendicular','build-circle','build-asa','build-bisector','build-rhombus','build-thirds','build-parallelogram'];
  function labPracticeCheck(s,target){
   const linked=(i,j)=>s.segments.some(l=>l.includes(i)&&l.includes(j)),near=(a,b,t=.15)=>Math.abs(a-b)<=t,len=(a,b)=>labDist(a,b)/LAB_UNIT;
   const A=s.points[0],B=s.points[1];if(!A||!B)return {ready:false,correct:false};const midpoint=labAt(A,labSub(B,A),.5),base=labAngle(A,B),diff=(p,q)=>Math.min(mod(p-q),mod(q-p));
   if(target.type==='build-circle'){const ready=s.circles.length>0;return {ready,correct:s.circles.some(c=>!isLabArc(c)&&labDist(s.points[c.i],A)<=6&&near(c.r/LAB_UNIT,target.length))}}
   if(s.points.length<3)return {ready:false,correct:false};
+  if(target.type==='build-thirds'){const u=labSub(B,A),p=labAt(A,u,1/3),q=labAt(A,u,2/3),pts=s.points.slice(2);return {ready:pts.length>=2,correct:pts.some((a,i)=>labDist(a,p)<=6&&pts.some((b,j)=>i!==j&&labDist(b,q)<=6))}}
+  if(target.type==='build-parallelogram'){let ready=false,correct=false;for(let c=2;c<s.points.length;c++)for(let d=2;d<s.points.length;d++){if(c===d||!linked(1,c)||!linked(c,d)||!linked(d,0))continue;ready=true;const C=s.points[c],E=s.points[d],expect=labAt(B,labSub(E,A),1);if(near(len(A,E),target.length)&&near(len(B,C),target.length)&&near(len(C,E),6)&&labDist(C,expect)<=6&&near(diff(labAngle(A,E),base),target.angle,2))correct=true}return {ready,correct}}
   if(target.type==='build-midpoint')return {ready:true,correct:s.points.slice(2).some(p=>labDist(p,midpoint)<=6)};
   if(target.type==='build-perpendicular'){const candidates=s.points.slice(2).filter((p,i)=>linked(0,i+2));return {ready:candidates.length>0,correct:candidates.some(p=>near(len(A,p),target.length)&&near(diff(labAngle(A,p),base),90,2))}}
   if(target.type==='build-bisector'){const candidates=s.segments.map(([i,j])=>[s.points[i],s.points[j]]);return {ready:candidates.length>0,correct:candidates.some(([p,q])=>{const v=labSub(q,p),u=labSub(midpoint,p),n=labDot(v,v);if(n<1)return false;const t=labDot(u,v)/n;return t>0&&t<1&&labDist(midpoint,labAt(p,v,t))<=6&&near(diff(labAngle(p,q),base),90,2)})}}
@@ -936,6 +953,9 @@ function generate(s={},rng=Math.random){
    const add=items=>checks.push(items);
    if(target.type==='build-circle'){
      for(const c of s.circles)if(!isLabArc(c)&&s.points[c.i])add([distance('Centre at A',len(s.points[c.i],A)),distance('Radius',c.r/LAB_UNIT-target.length)]);
+   }else if(target.type==='build-thirds'){
+     const u=labSub(B,A),p=labAt(A,u,1/3),q=labAt(A,u,2/3);
+     for(let i=2;i<s.points.length;i++)for(let j=2;j<s.points.length;j++)if(i!==j)add([base(),distance('First division point',len(s.points[i],p)),distance('Second division point',len(s.points[j],q))]);
    }else if(target.type==='build-midpoint'){
      for(const p of s.points.slice(2))add([base(),distance('Distance from the true midpoint',len(p,mid()))]);
    }else if(target.type==='build-bisector'){
@@ -944,12 +964,12 @@ function generate(s={},rng=Math.random){
        const t=labDot(labSub(mid(),p),v)/n;
        add([base(),requirement('Segment extends on both sides of AB',t>0&&t<1),distance('Distance from the midpoint to the line',len(mid(),labAt(p,v,t))),angular('Perpendicular angle',angleBetween(v,labSub(B,A))-90)]);
      }
-   }else if(['build-rectangle','build-square','build-rhombus'].includes(target.type)){
+   }else if(['build-rectangle','build-square','build-rhombus','build-parallelogram'].includes(target.type)){
      for(let c=2;c<s.points.length;c++)for(let d=2;d<s.points.length;d++){
        if(c===d||!linked(1,c)||!linked(c,d)||!linked(d,0))continue;
        const C=s.points[c],E=s.points[d],pts=[A,B,C,E],h=target.type==='build-rhombus'?6:target.length;
        const items=[base(),distance('BC length',len(B,C)-h),distance('CD length',len(C,E)-6),distance('DA length',len(E,A)-h),requirement('Simple, non-degenerate quadrilateral',validRegion(pts,[0,1,2,3]))];
-       if(target.type==='build-rhombus'){
+       if(['build-rhombus','build-parallelogram'].includes(target.type)){
          items.push(angular('Angle BAD',angle(B,A,E)-target.angle),angular('AB parallel to CD',Math.min(angleBetween(labSub(B,A),labSub(E,C)),angleBetween(labSub(A,B),labSub(E,C)))),angular('AD parallel to BC',Math.min(angleBetween(labSub(E,A),labSub(C,B)),angleBetween(labSub(A,E),labSub(C,B)))));
        }else for(let i=0;i<4;i++)items.push(angular('Right angle at '+['A','B','C','D'][i],angle(pts[(i+3)%4],pts[i],pts[(i+1)%4])-90));
        add(items);
@@ -984,7 +1004,8 @@ function generate(s={},rng=Math.random){
   if(d.type==='build-circle'){st.circles.push({i:0,r:40*d.length,construction:false});return st}
   if(d.type==='build-perpendicular'){st.points.push(exactPolar(...A,40*d.length,90));st.segments.push([0,2]);return st}
   if(d.type==='build-bisector'){const m=labAt(A,labSub(B,A),.5);st.points.push([m[0],m[1]-155],[m[0],m[1]+65],m);st.segments.push([2,3]);return st}
-  if(d.type==='build-rhombus'){const E=exactPolar(...A,240,d.angle),C=labAt(B,labSub(E,A),1);st.points.push(C,E);st.segments.push([1,2],[2,3],[3,0]);return st}
+  if(d.type==='build-thirds'){st.points.push(labAt(A,labSub(B,A),1/3),labAt(A,labSub(B,A),2/3));return st}
+  if(d.type==='build-rhombus'||d.type==='build-parallelogram'){const E=exactPolar(...A,d.type==='build-rhombus'?240:40*d.length,d.angle),C=labAt(B,labSub(E,A),1);st.points.push(C,E);st.segments.push([1,2],[2,3],[3,0]);return st}
   if(d.type==='build-rectangle'||d.type==='build-square'){st.points.push([B[0],B[1]-40*d.length],[A[0],A[1]-40*d.length]);st.segments.push([1,2],[2,3],[3,0]);return st}
   st.points.push(exactPolar(...A,40*d.length,d.angle));st.segments.push([0,2],[1,2]);
   if(d.type==='build-sss'||d.type==='build-equilateral')st.circles.push({i:0,r:40*d.length},{i:1,r:40*d.rightLength});
@@ -1829,10 +1850,11 @@ function diagram(d,teacher=false,options={}){
    for(const d of labIndependentDimensions(st)){const [i,j]=d.ids;dimension(st.points[i],st.points[j],d.value,{size:14,offset:30,lines:dimLines,bounds:[ox,oy,ox+ww,oy+hh],manualOffset:d.offset,independent:true})}
    annotationPlan.renderNotation((d,k)=>path(d,{stroke:teal,'stroke-width':1.8,'stroke-dasharray':k==='symmetry'?'8 4 2 4':'','data-ag-notation':k}),(p,v)=>text(p[0],p[1],v,13,{'data-ag-annotation-value':'1','paint-order':'stroke',stroke:'#fff','stroke-width':3}));
    annotationPlan.renderAutomatic((d,p,v)=>{path(d,{stroke:teal,'stroke-width':1.8,'data-ag-angle-mark':'1'});text(p[0],p[1],v,12,{'data-ag-angle-value':'1','paint-order':'stroke',stroke:'#fff','stroke-width':3})});
-    st.points.forEach((p,i)=>{if(key&&d.type==='build-circle'&&i!==0)return;circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,d.type==='build-midpoint'&&i===2?'M':d.type==='build-bisector'&&i===4?'M':labPointText(st,i)+(free&&datumState(st).coordinates?' '+datumCoordinateText(st,p):''),16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
-   if(!free&&['shape-build','build-right','build-perpendicular','build-asa','build-rhombus'].includes(d.type))labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
+    st.points.forEach((p,i)=>{if(key&&d.type==='build-circle'&&i!==0)return;circle(p,3,ink);const pos=labLabel(st,i);text(pos[0],pos[1]+4,d.type==='build-thirds'&&i===2?'P':d.type==='build-thirds'&&i===3?'Q':d.type==='build-midpoint'&&i===2?'M':d.type==='build-bisector'&&i===4?'M':labPointText(st,i)+(free&&datumState(st).coordinates?' '+datumCoordinateText(st,p):''),16,{'data-ag-point-label':st.names[i],'paint-order':'stroke',stroke:'#fff','stroke-width':3})});
+   if(!free&&['shape-build','build-right','build-perpendicular','build-asa','build-rhombus','build-parallelogram'].includes(d.type))labelArc(...st.points[0],38,0,d.angle,d.angle+'°');
    if(key&&d.type==='build-asa')labelArc(...st.points[1],38,180-d.rightAngle,d.rightAngle,d.rightAngle+'°');
    if(key&&d.type==='build-circle'){const p=st.points[0],q=polar(...p,40*d.length,120);line(p,q,orange,2,{'data-ag-radius-line':'1'});dimension(p,q,d.length+' cm',{size:18,offset:24,outside:[p[0]-100,p[1]-100]})}
+   if(key&&d.type==='build-thirds'){for(let i=0;i<3;i++){const p=labAt(st.points[0],labSub(st.points[1],st.points[0]),(i+.5)/3);line([p[0],p[1]-8],[p[0],p[1]+8],teal,2,{'data-ag-thirds-tick':'1'})}}
    if(key&&['build-midpoint','build-bisector'].includes(d.type)){const m=d.type==='build-midpoint'?st.points[2]:st.points[4];for(const p of [labAt(st.points[0],labSub(m,st.points[0]),.5),labAt(m,labSub(st.points[1],m),.5)])line([p[0],p[1]-8],[p[0],p[1]+8],teal,2,{'data-ag-midpoint-tick':'1'});if(d.type==='build-bisector')labelArc(...m,25,0,90,null)}
    if(!free&&['build-rectangle','build-square'].includes(d.type)){for(let i=0;i<4;i++){const p=st.points[i],u=st.points[(i+1)%4],v=st.points[(i+3)%4],a=polar(...p,16,labAngle(p,u)),b=polar(...p,16,labAngle(p,v));path('M '+a.join(' ')+' L '+[a[0]+b[0]-p[0],a[1]+b[1]-p[1]].join(' ')+' L '+b.join(' '),{stroke:teal,'stroke-width':2})}}
    let bounds=[ox,oy,ww,hh];if(key){const ps=d.type==='build-circle'?[st.points[0]]:st.points.slice();if(d.type==='build-circle'){const p=st.points[0],r=40*d.length;ps.push([p[0]-r,p[1]-r],[p[0]+r,p[1]+r])}const xs=ps.map(p=>p[0]),ys=ps.map(p=>p[1]),pad=65;bounds=[Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)-Math.min(...xs)+2*pad,Math.max(...ys)-Math.min(...ys)+2*pad]}const out=frame(...bounds);if(key)out.setAttribute('data-ag-construction-key','1');if(free){out.setAttribute('data-ag-workspace-mm',ww/4+' '+hh/4);out.setAttribute('width',ww/4+'mm');out.setAttribute('height',hh/4+'mm')}return out;
