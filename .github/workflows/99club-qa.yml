@@ -1,4 +1,5 @@
 name: 99 Club QA
+# Integrated release verification: tangent and inscribed-square constructions.
 
 on:
   push:
