@@ -72,6 +72,62 @@ if(process.argv[2]==='prepare'){
        results.push({tool,families:families.map(f=>f.id),generated:items.length,pupilPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='pupil').length,annexPages:sheets.filter(s=>s.getAttribute('data-worksheet-answer')==='annex').length,graphics:sheets.reduce((n,s)=>n+s.querySelectorAll('[data-pub-answer-graphic]').length,0)});
      }catch(err){issues.push(tool+': '+err.message)}
    }
+
+   // G7: the default catalogue excludes opt-in enrichment. Audit every
+   // geometry family through the actual publishing adapter, not a duplicate
+   // renderer. Keep detailed evidence in the report and preserve the existing
+   // page-size and typography gates for the extra printed samples.
+   const geometryFamilies=P.types('angles',{...P.defaultSettings('angles'),enrichment:true});
+   const geometryDefault=P.types('angles',P.defaultSettings('angles'));
+   const geometryEvidence=[],enrichmentItems=[];
+   const geometryIds=new Set(geometryFamilies.map(f=>f.id));
+   assert(geometryIds.size===G.angles.FAMILIES.length&&G.angles.FAMILIES.every(f=>geometryIds.has(f[0])),'Publication audit includes every registered geometry family');
+   const geometryFinite=(svg,id,kind)=>{assert(svg&&svg.tagName.toLowerCase()==='svg',id+' '+kind+' missing SVG');const [x,y,w,h]=vb(svg);assert([x,y,w,h].every(Number.isFinite)&&w>0&&h>0,id+' '+kind+' invalid viewport');assert(!/\\b(?:NaN|Infinity|undefined)\\b/.test(svg.outerHTML),id+' '+kind+' invalid SVG content');return svg};
+   for(const family of geometryFamilies){
+     const id=family.id,settings={...P.defaultSettings('angles'),mode:family.mode,level:'medium',enrichment:true};
+     try{
+       const batch=P.createDocument(),mixed=P.createDocument(),capture=P.createDocument();
+       batch.generate('angles',settings,2,id,rng);
+       const batchItems=batch.list();assert(batchItems.length===2&&batchItems.every(i=>i.data.type===id&&i.recipe.type===id),'Batch does not preserve family');
+       const otherTool='sequences',otherSettings=P.defaultSettings(otherTool),otherType=P.types(otherTool,otherSettings)[0].id;
+       mixed.generateBlocks([{tool:'angles',settings,types:[id],count:1},{tool:otherTool,settings:otherSettings,types:[otherType],count:1}],rng);
+       const original=mixed.list(),item=original[0],other=JSON.stringify(original[1]),frozen=JSON.stringify(item);
+       assert(item.data.type===id&&item.kind==='challenge'&&original[1].tool===otherTool,'Mixed source recipe changes family');
+       const pupil=geometryFinite(P.renderItem(item,false),id,'pupil'),teacher=geometryFinite(P.renderItem(item,true),id,'teacher'),graphic=geometryFinite(P.answerGraphic(item),id,'annex');
+       assert(pupil.getAttribute('data-worksheet-answer')==='pupil'&&teacher.getAttribute('data-worksheet-answer')==='teacher','Explicit pupil/teacher card modes');
+       assert(P.answerSummary(item)===item.data.answer&&P.answerNote(item).includes(item.data.note),'Marking record matches generated question');
+       assert(!pupil.querySelector('[data-ag-construction-key="1"],[data-ag-linked-answer],[data-ag-solution-circle="1"]'),'Teacher-specific solution geometry leaks into pupil card');
+       if(G.angles.labTypes.includes(id))assert(graphic.getAttribute('data-ag-construction-key')==='1','Assessed construction requires a solved graphical annex');
+       capture.addCurrent('angles',{task:{...item.data,revealed:true}});
+       const captured=capture.list()[0];
+       assert(captured.data.revealed===false&&captured.data.answer===item.data.answer,'Current capture retains original givens but clears reveal');
+       assert(P.renderItem(captured,false).isEqualNode(pupil),'Previously revealed current task changes pupil paper');
+       assert(JSON.stringify(item)===frozen,'Rendering or capture mutated the frozen item');
+       const replaced=mixed.replace(item.id,rng);
+       assert(replaced.id===item.id&&replaced.data.type===id&&JSON.stringify(replaced.recipe)===JSON.stringify(item.recipe)&&JSON.stringify(mixed.list()[1])===other,'Replacement must isolate the selected recipe');
+       if(!geometryDefault.some(f=>f.id===id))enrichmentItems.push(item);
+       geometryEvidence.push({id,stage:family.year,mode:family.mode,batch:true,current:true,mixed:true,replacement:true,pupil:true,teacher:true,annex:true});
+     }catch(err){issues.push('angles/'+id+': '+err.message);geometryEvidence.push({id,error:err.message})}
+   }
+   for(let start=0;start<enrichmentItems.length;start+=12){
+     const items=enrichmentItems.slice(start,start+12),title='Geometry enrichment — publication audit '+(start+1);
+     try{
+       const pupils=P.pages(items,{title}),both=P.pages(items,{title,teacher:true}),section=document.createElement('section');section.className='audit-widget';
+       assert(pupils.length>0&&pupils.every((p,i)=>p.isEqualNode(both[i])),'Adding answer annex changes pupil sheets');
+       const heading=document.createElement('h2');heading.textContent=title;section.appendChild(heading);host.appendChild(section);
+       const questions=[],answers=[];
+       for(const sheet of both){
+         const prepared=X.preparePaperSvg(sheet),frame=document.createElement('div');frame.className='audit-sheet';frame.appendChild(prepared);section.appendChild(frame);
+         checkPage(prepared,'angles-enrichment',sheet.getAttribute('data-worksheet-answer'));
+         questions.push(...[...prepared.querySelectorAll('[data-pub-number]')].map(n=>Number(n.getAttribute('data-pub-number'))));
+         answers.push(...[...prepared.querySelectorAll('[data-pub-answer-number]')].map(n=>Number(n.getAttribute('data-pub-answer-number'))));
+       }
+       const expected=items.map((_,i)=>i+1);
+       assert(JSON.stringify(questions)===JSON.stringify(expected)&&JSON.stringify(answers)===JSON.stringify(expected),'Enrichment page and annex numbering mismatch');
+       for(const item of items)geometryEvidence.find(e=>e.id===item.data.type).paginated=true;
+     }catch(err){issues.push(title+': '+err.message)}
+   }
+   results.push({tool:'angles-all-families',families:geometryEvidence.map(e=>e.id),audited:geometryEvidence.length,enrichment:enrichmentItems.length,evidence:geometryEvidence});
    // Audit every statistics representation rather than only its default table.
    for(const view of ['tally','pictogram','block','bar','line','pie','timetable']){
      const settings={...P.defaultSettings('statistics-table'),view};
@@ -101,7 +157,7 @@ if(process.argv[2]==='prepare'){
    assert(Number(geoAnnex.querySelector('[data-pub-answer-graphic]').getAttribute('height'))>340,'Dense Geoboard answer is no longer compressed to the former annex cap');
    const abacusResult=results.find(r=>r.tool==='abacus');
    assert(abacusResult.annexPages<=5,'Nine bead-abacus answers fit on at most five annex pages while maintaining legibility');
-   assert(warnings.length===0,'Default publication samples must retain the zero sub-7pt text baseline: '+JSON.stringify(warnings.slice(0,12)));
+   assert(warnings.length===0,'Default and geometry enrichment samples must retain the zero sub-7pt text baseline: '+JSON.stringify(warnings.slice(0,12)));
    assert(clipping.length===0,'No rendered text outside the page: '+JSON.stringify(clipping.slice(0,5)));
    for(const kind of ['reckoning','rods','napier','slide','pascaline']){
      const settings={kind},families=P.types('abacus',settings);
