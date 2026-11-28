@@ -1304,7 +1304,7 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
@@ -1318,6 +1318,13 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(family==='build-golden-section'){
+          const mid=[(A[0]+B[0])/2,A[1]],C=[B[0],B[1]-120],af=Math.hypot(240,120)-120,F=[A[0]+240*af/(af+120),A[1]-120*af/(af+120)],G=[A[0]+af,A[1]];
+          point(mid);ray(B,A,90);circle(B,3);point([C[0]+.6,C[1]-.6]);const actualC=cap().lab.points.find(p=>near(p,C));assert(actualC,'Golden-section perpendicular and compass give exact C');
+          line(A,actualC);circle(actualC,3);point([F[0]+.6,F[1]-.6]);const actualF=cap().lab.points.find(p=>near(p,F));assert(actualF,'Golden-section auxiliary compass crossing matches independent oracle');
+          select('compass');tool('compass-pickup').click();tap(A);tap(actualF);tap(A);
+          const transferred=cap().lab.circles.at(-1);assert(Math.abs(transferred.r-af)<1e-7,'Golden-section irrational compass opening transfers without graduation rounding');
+          point([G[0]+.6,G[1]-.6]);assert(cap().lab.points.some(p=>near(p,G)),'Golden-section final point matches analytic result');verify();
         }else if(family==='build-angle-bisector'){
           ray(A,B,t.angle);circle(A,4);const C=polar(A,160,t.angle),X=polar(A,160,0);
           point(C);point(X);const actualC=cap().lab.points.find(p=>near(p,C)),actualX=cap().lab.points.find(p=>near(p,X));assert(actualC&&actualX,'Equal distances on both angle arms');
