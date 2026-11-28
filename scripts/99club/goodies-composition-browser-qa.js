@@ -1260,7 +1260,7 @@ async function run(){
           assert(start.points.length===2&&start.circles.length===0&&start.points.every(p=>dist(p,g.o)>1e-7),'Given circle centre is not a selectable vertex');
           assert(m.graphics.initial.some(o=>o.kind==='circle')&&!m.graphics.initial.some(o=>o.kind==='point'&&o.label==='O'),'Starting guide shows outline but no centre');
           assert(dist(pts.O,sol.points[3])<1e-7,'Guide identifies the true centre');
-          const hit=model.labSnap(start,[sol.points[2][0]-1,sol.points[2][1]],6);
+          const c=sol.points[2],v=c.map((x,i)=>x-g.o[i]),r=Math.hypot(...v),hit=model.labSnap(start,c.map((x,i)=>x+v[i]/r),6);
           assert(dist(hit.p,sol.points[2])<1e-7,'Immutable given circle supports exact circumference snapping');
           const incomplete=JSON.parse(JSON.stringify(sol));incomplete.segments=[];
           assert(!model.labCheck(incomplete,t).precise,'A centre without a second chord cannot pass');
