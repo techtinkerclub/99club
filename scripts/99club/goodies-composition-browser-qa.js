@@ -4391,7 +4391,7 @@ pp.querySelector('[data-ag-pythagoras-details]').open=true;assert(pp.querySelect
       const sections=[...panel.querySelectorAll('.gd-ag-challenge-catalogue details[data-ag-section]')],enrichmentSections=sections.filter(e=>e.dataset.agSection.startsWith('ks3'));
       assert(sections.length===16&&enrichmentSections.length===7,'Enrichment is separated into seven compact, topic-based sections');
       const challengeIds=sections.flatMap(e=>[...e.querySelectorAll('[data-ag-challenge-mode]')].map(n=>n.dataset.agChallengeMode));
-      const expectedIds=fixture.win.TT99Goodies.angles.types({enrichment:true}).map(t=>t.id);
+      const expectedIds=fixture.doc.defaultView.TT99Goodies.angles.types({enrichment:true}).map(t=>t.id);
       assert(challengeIds.length===expectedIds.length&&new Set(challengeIds).size===challengeIds.length&&expectedIds.every(id=>challengeIds.includes(id)),'Every available question appears once in the catalogue');
       assert(enrichmentSections.every(e=>e.querySelectorAll('[data-ag-challenge-mode]').length<=13),'No enrichment category is an unwieldy list');
       const circleSection=panel.querySelector('details[data-ag-section="ks3-tangents"]');
