@@ -1,5 +1,7 @@
+# Integrated release verification: external tangents and regular pentagon.
 name: 99 Club QA
 # Integrated release verification: tangent and inscribed-square constructions.
+# Integrated release verification: regular hexagon and octagon constructions.
 
 on:
   push:
@@ -479,4 +481,4 @@ jobs:
             99club-preview-controls-report.json
           if-no-files-found: ignore
 
-# Integrated release verification: external tangents and regular pentagon.
+# Integrated release verification: triangle centres and their circles.
