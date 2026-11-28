@@ -1274,7 +1274,7 @@ try {
    if(!model.labCheck(solution,task).correct)throw Error('Valid solution rejected: '+type);
    const reflected=JSON.parse(JSON.stringify(solution));reflected.points=reflected.points.map(p=>[p[0],604-p[1]]);
    if(!model.labCheck(reflected,task).correct)throw Error('Reflected solution rejected: '+type);
-   if(type==='build-midpoint')solution.points=solution.points.slice(0,2);
+   if(type==='build-golden-section'||type==='build-midpoint')solution.points=solution.points.slice(0,2);
    else if(type==='build-thirds')solution.points=solution.points.slice(0,3);
    else if(type==='build-circle')solution.circles=[];
    else solution.segments=[];
