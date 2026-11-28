@@ -1474,9 +1474,17 @@ async function run(){
           for(const sign of [-1,1]){
             const x=[A[0]+a*nx,A[1]+sign*a*ny],p=[A[0]+R*nx,A[1]+sign*R*ny],q=[B[0]+(internal?-r:r)*nx,B[1]+(internal?-r:r)*sign*ny];
             point([x[0]+.6,x[1]-.6]);const hit=cap().lab.points.find(v=>near(v,x));assert(hit,'Auxiliary tangent contact snaps to exact circle crossing');
-            // Radius direction is established by the auxiliary contact. Mark
-            // final contacts on the original circles using radial snap.
-            point(p);point(q);const actualP=cap().lab.points.find(v=>near(v,p)),actualQ=cap().lab.points.find(v=>near(v,q));assert(actualP&&actualQ,'Both original-circle contact points acquired');line(actualP,actualQ);
+            // Establish exact radial directions before marking the contacts.
+            // Translate AX to B by a compass-constructed parallelogram.
+            select('ray');tap(A);tap(hit);
+            point(p);const actualP=cap().lab.points.find(v=>near(v,p));assert(actualP,'Larger circle contact is the ray/circle crossing: '+JSON.stringify({family,p,x,points:cap().lab.points}));
+            const Y=[B[0]+x[0]-A[0],B[1]+x[1]-A[1]];
+            select('compass');tool('compass-pickup').click();tap(A);tap(hit);tap(B);
+            select('compass');tool('compass-pickup').click();tap(A);tap(B);tap(hit);
+            point(Y);const actualY=cap().lab.points.find(v=>near(v,Y));assert(actualY,'Compass parallelogram translates the radius direction: '+JSON.stringify({family,Y,points:cap().lab.points,circles:cap().lab.circles}));
+            if(internal){const direction=(Math.atan2(B[1]-actualY[1],actualY[0]-B[0])*180/Math.PI+360)%360;ray(B,actualY,(direction+180)%360);}
+            else{select('ray');tap(B);tap(actualY);}
+            point(q);const actualQ=cap().lab.points.find(v=>near(v,q));assert(actualQ,'Smaller circle contact is the exact translated ray/circle crossing: '+JSON.stringify({family,q,Y,points:cap().lab.points,rays:cap().lab.rays}));line(actualP,actualQ);
           }
           verify();
         }else if(family==='build-perpendicular-from-point'||family==='build-parallel-through-point'){
