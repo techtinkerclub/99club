@@ -89,6 +89,7 @@ if(process.argv[2]==='prepare'){
        const batch=P.createDocument(),mixed=P.createDocument(),capture=P.createDocument();
        batch.generate('angles',settings,2,id,rng);
        const batchItems=batch.list();assert(batchItems.length===2&&batchItems.every(i=>i.data.type===id&&i.recipe.type===id),'Batch does not preserve family');
+       const batchCards=batchItems.map(i=>geometryFinite(P.renderItem(i,false),id,'batch pupil'));assert(!batchCards[0].isEqualNode(batchCards[1]),'Batch repeats identical pupil card despite distinct data signature');
        const otherTool='sequences',otherSettings=P.defaultSettings(otherTool),otherType=P.types(otherTool,otherSettings)[0].id;
        mixed.generateBlocks([{tool:'angles',settings,types:[id],count:1},{tool:otherTool,settings:otherSettings,types:[otherType],count:1}],rng);
        const original=mixed.list(),item=original[0],other=JSON.stringify(original[1]),frozen=JSON.stringify(item);
@@ -105,6 +106,7 @@ if(process.argv[2]==='prepare'){
        assert(JSON.stringify(item)===frozen,'Rendering or capture mutated the frozen item');
        const replaced=mixed.replace(item.id,rng);
        assert(replaced.id===item.id&&replaced.data.type===id&&JSON.stringify(replaced.recipe)===JSON.stringify(item.recipe)&&JSON.stringify(mixed.list()[1])===other,'Replacement must isolate the selected recipe');
+       assert(!P.renderItem(replaced,false).isEqualNode(pupil),'Replacement repeats identical pupil card despite distinct data signature');
        if(!geometryDefault.some(f=>f.id===id))enrichmentItems.push(item);
        geometryEvidence.push({id,stage:family.year,mode:family.mode,batch:true,current:true,mixed:true,replacement:true,pupil:true,teacher:true,annex:true});
      }catch(err){issues.push('angles/'+id+': '+err.message);geometryEvidence.push({id,error:err.message})}
