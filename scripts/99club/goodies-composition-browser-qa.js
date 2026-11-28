@@ -1183,6 +1183,7 @@ async function run(){
         if(type==='shape-build'||type==='build-asa')expected.push('Angle BAC = '+deg(t.angle));
         if(type==='build-asa')expected.push('Angle ABC = '+deg(t.rightAngle));
         if(['build-square','build-rectangle'].includes(type))expected.push('BC = '+cm(t.length),'Four right angles');
+        if(type==='build-hypotenuse')expected.push('AC = '+cm(t.length),'Angle ACB = 90°');
         if(type==='build-parallelogram')expected.push('AD = '+cm(t.length),'Angle BAD = '+deg(t.angle));
         if(type==='build-rhombus')expected.push('All four sides = 6 cm','Angle BAD = '+deg(t.angle));
         assert(JSON.stringify(m.given)===JSON.stringify(expected)&&m.objective===t.prompt,'Method givens and task prompt agree: '+type);
@@ -1199,6 +1200,8 @@ async function run(){
         else if(type==='build-bisector'){for(const j of imperfect.segments[0])imperfect.points[j][0]+=.8}
         else if(type==='build-asa')imperfect.points[2][0]+=1.2;
         else if(type==='build-midpoint')imperfect.points[2][0]+=.8;
+        else if(type==='build-semicircle')imperfect.points[2][1]-=.8;
+        else if(type==='build-hypotenuse')imperfect.points[2][0]+=.8;
         else {const p=imperfect.points[2],o=type==='build-rectangle'||type==='build-square'||type==='build-rhombus'?imperfect.points[1]:imperfect.points[0],d=dist(p,o);p[0]+=.8*(p[0]-o[0])/d;p[1]+=.8*(p[1]-o[1])/d}
         const negative=model.labCheck(imperfect,t);
         assert(negative.correct&&!negative.precise&&negative.precisionChecks.some(c=>!c.ok),'Practice-level error is not mathematically verified: '+type);
@@ -1208,6 +1211,7 @@ async function run(){
         if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
         if(pts.D)assert(dist(pts.D,sol.points[3])<1e-7,'Guide D matches assessed solution');
         if(type==='build-thirds')assert(dist(pts.P,sol.points[2])<1e-7&&dist(pts.Q,sol.points[3])<1e-7,'Guide division points match verified solution');
+        if(type==='build-semicircle')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.M,sol.points[3])<1e-7,'Semicircle guide matches verified example');
       }
       const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
       doc.querySelector('[data-ag-tool="construction-library"]').click();await tick(50);
@@ -1255,6 +1259,7 @@ async function run(){
         if(type==='build-asa')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'ASA answer marks both angles');
         if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
         if(type==='build-thirds')assert(key.querySelectorAll('[data-ag-thirds-tick]').length===3,'Trisection answer marks all three equal intervals');
+        if(['build-hypotenuse','build-semicircle'].includes(type))assert(key.querySelector('[data-ag-construction-right-angle]'),'Circle construction answer marks the right angle at the circumference');
       }
       const pupilPages=P.pages(mixedConstruction,{title:'Mixed construction practice'}),teacherPages=P.pages(mixedConstruction,{title:'Mixed construction practice',teacher:true}),annex=teacherPages.filter(page=>page.getAttribute('data-worksheet-answer')==='annex');
       assert(pupilPages.length>1&&pupilPages.every(page=>!page.querySelector('[data-pub-answer-graphic],[data-ag-construction-key]')),'Mixed construction pupil pages contain no answer graphics');
@@ -1295,7 +1300,7 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
@@ -1309,6 +1314,13 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(['build-hypotenuse','build-semicircle'].includes(family)){
+          const O=[(A[0]+B[0])/2,A[1]];point(O);circle(O,3);
+          let C;
+          if(family==='build-hypotenuse'){circle(A,t.length);C=polar(A,t.length*40,Math.acos(t.length/6)*180/Math.PI);}
+          else C=polar(O,120,60);
+          point([C[0]+.6,C[1]-.6]);const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Right-angle construction acquires a point on its diameter circle: '+family);
+          line(A,actual);line(B,actual);verify();
         }else if(family==='build-thirds'){
           point([A[0]+80,A[1]]);point([A[0]+160,A[1]]);verify();
         }else if(family==='build-circle'){
