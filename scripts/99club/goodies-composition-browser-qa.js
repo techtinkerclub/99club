@@ -1319,7 +1319,8 @@ async function run(){
           let C;
           if(family==='build-hypotenuse'){circle(A,t.length);C=polar(A,t.length*40,Math.acos(t.length/6)*180/Math.PI);}
           else C=polar(O,120,60);
-          point([C[0]+.6,C[1]-.6]);const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Right-angle construction acquires a point on its diameter circle: '+family);
+          const off=family==='build-semicircle'?[C[0]+(C[0]-O[0])*.006,C[1]+(C[1]-O[1])*.006]:[C[0]+.6,C[1]-.6];
+          point(off);const actual=cap().lab.points.find(p=>near(p,C));assert(actual,'Right-angle construction acquires a point on its diameter circle: '+family);
           line(A,actual);line(B,actual);verify();
         }else if(family==='build-thirds'){
           point([A[0]+80,A[1]]);point([A[0]+160,A[1]]);verify();
