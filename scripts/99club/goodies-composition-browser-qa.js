@@ -3490,7 +3490,23 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         moveTransform('pivot',extent*.5,0,true);assert(cap().demo.transformationSettings.px===.25,'Cancelled centre drag restores initial state');
 
       }
-      result('pending','board','Geometry transformation checks complete; checking landscape teaching layout');
+      {
+        const tab=doc.querySelector('[data-ag-teaching-tab="measurement"]');assert(tab,'Measurement lesson accessible');tab.click();await tick();
+        const lesson=doc.querySelector('[data-ag-measurement-reference]'),graphic=()=>lesson.querySelector('[data-ag-measurement-graphic]'),select=(key,value)=>{const input=lesson.querySelector('[data-ag-measurement-field="'+key+'"]');assert(input,'Measurement field exists: '+key);input.value=value;input.dispatchEvent(new win.Event('change',{bubbles:true}))};
+        for(const kind of ['scale','units','compound']){
+          lesson.querySelector('[data-ag-measurement-kind="'+kind+'"]').click();await tick();assert(graphic().dataset.agMeasurementGraphic===kind&&!graphic().querySelector('[data-ag-measurement-answer]'),'Measurement mode starts with prediction: '+kind);
+          if(kind==='scale'){select('width',8);select('ratio',50);assert(graphic().querySelectorAll('[data-ag-measurement-edge]').length===2,'Scale plan shows dimensions along the sides')}
+          if(kind==='units'){select('unit','m');assert(graphic().querySelector('[data-ag-measurement-unit-cell]'),'Square unit diagram identifies a grid cell')}
+          if(kind==='compound'){select('width',6);select('height',4);select('notchWidth',2);select('notchHeight',2);assert(graphic().querySelector('[data-ag-measurement-compound]'),'L-shape visible')}
+          lesson.querySelector('[data-ag-measurement-reveal]').click();assert(graphic().querySelector('[data-ag-measurement-answer]')&&lesson.querySelector('[data-ag-measurement-result]').textContent.length>0,'Reveal shows computed answer');
+          if(kind==='units')assert(lesson.querySelector('[data-ag-measurement-result]').textContent.includes('10000'),'Square metres convert to 10000 square centimetres');
+          if(kind==='compound'){assert(graphic().querySelectorAll('[data-ag-measurement-part]').length===2,'Split method marks two parts');select('method','subtract');assert(!graphic().querySelector('[data-ag-measurement-answer]'),'Changing method returns to prediction');lesson.querySelector('[data-ag-measurement-reveal]').click();assert(graphic().querySelector('[data-ag-measurement-cutout]'),'Subtraction method marks missing rectangle')}
+          const item=P.createDocument();item.addCurrent(id,cap());const paper=P.renderItem(item.list()[0],false);assert(paper.querySelector('[data-ag-measurement-graphic]').dataset.agMeasurementGraphic===kind&&paper.querySelector('[data-ag-measurement-answer]'),'Measurement publication retains revealed mode');
+          lesson.querySelector('[data-ag-measurement-reveal]').click();const hidden=P.createDocument();hidden.addCurrent(id,cap());assert(!P.renderItem(hidden.list()[0],false).querySelector('[data-ag-measurement-answer]'),'Unrevealed measurement publication does not leak diagram answer');
+        }
+        lesson.querySelector('[data-ag-measurement-reset]').click();assert(cap().demo.measurementSettings.method==='split'&&!cap().demo.measurementSettings.reveal,'Measurement reset restores defaults');
+      }
+      result('pending','board','Geometry transformation and measurement checks complete; checking landscape teaching layout');
       // Real embedded layout: active tabs occupy space, inactive cards do not.
       const teaching=doc.querySelector('.gd-ag-shape-reference'),teachingStage=doc.getElementById('gd-stage'),teachingTab=key=>teaching.querySelector('[data-ag-teaching-tab="'+key+'"]');
       assert(teachingTab('properties')&&teachingTab('symmetry')&&teachingTab('families')&&teachingTab('proof'),'All triangle teaching groups directly accessible');
@@ -3524,7 +3540,7 @@ act('close').click();assert(panel.hidden,'Guide closes independently');
         assert(title.textContent==='Equilateral triangle'&&title.getBoundingClientRect().height>0,'Explorer has a descriptive visible shape title: '+title.textContent);
         assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3&&exploreControls.getBoundingClientRect().bottom<=teachingStage.getBoundingClientRect().bottom+3&&exploreSvg.getBoundingClientRect().bottom<=teachingStage.getBoundingClientRect().bottom+3,'Explorer diagram fits remaining landscape height: '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);
         exploreControls.querySelector('[data-ag-polygon-shade]').click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Open shade tools do not cause explorer scrolling');exploreControls.querySelector('[data-ag-polygon-shade]').click();await tick(40);
-        for(const key of ['properties','polygon-proof','symmetry','families','proof','shape-measures','area-comparison','transformations']){const tab=teachingTab(key);if(!tab)continue;tab.click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape teaching fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);assert(teaching.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect().top>=teachingStage.getBoundingClientRect().top-1,'Topic navigation remains at top: '+key);}
+        for(const key of ['properties','polygon-proof','symmetry','families','proof','shape-measures','area-comparison','transformations','measurement']){const tab=teachingTab(key);if(!tab)continue;tab.click();await tick(60);assert(teachingStage.scrollHeight<=teachingStage.clientHeight+3,'Landscape teaching fits a single screen: '+key+' '+teachingStage.scrollHeight+'/'+teachingStage.clientHeight);assert(teaching.querySelector('[data-ag-teaching-tabs]').getBoundingClientRect().top>=teachingStage.getBoundingClientRect().top-1,'Topic navigation remains at top: '+key);}
       }
       if(win.matchMedia('(min-width:800px) and (min-height:480px) and (orientation:landscape)').matches){
         for(const [key,selector,core] of [['polygon-proof','[data-ag-diagonal-enrichment]','[data-ag-angle-sum-picture]'],['families','[data-ag-triangle-family-more]','[data-ag-triangle-family-primary]'],['symmetry','[data-ag-reflection-advanced]','[data-ag-rotation-reference]']]){
