@@ -1209,10 +1209,10 @@ async function run(){
         for(const precision of [1,2]){imperfect.measurementPrecision=precision;assert(!model.labCheck(imperfect,t).precise,'Display rounding cannot convert an error into precise geometry')}
         if(type==='build-circle')assert(end.some(o=>o.kind==='circle'&&o.radius===40*t.length),'Guide circle has task radius');
         if(type==='build-midpoint'||type==='build-bisector')assert(dist(pts.A,pts.M)===120&&dist(pts.B,pts.M)===120,'Guide midpoint exact');
-        if(pts.C&&type!=='build-bisector')assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution');
+        if(pts.C&&!['build-bisector','build-golden-section'].includes(type))assert(dist(pts.C,sol.points[2])<1e-7,'Guide C matches assessed solution: '+type);
         if(pts.D)assert(dist(pts.D,sol.points[3])<1e-7,'Guide D matches assessed solution');
         if(type==='build-thirds')assert(dist(pts.P,sol.points[2])<1e-7&&dist(pts.Q,sol.points[3])<1e-7,'Guide division points match verified solution');
-        if(type==='build-golden-section')assert(dist(pts.G,sol.points[2])<1e-7,'Golden-section guide matches verified point');
+        if(type==='build-golden-section'){assert(dist(pts.G,sol.points[2])<1e-7,'Golden-section guide matches verified point');assert(dist(pts.B,pts.C)===120&&Math.abs(dist(pts.A,pts.F)-dist(pts.A,pts.G))<1e-7,'Golden-section guide transfers the exact compass opening')}
         if(type==='build-semicircle')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.M,sol.points[3])<1e-7,'Semicircle guide matches verified example');
       }
       const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
