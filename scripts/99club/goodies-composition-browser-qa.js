@@ -1183,7 +1183,7 @@ async function run(){
         if(type==='shape-build'||type==='build-asa')expected.push('Angle BAC = '+deg(t.angle));
         if(type==='build-asa')expected.push('Angle ABC = '+deg(t.rightAngle));
         if(['build-square','build-rectangle'].includes(type))expected.push('BC = '+cm(t.length),'Four right angles');
-        if(['build-tangent','build-inscribed-square'].includes(type))expected.push('Circle radius = '+cm(t.length));
+        if(['build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon'].includes(type))expected.push('Circle radius = '+cm(t.length));
         if(type==='build-tangent')expected.push('TU = '+cm(t.tangentLength));
         if(type==='build-angle-bisector')expected.push('AC = 4 cm','Angle BAC = '+deg(t.angle));
         if(type==='build-hypotenuse')expected.push('AC = '+cm(t.length),'Angle ACB = 90°');
@@ -1217,7 +1217,20 @@ async function run(){
         if(type==='build-golden-section'){assert(dist(pts.G,sol.points[2])<1e-7,'Golden-section guide matches verified point');assert(dist(pts.B,pts.C)===120&&Math.abs(dist(pts.A,pts.F)-dist(pts.A,pts.G))<1e-7,'Golden-section guide transfers the exact compass opening')}
         if(type==='build-semicircle')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.M,sol.points[3])<1e-7,'Semicircle guide matches verified example');
         if(type==='build-tangent')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.U,sol.points[3])<1e-7,'Tangent guide matches verified example');
-        if(type==='build-inscribed-square')assert(['P','Q','R','S'].every((k,i)=>dist(pts[k],sol.points[i+2])<1e-7),'Square guide vertices match verified example');
+        if(['build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon'].includes(type)){
+          const n=sol.points.length-2,rad=t.length*40,labels=Array.from({length:n},(_,i)=>String.fromCharCode(80+i));
+          assert(labels.every((k,i)=>dist(pts[k],sol.points[i+2])<1e-7),'Inscribed polygon guide vertices match verified example: '+type);
+          assert(sol.points.slice(2).every((p,i)=>Math.abs(dist(p,sol.points[0])-rad)<1e-7&&Math.abs(dist(p,sol.points[2+(i+1)%n])-2*rad*Math.sin(Math.PI/n))<1e-7),'Independent chord and radius identities: '+type);
+          const incomplete=JSON.parse(JSON.stringify(sol));incomplete.segments.pop();
+          assert(!model.labCheck(incomplete,t).correct&&!model.labCheck(incomplete,t).precise,'A polygon with a missing closing side cannot pass: '+type);
+          const noCircle=JSON.parse(JSON.stringify(sol));noCircle.circles=[];
+          assert(!model.labCheck(noCircle,t).correct&&!model.labCheck(noCircle,t).precise,'A polygon without the specified circle cannot pass: '+type);
+          const wrongCircle=JSON.parse(JSON.stringify(sol));wrongCircle.circles[0].r+=.8;
+          assert(!model.labCheck(wrongCircle,t).precise,'Incorrect radius cannot pass precise polygon verification: '+type);
+          const reversed=JSON.parse(JSON.stringify(sol)),order=[0,1,...Array.from({length:n},(_,i)=>n+1-i)],remap=i=>order.indexOf(i);
+          reversed.points=order.map(i=>sol.points[i]);reversed.segments=sol.segments.map(e=>e.map(remap));reversed.circles=sol.circles.map(c=>({...c,i:remap(c.i)}));
+          assert(model.labCheck(reversed,t).precise,'Polygon assessment is independent of vertex insertion order: '+type);
+        }
       }
       const before=JSON.stringify(cap().lab),taskBefore=JSON.stringify(cap().task);
       doc.querySelector('[data-ag-tool="construction-library"]').click();await tick(50);
@@ -1266,7 +1279,11 @@ async function run(){
         if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
         if(type==='build-thirds')assert(key.querySelectorAll('[data-ag-thirds-tick]').length===3,'Trisection answer marks all three equal intervals');
         if(type==='build-tangent')assert(key.querySelector('[data-ag-tangent-right-angle]'),'Tangent key marks perpendicular radius');
-        if(type==='build-inscribed-square')assert(['P','Q','R','S'].every(k=>key.textContent.includes(k)),'Inscribed square key labels all four vertices');
+        if(['build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon'].includes(type)){
+          const n=model.labSolution(task).points.length-2;
+          assert(Array.from({length:n},(_,i)=>String.fromCharCode(80+i)).every(k=>key.textContent.includes(k)),'Inscribed polygon key labels every vertex: '+type);
+          assert(key.querySelectorAll('[data-ag-inscribed-diameter]').length===n/2,'Inscribed polygon key shows every diameter: '+type);
+        }
         if(type==='build-angle-bisector')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'Angle bisector answer marks both half angles');
         if(type==='build-golden-section')assert(key.textContent.includes('3.71 cm')&&key.textContent.includes('2.29 cm'),'Golden ratio answer shows approximate lengths');
         if(['build-hypotenuse','build-semicircle'].includes(type))assert(key.querySelector('[data-ag-construction-right-angle]'),'Circle construction answer marks the right angle at the circumference');
@@ -1310,7 +1327,7 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
@@ -1324,7 +1341,7 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
-        }else if(['build-tangent','build-inscribed-square'].includes(family)){
+        }else if(['build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon'].includes(family)){
           const r=t.length*40,P=polar(A,r,0);circle(A,t.length);point(P);
           const actualP=cap().lab.points.find(p=>near(p,P));assert(actualP,'Circle meets reference AB at exact point');
           if(family==='build-tangent'){
@@ -1332,9 +1349,14 @@ async function run(){
             const U=polar(actualP,t.tangentLength*40,90);point([U[0]+.6,U[1]-.6]);
             const actualU=cap().lab.points.find(p=>near(p,U));assert(actualU,'Tangent perpendicular and opening meet at U');line(actualP,actualU);
           }else{
-            ray(A,B,90);ray(A,B,180);ray(A,B,270);
-            const verts=[actualP];for(const a of [90,180,270]){const q=polar(A,r,a);point([q[0]+.6,q[1]-.6]);const actual=cap().lab.points.find(p=>near(p,q));assert(actual,'Perpendicular diameters meet circle at exact vertex '+a);verts.push(actual)}
-            for(let i=0;i<4;i++)line(verts[i],verts[(i+1)%4]);
+            const n=family==='build-inscribed-square'?4:family==='build-inscribed-hexagon'?6:8,verts=[actualP];
+            for(let i=1;i<n;i++){
+              const a=360*i/n,q=polar(A,r,a);
+              if(n===6){select('compass');assert(tool('compass-opening').getAttribute('aria-pressed')==='true','Compass retains the circle radius while stepping');tap(verts[i-1]);assert(Math.abs(cap().lab.circles.at(-1).r-r)<1e-7,'Hexagon step retains exact radius');}
+              else ray(A,B,a);
+              point([q[0]+.6,q[1]-.6]);const actual=cap().lab.points.find(p=>near(p,q));assert(actual,'Construction acquires exact vertex '+a+' of '+family);verts.push(actual);
+            }
+            for(let i=0;i<n;i++)line(verts[i],verts[(i+1)%n]);
           }
           verify();
         }else if(family==='build-golden-section'){
