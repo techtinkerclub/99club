@@ -2651,7 +2651,12 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
 #tt99-goodies-root [data-ag-teaching-screen="lesson"] section .gd-row{gap:5px;margin:4px 0}
 #tt99-goodies-root [data-ag-teaching-screen="lesson"] section .gd-btn{min-height:36px;padding:5px 9px}
 @media (min-width:800px) and (min-height:480px) and (orientation:landscape){
-  #tt99-goodies-root [data-ag-teaching-tabs] button{flex:1 1 85px}
+  #tt99-goodies-root [data-ag-teaching-tabs]{gap:4px;padding-bottom:4px}
+  #tt99-goodies-root [data-ag-teaching-tabs] button{flex:1 1 73px;min-height:32px;padding:3px 5px;font-size:clamp(11px,1.1vw,14px);line-height:1.15}
+  #tt99-goodies-root [data-ag-teaching-title]{margin-bottom:5px}
+  #tt99-goodies-root [data-ag-lesson-detail][open]>summary{min-height:30px;margin-bottom:5px}
+  #tt99-goodies-root [data-ag-shape-reference-body] :is([data-ag-diagonal-enrichment],[data-ag-pythagoras-details],[data-ag-family-more],[data-ag-triangle-family-more])[open]{row-gap:5px}
+
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"]{grid-template-columns:repeat(3,minmax(0,1fr))}
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"] section>svg{width:100%;max-height:clamp(110px,24vh,210px);object-fit:contain}
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="properties"] dl{font-size:clamp(13px,1.35vw,16px);line-height:1.3}
@@ -2660,7 +2665,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body][data-ag-teaching-active="symmetry"] svg{max-height:clamp(135px,36vh,340px);width:100%;object-fit:contain}
   #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section:not([hidden]){display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);column-gap:16px;row-gap:6px;align-content:start;align-items:start}
   #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section> *{grid-column:2;min-width:0}
-  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture]){grid-column:1;grid-row:1/span var(--gd-ag-lesson-rows,5);align-self:center;min-width:0}
+  #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture],[data-ag-measurement-picture]){grid-column:1;grid-row:1/span var(--gd-ag-lesson-rows,5);align-self:center;min-width:0}
   #tt99-goodies-root [data-ag-shape-reference-body]:not([data-ag-teaching-active="properties"]):not([data-ag-teaching-active="symmetry"])>section>div>svg{width:100%;max-height:clamp(170px,55vh,480px);object-fit:contain;display:block;margin:auto}
   #tt99-goodies-root [data-ag-shape-reference-body] section>details[open]{grid-column:1/-1}
   #tt99-goodies-root [data-ag-shape-reference-body] section>details[open] svg{max-height:clamp(130px,38vh,320px)}
@@ -2723,7 +2728,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   html.gd-embed-page #tt99-goodies-root #gd-stage:has(>[data-ag-teaching-screen="explore"])>.gd-ag-visual>svg{flex:1 1 0;min-height:0;width:100%!important;height:100%!important;max-height:none!important;max-width:none!important;margin:0!important}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not([hidden]):not(:has(>details[data-ag-lesson-detail="page"][open])){display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:auto auto;gap:8px 22px;align-items:center;align-content:start}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>[data-ag-lesson-copy]{grid-column:2;grid-row:1;align-self:center}
-  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture]){grid-column:1;grid-row:1/span 2;align-self:center}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture],[data-ag-measurement-picture]){grid-column:1;grid-row:1/span 2;align-self:center}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>details{grid-column:2;grid-row:2;align-self:start}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:not(:has(>details))>[data-ag-lesson-copy]{grid-row:1/span 2}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson] svg{max-height:clamp(150px,49vh,430px)}
@@ -2737,7 +2742,7 @@ html.gd-embed-page #tt99-goodies-root #gd-stage:has(>.gd-ag-shape-reference){ove
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]):not([hidden]):not(:has(>details[data-ag-lesson-detail="page"][open])){grid-template-rows:auto auto auto;row-gap:4px}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]>[data-ag-lesson-header]{grid-column:1/-1;grid-row:1}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>[data-ag-lesson-copy]{grid-row:2;grid-column:2}
-  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture]){grid-row:2/span 2;grid-column:1}
+  #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>:is([data-ag-angle-sum-picture],[data-ag-proof-picture],[data-ag-basic-area-picture],[data-ag-pythagoras-squares-picture],[data-ag-shape-measure-picture],[data-ag-family-primary],[data-ag-triangle-family-primary],[data-ag-area-comparison-picture],[data-ag-reasoning-picture],[data-ag-transformation-picture],[data-ag-measurement-picture]){grid-row:2/span 2;grid-column:1}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header])>details{grid-row:3}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]):not(:has(>details))>[data-ag-lesson-copy]{grid-row:2/span 2}
   #tt99-goodies-root [data-ag-shape-reference-body]>section[data-ag-split-lesson]:has(>[data-ag-lesson-header]) svg{max-height:clamp(140px,45vh,390px)}
@@ -2845,4 +2850,25 @@ html.gd-embed-page #tt99-goodies-root #gd-stage>[data-ag-circle-explorer]>svg{
 @media(min-width:800px) and (min-height:480px) and (orientation:landscape){
   #tt99-goodies-root [data-ag-transformation-reference] [data-ag-lesson-copy]{gap:5px}
   #tt99-goodies-root [data-ag-transformation-reference] [data-ag-transform-controls]{gap:3px}
+}
+
+/* Measurement investigations share the landscape lesson layout. */
+#tt99-goodies-root [data-ag-measurement-picture]{width:100%;min-width:0}
+#tt99-goodies-root [data-ag-measurement-picture]>svg{display:block;width:100%;height:auto;margin:auto}
+#tt99-goodies-root [data-ag-measurement-reference] [data-ag-lesson-copy]{display:grid;gap:6px;min-width:0;align-content:center}
+#tt99-goodies-root [data-ag-measurement-modes]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+#tt99-goodies-root [data-ag-measurement-reference] .gd-btn{padding:5px 6px;line-height:1.2;font-size:12px;min-height:28px}
+#tt99-goodies-root [data-ag-measurement-controls]{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px}
+#tt99-goodies-root [data-ag-measurement-controls] label{display:grid;gap:2px;font-size:12px;font-weight:700;line-height:1.2;min-width:0}
+#tt99-goodies-root [data-ag-measurement-controls] select{width:100%;min-width:0;padding:3px 5px;font-size:13px;line-height:1.2}
+#tt99-goodies-root [data-ag-measurement-reference] p{min-height:0;margin:0;font-size:13px;line-height:1.25}
+#tt99-goodies-root [data-ag-measurement-reference] p:empty{display:none}
+#tt99-goodies-root [data-ag-measurement-result]{font-weight:800;color:#285c55}
+
+/* Keep the lesson's own compact buttons compact despite the common lesson rule. */
+#tt99-goodies-root [data-ag-teaching-screen="lesson"] [data-ag-measurement-reference] .gd-btn{min-height:30px;padding:4px 6px}
+#tt99-goodies-root [data-ag-teaching-screen="lesson"] [data-ag-measurement-reference] .gd-row{margin:0;gap:4px}
+@media (min-width:800px) and (min-height:480px) and (orientation:landscape){
+  #tt99-goodies-root [data-ag-measurement-reference] [data-ag-lesson-copy]{gap:4px}
+  #tt99-goodies-root [data-ag-measurement-reference] [data-ag-measurement-controls]{gap:3px 7px}
 }

@@ -230,4 +230,26 @@ requireText(numberMobile,"G.numberMobileBalanceVersion='2.2'",'Number Mobile fre
   console.log('Geometry transformations: '+cases+' cases, '+pairs+' pairwise distances passed.');
 }
 
+// Measurement enrichment: verify every offered integer dimension and scale.
+{
+  const M=require('../goodies-angles.js');let compound=0,scale=0;
+  for(let width=3;width<=12;width++)for(let height=3;height<=8;height++){
+    for(let notchWidth=1;notchWidth<width;notchWidth++)for(let notchHeight=1;notchHeight<height;notchHeight++){
+      const m=M.measurementEnrichment({kind:'compound',width,height,notchWidth,notchHeight});
+      const perimeter=m.points.reduce((sum,p,i)=>sum+Math.hypot(p[0]-m.points[(i+1)%6][0],p[1]-m.points[(i+1)%6][1]),0);
+      if(M.polygonArea(m.points)!==m.area||perimeter!==m.perimeter||m.parts.reduce((a,b)=>a+b,0)!==m.area)throw new Error('Compound area/perimeter invariant');
+      compound++;
+    }
+    for(const ratio of [10,20,25,50,75,100]){
+      const m=M.measurementEnrichment({kind:'scale',width,height,ratio});
+      if(Math.abs(m.actualWidth*m.actualHeight-m.actualArea)>1e-9||Math.abs(m.actualWidth*100-width*ratio)>1e-9)throw new Error('Scale drawing invariant');
+      scale++;
+    }
+  }
+  for(const [unit,factor] of [['cm',10],['m',100]]){const m=M.measurementEnrichment({kind:'units',unit});if(m.linearFactor!==factor||m.areaFactor!==factor*factor)throw new Error('Square unit conversion invariant');}
+  const m=M.measurementEnrichment({kind:'compound',width:3,height:3,notchWidth:99,notchHeight:99});
+  if(m.notchWidth!==2||m.notchHeight!==2)throw new Error('Notch must remain strictly inside outer dimensions');
+  console.log('Measurement enrichment: '+compound+' compound cases, '+scale+' scale cases, 2 unit conversions passed.');
+}
+
 console.log('Goodies interaction regression checks passed.');
