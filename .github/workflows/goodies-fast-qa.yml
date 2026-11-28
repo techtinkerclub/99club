@@ -5,6 +5,7 @@ on:
     paths:
       - 'assets/99club/goodies*'
       - 'assets/99club/geometry-construction-methods.json'
+      - 'docs/99club-geometry-family-coverage.md'
       - 'scripts/99club/goodies-*'
       - 'scripts/99club/number-mobile-browser-qa.js'
       - '_pages/99-club-goodies.md'
@@ -15,6 +16,7 @@ on:
     paths:
       - 'assets/99club/goodies*'
       - 'assets/99club/geometry-construction-methods.json'
+      - 'docs/99club-geometry-family-coverage.md'
       - 'scripts/99club/goodies-*'
       - 'scripts/99club/number-mobile-browser-qa.js'
       - '_pages/99-club-goodies.md'
@@ -44,6 +46,8 @@ jobs:
         run: node scripts/99club/goodies-written-methods-qa.js
       - name: Statistics mathematical contracts
         run: node scripts/99club/goodies-statistics-qa.js
+      - name: Geometry family inventory and generation contracts
+        run: node scripts/99club/goodies-geometry-coverage-qa.js
       - name: Prepare Goodies browser harnesses
         run: |
           node scripts/99club/goodies-browser-qa.js prepare
