@@ -1466,7 +1466,7 @@ async function run(){
           circle(A,2);point(X);const x=cap().lab.points.find(p=>near(p,X));assert(x,'Original equal-radius arc meets AB');circle(B,2);point(Y);const y=cap().lab.points.find(p=>near(p,Y));assert(y,'Copied equal-radius arc meets BA');
           select('compass');tool('compass-pickup').click();tap(x);tap(C);tap(y);
           assert(Math.abs(cap().lab.circles.at(-1).r-d(x,C))<1e-7,'Exact chord opening transferred from source angle');
-          point([D[0]+.6,D[1]-.6]);const actual=cap().lab.points.find(p=>near(p,D));assert(actual,'Copied angle obtained at exact compass crossing');line(B,actual);verify();
+          point([D[0]+.6,D[1]-.6]);const actual=cap().lab.points.find(p=>near(p,D));assert(actual,'Copied angle obtained at exact compass crossing '+JSON.stringify({angle:t.angle,A,B,C,D,X,Y,points:cap().lab.points,circles:cap().lab.circles,intersections:M.labIntersections(cap().lab)}));line(B,actual);verify();
         }else if(family==='build-common-external-tangents'||family==='build-common-internal-tangents'){
           const R=t.length*40,r=t.rightLength*40,internal=family==='build-common-internal-tangents',a=internal?R+r:R-r,mid=[(A[0]+B[0])/2,A[1]],nx=a/d(A,B),ny=Math.sqrt(1-nx*nx);
           const exactCircle=(o,rad)=>{select('compass');if(tool('compass-opening').getAttribute('aria-pressed')==='true')tool('compass-opening').click();set('length-graduation',.01);tap(o);snap(false);tap(polar(o,rad+.09,90));snap(true);assert(Math.abs(cap().lab.circles.at(-1).r-rad)<1e-7,'Specified exact compass opening')};
