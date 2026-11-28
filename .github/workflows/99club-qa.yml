@@ -87,6 +87,7 @@ concurrency:
   group: 99club-qa-${{ github.ref }}
   cancel-in-progress: true
 
+# Integrated release verification: given circle centre and loci.
 jobs:
   engine-and-contract-qa:
     runs-on: ubuntu-latest

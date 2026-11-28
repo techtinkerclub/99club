@@ -1176,7 +1176,9 @@ async function run(){
         assert(m.challengeSpecific&&m.steps.length===m.graphics.frames.length&&model.constructionMethodGraphic(m,m.steps.length-1).outerHTML.indexOf('NaN')===-1,'Challenge-specific vector stages render: '+type);
         if(type==='build-circle')assert(pts.A&&!pts.B&&m.graphics.initial.length===1,'Circle guide starts with its centre only');else assert(dist(pts.A,pts.B)===240,'Challenge baseline remains exactly 6 cm: '+type);
         const expected=[],cm=v=>Number(v.toFixed(3))+' cm',deg=v=>Number(v.toFixed(3))+'°';
-        if(type==='build-circle')expected.push('Centre A','Radius = '+cm(t.length));else expected.push('AB = 6 cm');
+        if(type==='build-circle')expected.push('Centre A','Radius = '+cm(t.length));else if(type==='build-find-circle-centre')expected.push('Given circle and chord AB');else expected.push('AB = 6 cm');
+        if(type==='build-two-distance-locus')expected.push('Distance from A and B = '+cm(t.length));
+        if(type==='build-equidistant-locus')expected.push('Radius from midpoint M = '+cm(t.length));
         if(['shape-build','build-right','build-perpendicular','build-sss','build-equilateral'].includes(type))expected.push('AC = '+cm(t.length));
         if(['build-sss','build-equilateral'].includes(type))expected.push('BC = '+cm(t.rightLength));
         if(['build-right','build-perpendicular'].includes(type))expected.push('Angle BAC = 90°');
@@ -1195,12 +1197,13 @@ async function run(){
         const verification=model.labCheck(sol,t);
         assert(verification.correct&&verification.precise&&verification.precisionChecks.every(c=>c.ok),'Contextual method passes both practice and precision verification: '+type);
         const rotated=JSON.parse(JSON.stringify(sol)),a=.371,cs=Math.cos(a),sn=Math.sin(a);
-        rotated.points=rotated.points.map(([x,y])=>[100+x*cs-y*sn,30+x*sn+y*cs]);
+        const rotate=([x,y])=>[100+x*cs-y*sn,30+x*sn+y*cs];rotated.points=rotated.points.map(rotate);if(rotated.givenCircle)rotated.givenCircle.o=rotate(rotated.givenCircle.o);
         assert(model.labCheck(rotated,t).precise,'Precision verification uses relative geometry, not a horizontal baseline: '+type);
-        const mirrored=JSON.parse(JSON.stringify(sol));mirrored.points=mirrored.points.map(([x,y])=>[x,604-y]);
+        const mirrored=JSON.parse(JSON.stringify(sol));mirrored.points=mirrored.points.map(([x,y])=>[x,604-y]);if(mirrored.givenCircle)mirrored.givenCircle.o=[mirrored.givenCircle.o[0],604-mirrored.givenCircle.o[1]];
         assert(model.labCheck(mirrored,t).precise,'Reflected exact solution passes precision verification: '+type);
         const imperfect=JSON.parse(JSON.stringify(sol));
-        if(type==='build-circle')imperfect.circles[0].r+=.8;
+        if(['build-find-circle-centre','build-two-distance-locus','build-equidistant-locus'].includes(type))imperfect.points.at(-1)[0]+=.8;
+        else if(type==='build-circle')imperfect.circles[0].r+=.8;
         else if(type==='build-bisector'){for(const j of imperfect.segments[0])imperfect.points[j][0]+=.8}
         else if(type==='build-asa')imperfect.points[2][0]+=1.2;
         else if(['build-midpoint','build-golden-section','build-angle-bisector'].includes(type))imperfect.points[2][0]+=.8;
@@ -1241,6 +1244,25 @@ async function run(){
             assert(centre[0]-radius>=0&&centre[0]+radius<=800&&centre[1]-radius>=0&&centre[1]+radius<=400,'Entire required circle fits canvas: '+type);
             assert(end.some(o=>o.kind==='circle'&&dist(o.center,centre)<1e-7&&Math.abs(o.radius-radius)<1e-7),'Guide circle matches exact solution: '+type);
           }
+        }
+        if(type==='build-find-circle-centre'){
+          const start=model.labEmpty(false,t),g=start.givenCircle;
+          assert(start.points.length===2&&start.circles.length===0&&start.points.every(p=>dist(p,g.o)>1e-7),'Given circle centre is not a selectable vertex');
+          assert(m.graphics.initial.some(o=>o.kind==='circle')&&!m.graphics.initial.some(o=>o.kind==='point'&&o.label==='O'),'Starting guide shows outline but no centre');
+          assert(dist(pts.O,sol.points[3])<1e-7,'Guide identifies the true centre');
+          const hit=model.labSnap(start,[sol.points[2][0]-1,sol.points[2][1]],6);
+          assert(dist(hit.p,sol.points[2])<1e-7,'Immutable given circle supports exact circumference snapping');
+          const incomplete=JSON.parse(JSON.stringify(sol));incomplete.segments=[];
+          assert(!model.labCheck(incomplete,t).precise,'A centre without a second chord cannot pass');
+        }
+        if(['build-two-distance-locus','build-equidistant-locus'].includes(type)){
+          const eq=type==='build-equidistant-locus',p=sol.points[eq?3:2],q=sol.points[eq?4:3],a=sol.points[0],b=sol.points[1],o=eq?sol.points[2]:a;
+          assert(dist(pts.P,p)<1e-7&&dist(pts.Q,q)<1e-7,'Both locus intersections match the guide');
+          assert([p,q].every(v=>Math.abs(dist(v,a)-dist(v,b))<1e-7&&Math.abs(dist(v,o)-40*t.length)<1e-7),'Both points satisfy independent distance identities');
+          const one=JSON.parse(JSON.stringify(sol));one.points.pop();assert(!model.labCheck(one,t).precise,'Single intersection cannot pass a two-solution task');
+          const missing=JSON.parse(JSON.stringify(sol));missing.circles.pop();assert(!model.labCheck(missing,t).precise,'Required locus circle cannot be omitted');
+          const wrong=JSON.parse(JSON.stringify(sol));wrong.circles[0].r+=.8;assert(!model.labCheck(wrong,t).precise,'Incorrect locus radius fails verification');
+          for(const c of sol.circles){const p=sol.points[c.i];assert(p[0]-c.r>=0&&p[0]+c.r<=800&&p[1]-c.r>=0&&p[1]+c.r<=400,'Full locus circle fits the centred canvas')}
         }
         if(type==='build-golden-section'){assert(dist(pts.G,sol.points[2])<1e-7,'Golden-section guide matches verified point');assert(dist(pts.B,pts.C)===120&&Math.abs(dist(pts.A,pts.F)-dist(pts.A,pts.G))<1e-7,'Golden-section guide transfers the exact compass opening')}
         if(type==='build-semicircle')assert(dist(pts.T,sol.points[2])<1e-7&&dist(pts.M,sol.points[3])<1e-7,'Semicircle guide matches verified example');
@@ -1317,6 +1339,12 @@ async function run(){
         if(type==='build-asa')assert(key.querySelectorAll('[data-ag-angle-mark]').length>=2,'ASA answer marks both angles');
         if(type==='build-midpoint'||type==='build-bisector')assert(key.querySelectorAll('[data-ag-midpoint-tick]').length===2,'Midpoint marks show equal halves: '+type);
         if(type==='build-thirds')assert(key.querySelectorAll('[data-ag-thirds-tick]').length===3,'Trisection answer marks all three equal intervals');
+        if(type==='build-find-circle-centre'){
+          assert(pupil.querySelectorAll('[data-ag-given-circle]').length===1&&pupil.querySelectorAll('[data-ag-given-point]').length===2,'Pupil gets the circle and chord without the centre');
+          assert(!pupil.textContent.includes('Draw AB = 6 cm first'),'Given-circle pupil task does not ask to reconstruct its given chord');
+          assert(key.querySelectorAll('[data-ag-circle-centre-bisector]').length===2,'Circle centre key shows the two chord bisectors');
+        }
+        if(['build-two-distance-locus','build-equidistant-locus'].includes(type))assert(key.querySelector('[data-ag-locus-bisector]')&&key.querySelectorAll('[data-ag-solution-circle]').length===(type==='build-two-distance-locus'?2:1),'Locus key shows the required circles and bisector');
         if(type==='build-tangent')assert(key.querySelector('[data-ag-tangent-right-angle]'),'Tangent key marks perpendicular radius');
         if(type==='build-external-tangents')assert(key.querySelectorAll('[data-ag-external-tangent-right-angle]').length===2,'Both tangent contacts have right-angle markers');
         if(['build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','build-inscribed-pentagon'].includes(type)){
@@ -1373,12 +1401,12 @@ async function run(){
     // not a pre-filled solution. Check independently calculated residuals.
     {
       const M=win.TT99Goodies.angles;
-      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','build-centroid','build-external-tangents','build-inscribed-pentagon','shape-build']){
+      for(const family of ['build-midpoint','build-circle','build-sss','build-equilateral','build-perpendicular','build-right','build-rectangle','build-square','build-asa','build-rhombus','build-thirds','build-parallelogram','build-hypotenuse','build-semicircle','build-angle-bisector','build-golden-section','build-tangent','build-inscribed-square','build-inscribed-hexagon','build-inscribed-octagon','build-centroid','build-external-tangents','build-inscribed-pentagon','build-find-circle-centre','build-two-distance-locus','build-equidistant-locus','shape-build']){
         const enrich=doc.querySelector('#ag-enrich');if(!doc.querySelector('[data-ag-challenge-mode="'+family+'"]')&&!enrich.checked){enrich.click();await tick()}
         const choice=doc.querySelector('[data-ag-challenge-mode="'+family+'"]');assert(choice,'Assessed construction family available: '+family);choice.click();await tick();
         const t=cap().task,svg=doc.querySelector('.gd-ag-visual>svg'),tool=id=>doc.querySelector('[data-ag-tool="'+id+'"]'),option=id=>doc.querySelector('[data-ag-option="'+id+'"]'),set=(id,value)=>{const el=option(id);el.value=String(value);el.dispatchEvent(new win.Event('change',{bubbles:true}))},snap=on=>{if(option('snap').checked!==on)option('snap').click()},select=id=>{if(tool(id).getAttribute('aria-pressed')!=='true')tool(id).click()};
         const tap=p=>{const q=new win.DOMPoint(...p).matrixTransform(svg.getScreenCTM());for(const type of ['pointerdown','pointerup'])svg.dispatchEvent(new win.PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:177,button:0,buttons:type==='pointerup'?0:1,clientX:q.x,clientY:q.y}))};
-        const initial=cap().lab||M.labEmpty(),A=initial.points[0],B=initial.points[1],polar=(o,r,a)=>[o[0]+r*Math.cos(a*Math.PI/180),o[1]-r*Math.sin(a*Math.PI/180)],d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(p,q)=>d(p,q)<1e-6;
+        const initial=cap().lab||M.labEmpty(false,t),A=initial.points[0],B=initial.points[1],polar=(o,r,a)=>[o[0]+r*Math.cos(a*Math.PI/180),o[1]-r*Math.sin(a*Math.PI/180)],d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),near=(p,q)=>d(p,q)<1e-6;
         const line=(a,b)=>{select('segment');tap(a);tap(b)},point=p=>{select('point');tap(p)},ray=(o,base,a)=>{select('protractor');set('angle-graduation',1);tap(o);tap(base);const direction=(Math.atan2(o[1]-base[1],base[0]-o[0])*180/Math.PI+360)%360;if((a-direction+360)%360>180)svg.querySelector('[data-ag-guided-action="mirror"]').click();snap(false);tap(polar(o,180,a));snap(true);const drawn=cap().lab.rays.at(-1),actual=M.labRayAngle(cap().lab,drawn);assert(Math.abs(((actual-a+540)%360)-180)<1e-8,'Guided graduated ray has exact direction: '+family+' expected '+a+' actual '+actual)};
         // Set an instrument opening using the chosen physical scale, with a
         // small off-graduation pointer error. Do not snap to unrelated ink.
@@ -1387,6 +1415,23 @@ async function run(){
         assert(t.type===family,'Correct generated task selected');
         if(family==='build-midpoint'){
           select('point');tap([(A[0]+B[0])/2,A[1]]);verify();
+        }else if(family==='build-find-circle-centre'){
+          const g=initial.givenCircle,o=g.o,sign=Math.sign(o[1]-A[1]),expected=[o[0],o[1]+sign*g.r];
+          assert(svg.querySelectorAll('[data-ag-given-circle]').length===1&&svg.querySelectorAll('[data-ag-point-label]').length===2,'Given circle starts with two chord endpoints, not its centre');
+          point([expected[0],expected[1]+sign]);const C=cap().lab.points.find(p=>near(p,expected));assert(C,'A slightly offset tap snaps to given circumference');line(B,C);const chord=cap().lab,ci=chord.points.findIndex(p=>near(p,C));assert(chord.segments.some(e=>e.includes(1)&&e.includes(ci)),'Chord BC is committed: '+JSON.stringify({points:chord.points,segments:chord.segments}));
+          for(const [a,b] of [[A,B],[B,C]]){
+            const m=[(a[0]+b[0])/2,(a[1]+b[1])/2],length=d(a,b),opening=3.5,r=40*opening,u=[(b[0]-a[0])/length,(b[1]-a[1])/length],h=Math.sqrt(r*r-length*length/4),p=[m[0]-u[1]*h,m[1]+u[0]*h],q=[m[0]+u[1]*h,m[1]-u[0]*h];
+            circle(a,opening);circle(b,opening);point(p);point(q);
+            const pp=cap().lab.points.find(v=>near(v,p)),qq=cap().lab.points.find(v=>near(v,q));assert(pp&&qq,'Equal compass arcs locate perpendicular bisector endpoints');line(pp,qq);
+          }
+          point([o[0]+.6,o[1]-.6]);assert(cap().lab.points.some(p=>near(p,o)),'Centre snaps to the intersection of two constructed bisectors');const finished=cap().lab;assert(M.labCheck(finished,t).precise,'Circle-centre full drawing: '+JSON.stringify({task:t,points:finished.points,segments:finished.segments,givenCircle:finished.givenCircle,check:M.labCheck(finished,t)}));
+
+        }else if(family==='build-two-distance-locus'||family==='build-equidistant-locus'){
+          const eq=family==='build-equidistant-locus',mid=[(A[0]+B[0])/2,A[1]],r=t.length*40,h=eq?r:Math.sqrt(r*r-120*120);
+          if(eq){point(mid);const actualM=cap().lab.points.find(p=>near(p,mid));assert(actualM,'Locate midpoint of AB');ray(actualM,B,90);ray(actualM,B,270);circle(actualM,t.length);}
+          else{select('compass');set('length-graduation',.01);tap(A);snap(false);tap(polar(A,r+.09,90));snap(true);assert(Math.abs(cap().lab.circles.at(-1).r-r)<1e-7,'Exact given locus radius');tap(B);assert(Math.abs(cap().lab.circles.at(-1).r-r)<1e-7,'Transfer exact opening to B');}
+          for(const y of [mid[1]-h,mid[1]+h]){const q=[mid[0],y];point([q[0]+.6,q[1]-.6]);assert(cap().lab.points.some(p=>near(p,q)),'Locus construction snaps to each exact intersection');}
+          verify();
         }else if(family==='build-centroid'){
           ray(A,B,t.angle);circle(A,t.length);
           const C=polar(A,t.length*40,t.angle);point([C[0]+.6,C[1]-.6]);const actualC=cap().lab.points.find(p=>near(p,C));assert(actualC,'Construct triangle side using real compass and protractor');line(A,actualC);line(B,actualC);
@@ -1472,6 +1517,10 @@ async function run(){
           line(A,actualD);line(actualD,actualC);line(actualC,B);verify();
         }
         const result=verify(),paper=P.createDocument();paper.addCurrent(id,cap());const item=paper.list()[0];assert(result.precise&&P.answerGraphic(item),'Verified assessed construction retains teacher answer publication: '+family);
+        if(family==='build-find-circle-centre'){
+          tool('reset').click();assert(cap().lab.points.length===2&&cap().lab.circles.length===0&&svg.querySelectorAll('[data-ag-given-circle]').length===1,'Reset restores the given outline and removes the discovered centre');
+          assert(!M.labCheck(cap().lab,t).precise,'Reset drawing is no longer assessed as complete');
+        }
       }
     }
     doc.querySelector('[data-ag-workflow="build"]').click();await tick();
